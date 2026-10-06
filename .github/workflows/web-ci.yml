@@ -61,3 +61,7 @@ jobs:
         run: |
           test -f .next/standalone/server.js || { echo "Standalone server.js missing!"; exit 1; }
           echo "Next.js standalone build output verified successfully."
+
+      - name: Build Web Docker Image
+        run: docker build -t girvasa-web:ci .
+
