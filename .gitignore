@@ -1,4 +1,4 @@
-﻿# dependencies
+# dependencies
 node_modules/
 /.pnp
 .pnp.js
@@ -15,6 +15,7 @@ dist/
 # misc
 .DS_Store
 *.pem
+*.tsbuildinfo
 
 # debug logs
 npm-debug.log*
