@@ -29,7 +29,10 @@ export interface RequestOptions extends RequestInit {
   skipTenant?: boolean;
 }
 
-const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api/v1";
+const DEFAULT_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8080/api/v1";
 
 export class ApiClient {
   private baseUrl: string;
