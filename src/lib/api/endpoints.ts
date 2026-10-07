@@ -142,11 +142,11 @@ export const endpoints = {
       status?: string;
       unitId?: string;
       date?: string;
-    }) => api.get<VisitResponse[]>("/visitors/visits", { params }),
+    }) => api.get<VisitResponse[]>("/visits", { params }),
     checkIn: (visitId: string) =>
-      api.post<VisitResponse>(`/visitors/visits/${visitId}/check-in`),
+      api.post<VisitResponse>(`/visits/${visitId}/check-in`),
     checkOut: (visitId: string) =>
-      api.post<VisitResponse>(`/visitors/visits/${visitId}/check-out`),
+      api.post<VisitResponse>(`/visits/${visitId}/check-out`),
   },
 
   // Notices
@@ -204,14 +204,21 @@ export const endpoints = {
 
   // Parking
   parking: {
-    getAreas: () => api.get<ParkingAreaResponse[]>("/parking/areas"),
-    getSlots: (areaId?: string) =>
-      api.get<ParkingSlotResponse[]>("/parking/slots", { params: { areaId } }),
+    getAreas: async () => {
+      const res = await api.get<any>("/parking-areas");
+      return Array.isArray(res) ? res : res?.content || [];
+    },
+    getSlots: async (areaId?: string) => {
+      const res = await api.get<any>("/parking-slots", { params: { areaId } });
+      return Array.isArray(res) ? res : res?.content || [];
+    },
   },
 
   // Audit
   audit: {
-    getLogs: (params?: { eventType?: string; page?: number; limit?: number }) =>
-      api.get<AuditLogResponse[]>("/audit", { params }),
+    getLogs: async (params?: { eventType?: string; page?: number; limit?: number }) => {
+      const res = await api.get<any>("/audit/events", { params });
+      return Array.isArray(res) ? res : res?.content || [];
+    },
   },
 };

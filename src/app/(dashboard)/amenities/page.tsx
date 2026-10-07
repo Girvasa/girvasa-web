@@ -29,8 +29,13 @@ export default function AmenitiesPage() {
         endpoints.amenities.getAmenities(),
         endpoints.amenities.getBookings(),
       ]);
-      setAmenities(amenitiesData || []);
-      setBookings(bookingsData || []);
+      const extractArray = (res: any) => {
+        if (Array.isArray(res)) return res;
+        if (res && Array.isArray(res.content)) return res.content;
+        return [];
+      };
+      setAmenities(extractArray(amenitiesData));
+      setBookings(extractArray(bookingsData));
     } catch (err: any) {
       setError(err.detail || "Unable to load amenities data.");
     } finally {

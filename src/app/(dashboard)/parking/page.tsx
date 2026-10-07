@@ -27,8 +27,13 @@ export default function ParkingPage() {
         endpoints.parking.getAreas(),
         endpoints.parking.getSlots(selectedAreaId || undefined),
       ]);
-      setAreas(areasData || []);
-      setSlots(slotsData || []);
+      const extractArray = (res: any) => {
+        if (Array.isArray(res)) return res;
+        if (res && Array.isArray(res.content)) return res.content;
+        return [];
+      };
+      setAreas(extractArray(areasData));
+      setSlots(extractArray(slotsData));
     } catch (err: any) {
       setError(err.detail || "Unable to load parking configuration.");
     } finally {

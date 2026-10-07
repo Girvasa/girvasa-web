@@ -46,20 +46,20 @@ export default function AuditPage() {
   }
 
   const filtered = logs.filter(
-    (l) =>
+    (l: any) =>
       l.eventType?.toLowerCase().includes(search.toLowerCase()) ||
-      l.actorName?.toLowerCase().includes(search.toLowerCase()) ||
-      l.description?.toLowerCase().includes(search.toLowerCase())
+      (l.userName || l.actorName)?.toLowerCase().includes(search.toLowerCase()) ||
+      (l.metadata || l.description || l.action)?.toLowerCase().includes(search.toLowerCase())
   );
 
   const columns: Column<AuditLogResponse>[] = [
     {
       header: "Timestamp",
-      accessor: (l) => <span className="font-mono text-xs">{formatDateTime(l.timestamp)}</span>,
+      accessor: (l: any) => <span className="font-mono text-xs">{formatDateTime(l.createdAt || l.timestamp)}</span>,
     },
     {
       header: "Security / Business Event",
-      accessor: (l) => (
+      accessor: (l: any) => (
         <span className="font-mono font-semibold text-blue-600 text-xs">
           {l.eventType}
         </span>
@@ -67,23 +67,27 @@ export default function AuditPage() {
     },
     {
       header: "Actor",
-      accessor: (l) => <span className="font-medium text-slate-800">{l.actorName || l.actorUserId || "System"}</span>,
+      accessor: (l: any) => <span className="font-medium text-slate-800">{l.userName || l.actorName || l.actorUserId || "System"}</span>,
     },
     {
       header: "Target Entity",
-      accessor: (l) => (
+      accessor: (l: any) => (
         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700">
-          {l.targetEntity || "General"}
+          {l.resource || l.targetEntity || "General"}
         </span>
       ),
     },
     {
       header: "Audit Description",
-      accessor: (l) => <span className="text-slate-600 truncate max-w-sm block">{l.description}</span>,
+      accessor: (l: any) => (
+        <span className="text-slate-600 truncate max-w-sm block">
+          {l.metadata || l.description || l.action || "—"}
+        </span>
+      ),
     },
     {
       header: "IP Address",
-      accessor: (l) => <span className="font-mono text-slate-400 text-xs">{l.ipAddress || "—"}</span>,
+      accessor: (l: any) => <span className="font-mono text-slate-400 text-xs">{l.ipAddress || "—"}</span>,
     },
   ];
 

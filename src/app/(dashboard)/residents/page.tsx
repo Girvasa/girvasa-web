@@ -109,10 +109,10 @@ export default function ResidentsPage() {
   const columns: Column<MemberResponse>[] = [
     {
       header: "Resident / Member",
-      accessor: (m) => (
+      accessor: (m: any) => (
         <div>
-          <div className="font-semibold text-slate-900">{m.fullName}</div>
-          <div className="text-[11px] text-slate-500 font-mono">{m.mobileNumber}</div>
+          <div className="font-semibold text-slate-900">{m.user?.fullName || m.fullName || "—"}</div>
+          <div className="text-[11px] text-slate-500 font-mono">{m.user?.mobileNumber || m.mobileNumber || "—"}</div>
         </div>
       ),
     },
@@ -128,11 +128,15 @@ export default function ResidentsPage() {
       header: "Roles",
       accessor: (m) => (
         <div className="flex flex-wrap gap-1">
-          {m.roles?.map((r) => (
-            <span key={r} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700">
-              {r}
-            </span>
-          ))}
+          {m.roles?.map((r: any, idx: number) => {
+            const roleName = typeof r === "object" ? r.name || r.code : String(r);
+            const roleKey = typeof r === "object" ? r.id || r.code || idx : `${r}-${idx}`;
+            return (
+              <span key={roleKey} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700">
+                {roleName}
+              </span>
+            );
+          })}
         </div>
       ),
     },
