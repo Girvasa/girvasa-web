@@ -10,7 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   requestOtp: (mobileNumber: string) => Promise<OtpResponseDto>;
-  verifyOtp: (mobileNumber: string, otpCode: string) => Promise<void>;
+  verifyOtp: (mobileNumber: string, otpCode: string, requestId?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -20,6 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [lastRequestId, setLastRequestId] = useState<string | null>(null);
 
   const refreshUser = useCallback(async () => {
     const token = tokenStorage.getAccessToken();
@@ -45,11 +46,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshUser]);
 
   const requestOtp = async (mobileNumber: string): Promise<OtpResponseDto> => {
-    return await endpoints.auth.requestOtp(mobileNumber);
+    const res = await endpoints.auth.requestOtp(mobileNumber);
+    const challengeId = res.requestId || res.challengeId;
+    if (challengeId) {
+      setLastRequestId(challengeId);
+    }
+    return res;
   };
 
-  const verifyOtp = async (mobileNumber: string, otpCode: string): Promise<void> => {
-    const tokens = await endpoints.auth.verifyOtp(mobileNumber, otpCode);
+  const verifyOtp = async (mobileNumber: string, otpCode: string, requestId?: string): Promise<void> => {
+    const effectiveRequestId = requestId || lastRequestId || undefined;
+    const tokens = await endpoints.auth.verifyOtp(mobileNumber, otpCode, effectiveRequestId);
     if (tokens.accessToken) {
       tokenStorage.setAccessToken(tokens.accessToken);
     }

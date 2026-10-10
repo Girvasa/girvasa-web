@@ -32,5 +32,6 @@ export interface UnitResponse {
   unitType: UnitType;
   status: UnitStatus;
   squareFeet?: number;
+  configuration?: string;
   createdAt: string;
 }

@@ -56,14 +56,18 @@ export function Table<T>({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {data.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-400">
-                  {emptyMessage}
-                </td>
-              </tr>
-            ) : (
-              data.map((row) => (
+            {(() => {
+              const rows = Array.isArray(data) ? data : (data as any)?.content || [];
+              if (rows.length === 0) {
+                return (
+                  <tr>
+                    <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-400">
+                      {emptyMessage}
+                    </td>
+                  </tr>
+                );
+              }
+              return rows.map((row: any) => (
                 <tr
                   key={keyExtractor(row)}
                   onClick={() => onRowClick && onRowClick(row)}
@@ -82,8 +86,8 @@ export function Table<T>({
                     </td>
                   ))}
                 </tr>
-              ))
-            )}
+              ));
+            })()}
           </tbody>
         </table>
       </div>

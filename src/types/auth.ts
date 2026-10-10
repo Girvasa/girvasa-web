@@ -29,14 +29,18 @@ export interface OtpRequestDto {
 }
 
 export interface OtpResponseDto {
+  requestId?: string;
   challengeId?: string;
   expiresInSeconds?: number;
+  resendAfterSeconds?: number;
   message?: string;
 }
 
 export interface OtpVerifyRequestDto {
+  requestId?: string;
   mobileNumber: string;
-  otpCode: string;
+  otp: string;
+  otpCode?: string;
 }
 
 export interface TokenRefreshRequestDto {
