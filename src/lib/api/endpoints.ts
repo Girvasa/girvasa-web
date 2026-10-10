@@ -21,6 +21,12 @@ import {
   VendorResponse,
 } from "@/types/operation";
 import { ExecutiveDashboardResponse } from "@/types/report";
+import {
+  SubscriptionPlanDto,
+  SelfServeRegistrationRequest,
+  SelfServeRegistrationResponse,
+  OnboardingProgressResponse,
+} from "@/types/subscription";
 
 export const endpoints = {
   // Auth
@@ -47,6 +53,15 @@ export const endpoints = {
       api.get<UserSocietyMembership[]>("/auth/societies", { skipTenant: true }),
     getCurrentSocietyContext: () =>
       api.get<CurrentSocietyContext>("/societies/current"),
+    createSociety: (data: {
+      name: string;
+      code: string;
+      legalName?: string;
+      city?: string;
+      state?: string;
+      countryCode?: string;
+      pincode?: string;
+    }) => api.post<any>("/societies", data, { skipTenant: true }),
   },
 
   // Executive Dashboard & Reporting
@@ -281,5 +296,17 @@ export const endpoints = {
       const res = await api.get<any>("/audit/events", { params });
       return Array.isArray(res) ? res : res?.content || [];
     },
+  },
+
+  // Subscription & Self-Serve Onboarding
+  subscription: {
+    getPublicPlans: () =>
+      api.get<SubscriptionPlanDto[]>("/public/plans", { skipAuth: true, skipTenant: true }),
+    registerSocietyWithTrial: (payload: SelfServeRegistrationRequest) =>
+      api.post<SelfServeRegistrationResponse>("/public/onboarding/register", payload, { skipAuth: true, skipTenant: true }),
+    getOnboardingProgress: () =>
+      api.get<OnboardingProgressResponse>("/societies/current/onboarding"),
+    updateOnboardingStep: (targetStep: string) =>
+      api.patch<OnboardingProgressResponse>("/societies/current/onboarding/step", { targetStep }),
   },
 };

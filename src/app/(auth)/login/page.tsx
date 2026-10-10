@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Phone,
   KeyRound,
@@ -252,6 +253,17 @@ export default function LoginPage() {
                 <span>{isLoading ? "Dispatching OTP..." : "Send Verification Code"}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
+
+              <div className="mt-2 pt-3 border-t border-slate-100 text-center">
+                <p className="text-[11px] text-slate-500 mb-1.5">Setting up a new society or residential project?</p>
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#006a61] hover:underline"
+                >
+                  <Building className="w-3.5 h-3.5" />
+                  <span>Register Society & Start 14-Day Free Trial →</span>
+                </Link>
+              </div>
             </form>
           )}
 
