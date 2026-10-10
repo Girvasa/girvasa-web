@@ -29,30 +29,46 @@ export interface EventResponse {
   id: string;
   societyId: string;
   title: string;
-  description: string;
-  eventDate: string;
+  description?: string;
+  eventType?: string;
+  status?: string;
+  startDate?: string;
+  startTime?: string;
+  endDate?: string;
+  endTime?: string;
+  eventDate?: string;
   venue?: string;
+  amenityName?: string;
   organizerName?: string;
   rsvpCount?: number;
+  maxAttendees?: number;
+  isRsvpRequired?: boolean;
 }
 
 export interface PollOption {
   id: string;
   optionText: string;
-  voteCount: number;
+  voteCount?: number;
 }
 
 export interface PollResponse {
   id: string;
   societyId: string;
-  question: string;
+  title?: string;
+  question?: string;
   description?: string;
-  isAnonymous: boolean;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-  options: PollOption[];
-  totalVotes: number;
+  pollType?: string;
+  status?: string;
+  isAnonymous?: boolean;
+  startDate?: string;
+  endDate?: string;
+  startsAt?: string;
+  expiresAt?: string;
+  isActive?: boolean;
+  options?: PollOption[];
+  totalVotes?: number;
+  totalVoters?: number;
+  hasVoted?: boolean;
 }
 
 export interface DocumentResponse {

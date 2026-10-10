@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { Menu, Bell } from "lucide-react";
+import { Menu } from "lucide-react";
 import { SocietySelector } from "./SocietySelector";
 import { UserProfileMenu } from "./UserProfileMenu";
+import { NotificationDropdown } from "./NotificationDropdown";
 
 export interface HeaderProps {
   onToggleSidebar: () => void;
@@ -23,15 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       </div>
 
       <div className="flex items-center space-x-3 sm:space-x-4">
-        <div className="relative">
-          <button className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-600"></span>
-            </span>
-          </button>
-        </div>
+        <NotificationDropdown />
 
         <div className="h-6 w-px bg-slate-200" />
 
