@@ -53,6 +53,15 @@ export const endpoints = {
       api.get<UserSocietyMembership[]>("/auth/societies", { skipTenant: true }),
     getCurrentSocietyContext: () =>
       api.get<CurrentSocietyContext>("/societies/current"),
+    createSociety: (data: {
+      name: string;
+      code: string;
+      legalName?: string;
+      city?: string;
+      state?: string;
+      countryCode?: string;
+      pincode?: string;
+    }) => api.post<any>("/societies", data, { skipTenant: true }),
   },
 
   // Executive Dashboard & Reporting

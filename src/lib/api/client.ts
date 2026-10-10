@@ -29,10 +29,23 @@ export interface RequestOptions extends RequestInit {
   skipTenant?: boolean;
 }
 
-const DEFAULT_BASE_URL =
+function normalizeBaseUrl(raw?: string): string {
+  let url = (raw || "").trim();
+  if (!url) return "http://localhost:8080/api/v1";
+  if (url.endsWith("/")) {
+    url = url.slice(0, -1);
+  }
+  if (!url.endsWith("/api/v1")) {
+    url = `${url}/api/v1`;
+  }
+  return url;
+}
+
+const DEFAULT_BASE_URL = normalizeBaseUrl(
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8080/api/v1";
+  "http://localhost:8080/api/v1"
+);
 
 export class ApiClient {
   private baseUrl: string;
@@ -40,11 +53,11 @@ export class ApiClient {
   private refreshSubscribers: ((token: string | null) => void)[] = [];
 
   constructor(baseUrl: string = DEFAULT_BASE_URL) {
-    this.baseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    this.baseUrl = normalizeBaseUrl(baseUrl);
   }
 
   setBaseUrl(url: string) {
-    this.baseUrl = url.endsWith("/") ? url.slice(0, -1) : url;
+    this.baseUrl = normalizeBaseUrl(url);
   }
 
   private onTokenRefreshed(token: string | null) {
@@ -87,6 +100,7 @@ export class ApiClient {
       "Content-Type": "application/json",
       Accept: "application/json",
       "X-Request-Id": this.generateRequestId(),
+      "X-Tunnel-Skip-Anti-Phishing-Page": "true",
     };
 
     if (!skipAuth) {

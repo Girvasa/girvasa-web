@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { endpoints } from "@/lib/api/endpoints";
 import { tokenStorage } from "@/lib/auth/tokenStorage";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { useTenant } from "@/lib/tenant/TenantContext";
 import { SubscriptionPlanDto } from "@/types/subscription";
 
 const FALLBACK_PLANS: SubscriptionPlanDto[] = [
@@ -62,6 +64,8 @@ const FALLBACK_PLANS: SubscriptionPlanDto[] = [
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
+  const { refreshTenant } = useTenant();
 
   const [plans, setPlans] = useState<SubscriptionPlanDto[]>(FALLBACK_PLANS);
   const [selectedPlanCode, setSelectedPlanCode] = useState<string>("GROWTH_300");
@@ -142,6 +146,10 @@ export default function RegisterPage() {
       tokenStorage.setAccessToken(response.accessToken);
       tokenStorage.setRefreshToken(response.refreshToken);
       tokenStorage.setActiveSocietyId(response.societyId);
+
+      // Hydrate authentication session & tenant context before navigation
+      await refreshUser();
+      await refreshTenant();
 
       // Transition to setup wizard
       router.push("/onboarding");

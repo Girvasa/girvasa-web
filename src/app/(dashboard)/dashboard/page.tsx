@@ -18,6 +18,7 @@ import {
   Radio,
   FileText,
   Calendar,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useTenant } from "@/lib/tenant/TenantContext";
@@ -27,6 +28,7 @@ import { BillSummaryResponse } from "@/types/billing";
 import { VisitResponse } from "@/types/visitor";
 import { ComplaintResponse } from "@/types/complaint";
 import { UnitResponse } from "@/types/structure";
+import { OnboardingProgressResponse } from "@/types/subscription";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { ErrorState } from "@/components/common/ErrorState";
@@ -39,6 +41,7 @@ export default function DashboardPage() {
   const [visits, setVisits] = useState<VisitResponse[]>([]);
   const [complaints, setComplaints] = useState<ComplaintResponse[]>([]);
   const [units, setUnits] = useState<UnitResponse[]>([]);
+  const [onboardingProgress, setOnboardingProgress] = useState<OnboardingProgressResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +60,7 @@ export default function DashboardPage() {
         endpoints.complaints.getComplaints(),
         endpoints.structure.getUnits(),
         endpoints.reports.getAccountingSummary().catch(() => null),
+        endpoints.subscription.getOnboardingProgress().catch(() => null),
       ]);
 
       if (results[0].status === "fulfilled" && results[0].value) {
@@ -76,6 +80,9 @@ export default function DashboardPage() {
       }
       if (results[5].status === "fulfilled" && results[5].value) {
         setAccountingSummary(results[5].value);
+      }
+      if (results[6].status === "fulfilled" && results[6].value) {
+        setOnboardingProgress(results[6].value);
       }
     } catch (err: any) {
       setError(err?.detail || "Unable to load society dashboard analytics.");
@@ -204,6 +211,32 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Onboarding Wizard Setup In-Progress Banner */}
+      {onboardingProgress && !onboardingProgress.completed && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-teal-500/10 to-indigo-500/10 border border-teal-600/20 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-[#006a61] text-white shrink-0 shadow-sm">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[#070235]">
+                Society Setup In Progress (Step {onboardingProgress.onboardingStatus === "WIZARD_STEP_1" ? "1" : onboardingProgress.onboardingStatus === "WIZARD_STEP_2" ? "2" : onboardingProgress.onboardingStatus === "WIZARD_STEP_3" ? "3" : "4"} of 4)
+              </h3>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {onboardingProgress.totalBuildings} Towers and {onboardingProgress.totalUnits} Units configured. Finish setting up your inventory and residents to unlock all society management capabilities.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/onboarding"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#006a61] hover:bg-[#00524b] text-white text-xs font-semibold shadow-sm transition-all shrink-0"
+          >
+            <span>Resume Setup Wizard</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
 
       {/* 2. Key Performance Metrics Grid (5 KPI Cards with Colored Top Bar) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
