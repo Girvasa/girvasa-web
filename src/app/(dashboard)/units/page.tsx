@@ -8,6 +8,11 @@ import {
   Download,
   Building,
   CheckCircle2,
+  Upload,
+  FileSpreadsheet,
+  Check,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { Table, Column } from "@/components/common/Table";
 import { Modal } from "@/components/common/Modal";
@@ -35,6 +40,25 @@ export default function UnitsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Bulk Excel/CSV Import state
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importBuildingId, setImportBuildingId] = useState("");
+  interface ParsedUnitRow {
+    unitNumber: string;
+    floorNumber: number;
+    configuration: string;
+    areaSqft: number;
+    unitType: string;
+    isValid: boolean;
+    error?: string;
+  }
+  const [parsedRows, setParsedRows] = useState<ParsedUnitRow[]>([]);
+  const [fileName, setFileName] = useState<string>("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
+  const [bulkImportError, setBulkImportError] = useState<string | null>(null);
+  const [bulkImportSuccess, setBulkImportSuccess] = useState<string | null>(null);
+
   // Form state for creating unit
   const [newUnitData, setNewUnitData] = useState({
     buildingId: "",
@@ -61,19 +85,192 @@ export default function UnitsPage() {
       setUnits(unitsData || []);
       const bList = buildingsData || [];
       setBuildings(bList);
-      if (bList.length > 0 && !newUnitData.buildingId) {
-        setNewUnitData((prev) => ({ ...prev, buildingId: bList[0].id }));
+      if (bList.length > 0) {
+        if (!newUnitData.buildingId) {
+          setNewUnitData((prev) => ({ ...prev, buildingId: bList[0].id }));
+        }
+        if (!importBuildingId) {
+          setImportBuildingId(bList[0].id);
+        }
       }
     } catch (err: any) {
       setError(err?.detail || "Unable to load society units.");
     } finally {
       setIsLoading(false);
     }
-  }, [activeSocietyId, selectedBuildingId, selectedStatus, search, newUnitData.buildingId]);
+  }, [activeSocietyId, selectedBuildingId, selectedStatus, search, newUnitData.buildingId, importBuildingId]);
 
   useEffect(() => {
     fetchUnits();
   }, [fetchUnits]);
+
+  const handleDownloadSampleCsv = () => {
+    let csv = "Unit Number,Floor Number,Configuration,Area (SqFt),Type\n";
+    // 46 Flats across 7 floors:
+    // Floors 1 to 5: 7 flats each (flats 1 & 2 are 3BHK 1250 sqft, flats 3 to 7 are 2BHK 950 sqft)
+    for (let floor = 1; floor <= 5; floor++) {
+      for (let flat = 1; flat <= 7; flat++) {
+        const unitNo = `${floor}0${flat}`;
+        const config = flat <= 2 ? "3BHK" : "2BHK";
+        const area = flat <= 2 ? 1250 : 950;
+        csv += `${unitNo},${floor},${config},${area},RESIDENTIAL\n`;
+      }
+    }
+    // Floor 6: 6 flats (flats 1 & 2 are 3BHK, flats 3 to 6 are 2BHK)
+    for (let flat = 1; flat <= 6; flat++) {
+      const unitNo = `60${flat}`;
+      const config = flat <= 2 ? "3BHK" : "2BHK";
+      const area = flat <= 2 ? 1250 : 950;
+      csv += `${unitNo},6,${config},${area},RESIDENTIAL\n`;
+    }
+    // Floor 7: 5 flats (flats 1 & 2 are 3BHK, flats 3 to 5 are 2BHK)
+    for (let flat = 1; flat <= 5; flat++) {
+      const unitNo = `70${flat}`;
+      const config = flat <= 2 ? "3BHK" : "2BHK";
+      const area = flat <= 2 ? 1250 : 950;
+      csv += `${unitNo},7,${config},${area},RESIDENTIAL\n`;
+    }
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "girvasa_46_flats_sample_roster.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileParse = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBulkImportError(null);
+    setBulkImportSuccess(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = (event.target?.result as string) || "";
+        const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        if (lines.length <= 1) {
+          setBulkImportError("The uploaded CSV file is empty or contains only headers.");
+          setParsedRows([]);
+          return;
+        }
+
+        const headers = lines[0].split(",").map((h) => h.replace(/["']/g, "").trim().toLowerCase());
+        const unitIdx = headers.findIndex((h) => h.includes("unit") || h.includes("flat"));
+        const floorIdx = headers.findIndex((h) => h.includes("floor"));
+        const configIdx = headers.findIndex((h) => h.includes("config") || h.includes("bhk"));
+        const areaIdx = headers.findIndex((h) => h.includes("area") || h.includes("sqft"));
+        const typeIdx = headers.findIndex((h) => h.includes("type"));
+
+        const rows: ParsedUnitRow[] = [];
+        const seenUnits = new Set<string>();
+
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(",").map((c) => c.replace(/["']/g, "").trim());
+          if (cols.length < 2) continue;
+
+          const unitNumber = unitIdx !== -1 ? cols[unitIdx] : cols[0];
+          const floorNumber = floorIdx !== -1 ? parseInt(cols[floorIdx], 10) : parseInt(cols[1], 10);
+          const configuration = configIdx !== -1 && cols[configIdx] ? cols[configIdx].toUpperCase() : "2BHK";
+          const areaSqft = areaIdx !== -1 && cols[areaIdx] ? parseFloat(cols[areaIdx]) : (configuration === "3BHK" ? 1250 : 950);
+          const unitType = typeIdx !== -1 && cols[typeIdx] ? cols[typeIdx].toUpperCase() : "RESIDENTIAL";
+
+          let isValid = true;
+          let errorMsg: string | undefined;
+
+          if (!unitNumber) {
+            isValid = false;
+            errorMsg = "Missing unit number";
+          } else if (seenUnits.has(unitNumber.toUpperCase())) {
+            isValid = false;
+            errorMsg = `Duplicate unit (${unitNumber})`;
+          } else if (isNaN(floorNumber) || floorNumber < 0) {
+            isValid = false;
+            errorMsg = "Invalid floor level";
+          }
+
+          if (unitNumber) {
+            seenUnits.add(unitNumber.toUpperCase());
+          }
+
+          rows.push({
+            unitNumber,
+            floorNumber: isNaN(floorNumber) ? 1 : floorNumber,
+            configuration: configuration || "2BHK",
+            areaSqft: isNaN(areaSqft) ? 950 : areaSqft,
+            unitType: unitType || "RESIDENTIAL",
+            isValid,
+            error: errorMsg,
+          });
+        }
+
+        if (rows.length === 0) {
+          setBulkImportError("No valid rows could be parsed from the file.");
+        }
+        setParsedRows(rows);
+      } catch (err: any) {
+        setBulkImportError("Failed to parse file: " + (err.message || "Unknown error"));
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleExecuteBulkImport = async () => {
+    if (!importBuildingId) {
+      setBulkImportError("Please select a target building.");
+      return;
+    }
+    const validRows = parsedRows.filter((r) => r.isValid);
+    if (validRows.length === 0) {
+      setBulkImportError("No valid unit rows to import.");
+      return;
+    }
+
+    setIsImporting(true);
+    setBulkImportError(null);
+    setBulkImportSuccess(null);
+    setImportProgress({ current: 0, total: validRows.length });
+
+    let successCount = 0;
+    const failures: string[] = [];
+
+    for (let i = 0; i < validRows.length; i++) {
+      const row = validRows[i];
+      try {
+        await endpoints.structure.createUnit({
+          buildingId: importBuildingId,
+          unitNumber: row.unitNumber,
+          floorNumber: row.floorNumber,
+          unitType: row.unitType,
+          configuration: row.configuration,
+          areaSqft: row.areaSqft,
+        });
+        successCount++;
+      } catch (err: any) {
+        failures.push(`${row.unitNumber}: ${err.detail || err.message || "Failed"}`);
+      }
+      setImportProgress({ current: i + 1, total: validRows.length });
+    }
+
+    setIsImporting(false);
+    if (failures.length > 0) {
+      setBulkImportError(`Imported ${successCount} flats. Failed ${failures.length} flats: ${failures.slice(0, 3).join(", ")}${failures.length > 3 ? "..." : ""}`);
+    } else {
+      setBulkImportSuccess(`Successfully imported all ${successCount} flats into the building!`);
+      setTimeout(() => {
+        setIsImportModalOpen(false);
+        setParsedRows([]);
+        setFileName("");
+        setBulkImportSuccess(null);
+        setImportProgress(null);
+      }, 1800);
+    }
+    fetchUnits();
+  };
 
   const handleCreateUnit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,6 +429,18 @@ export default function UnitsPage() {
             >
               <Download className="w-4 h-4 text-slate-500" />
               <span>Export Unit Roster (CSV)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsImportModalOpen(true);
+                setBulkImportError(null);
+                setBulkImportSuccess(null);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-50 border border-teal-200 text-[#006a61] text-xs font-semibold shadow-sm hover:bg-teal-100/80 transition-colors"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-[#006a61]" />
+              <span>Import Flats (Excel / CSV)</span>
             </button>
             <button
               type="button"
@@ -437,6 +646,235 @@ export default function UnitsPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Bulk Excel/CSV Import Modal */}
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={() => {
+          if (!isImporting) {
+            setIsImportModalOpen(false);
+            setBulkImportError(null);
+            setBulkImportSuccess(null);
+          }
+        }}
+        title="Bulk Ingest Flats (Excel / CSV Spreadsheet)"
+        description="Upload a structured CSV/Excel sheet to automatically create all flats across floors with their 2BHK/3BHK classifications."
+        maxWidth="2xl"
+      >
+        <div className="space-y-4">
+          {bulkImportError && (
+            <div className="p-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{bulkImportError}</span>
+            </div>
+          )}
+
+          {bulkImportSuccess && (
+            <div className="p-3 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 font-medium">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{bulkImportSuccess}</span>
+            </div>
+          )}
+
+          {/* Building Selection */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Target Building</label>
+            <select
+              value={importBuildingId}
+              onChange={(e) => setImportBuildingId(e.target.value)}
+              disabled={isImporting}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#070235]"
+            >
+              {buildings.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Step 1: Template Download */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="font-bold text-xs text-[#070235] block">Step 1: Download Standard Template</span>
+              <span className="text-[11px] text-slate-500">
+                Pre-configured with 46 flats across 7 floors (Floors 1-5: 7 flats, Floor 6: 6 flats, Floor 7: 5 flats).
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleDownloadSampleCsv}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-[#070235] text-xs font-semibold rounded-lg shadow-sm transition-all shrink-0"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-600" />
+              <span>Download 46-Flat Template (.csv)</span>
+            </button>
+          </div>
+
+          {/* Step 2: File Upload Dropzone */}
+          <div className="p-4 rounded-xl border-2 border-dashed border-teal-200 bg-teal-50/40 text-center">
+            <Upload className="w-8 h-8 text-[#006a61] mx-auto mb-2 opacity-80" />
+            <label className="cursor-pointer">
+              <span className="text-xs font-bold text-[#006a61] hover:underline block">
+                Click here to choose or upload your Excel / CSV file
+              </span>
+              <span className="text-[11px] text-slate-500 block mt-0.5">
+                Accepts .csv exported from Microsoft Excel, Google Sheets, or Apple Numbers
+              </span>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleFileParse}
+                disabled={isImporting}
+                className="hidden"
+              />
+            </label>
+            {fileName && (
+              <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white border border-teal-300 text-xs font-semibold text-teal-800 shadow-sm">
+                <FileSpreadsheet className="w-3.5 h-3.5 text-[#006a61]" />
+                <span>Selected: {fileName}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Step 3: Live Preview & Inspection */}
+          {parsedRows.length > 0 && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#070235]">Ingestion Inspection &amp; Preview</span>
+                <span className="text-[11px] text-slate-500">
+                  {parsedRows.filter((r) => r.isValid).length} of {parsedRows.length} valid
+                </span>
+              </div>
+
+              {/* Metric Cards */}
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Total Flats</span>
+                  <span className="text-base font-bold text-[#070235]">{parsedRows.length}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-teal-50 border border-teal-200">
+                  <span className="text-[10px] text-teal-600 uppercase font-semibold block">3 BHK Units</span>
+                  <span className="text-base font-bold text-[#006a61]">
+                    {parsedRows.filter((r) => r.configuration === "3BHK").length}
+                  </span>
+                </div>
+                <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-200">
+                  <span className="text-[10px] text-indigo-600 uppercase font-semibold block">2 BHK Units</span>
+                  <span className="text-base font-bold text-[#070235]">
+                    {parsedRows.filter((r) => r.configuration === "2BHK").length}
+                  </span>
+                </div>
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Total Floors</span>
+                  <span className="text-base font-bold text-slate-800">
+                    {Math.max(...parsedRows.map((r) => r.floorNumber), 1)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Scrollable Preview Table */}
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 text-xs">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 text-slate-600 sticky top-0 border-b border-slate-200 font-semibold text-[11px]">
+                    <tr>
+                      <th className="py-1.5 px-2.5">Unit #</th>
+                      <th className="py-1.5 px-2.5">Floor</th>
+                      <th className="py-1.5 px-2.5">Configuration</th>
+                      <th className="py-1.5 px-2.5">Assessable Area</th>
+                      <th className="py-1.5 px-2.5 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {parsedRows.slice(0, 15).map((row, idx) => (
+                      <tr key={idx} className={row.isValid ? "hover:bg-slate-50/50" : "bg-rose-50/50"}>
+                        <td className="py-1.5 px-2.5 font-bold text-slate-900">{row.unitNumber}</td>
+                        <td className="py-1.5 px-2.5 text-slate-600">Floor {row.floorNumber}</td>
+                        <td className="py-1.5 px-2.5">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              row.configuration === "3BHK"
+                                ? "bg-teal-100 text-[#006a61]"
+                                : "bg-slate-100 text-slate-700"
+                            }`}
+                          >
+                            {row.configuration}
+                          </span>
+                        </td>
+                        <td className="py-1.5 px-2.5 text-slate-600">{row.areaSqft} sq.ft</td>
+                        <td className="py-1.5 px-2.5 text-right">
+                          {row.isValid ? (
+                            <span className="inline-flex items-center text-emerald-700 text-[10px] font-semibold gap-0.5">
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              Ready
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center text-rose-700 text-[10px] font-semibold gap-0.5">
+                              <AlertCircle className="w-3 h-3 text-rose-600" />
+                              {row.error}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {parsedRows.length > 15 && (
+                <p className="text-[10px] text-slate-400 text-center italic">
+                  Showing first 15 of {parsedRows.length} units. All valid units will be ingested.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Progress Indicator */}
+          {isImporting && importProgress && (
+            <div className="space-y-1.5 p-3 rounded-xl bg-teal-50 border border-teal-200">
+              <div className="flex justify-between text-xs font-semibold text-teal-900">
+                <span className="flex items-center gap-1.5">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#006a61]" />
+                  Ingesting units into society database...
+                </span>
+                <span>
+                  {importProgress.current} / {importProgress.total} (
+                  {Math.round((importProgress.current / importProgress.total) * 100)}%)
+                </span>
+              </div>
+              <div className="w-full h-2 bg-teal-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#006a61] transition-all duration-200"
+                  style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Action Footer */}
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button
+              variant="outline"
+              type="button"
+              disabled={isImporting}
+              onClick={() => setIsImportModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              type="button"
+              disabled={isImporting || parsedRows.filter((r) => r.isValid).length === 0}
+              onClick={handleExecuteBulkImport}
+              isLoading={isImporting}
+              className="bg-[#006a61] hover:bg-[#00524b] text-white"
+            >
+              {isImporting
+                ? "Ingesting..."
+                : `Commit & Ingest ${parsedRows.filter((r) => r.isValid).length} Flats`}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
