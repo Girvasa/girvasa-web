@@ -338,7 +338,7 @@ export default function UnitsPage() {
       accessor: (u) => (
         <div>
           <span className="font-semibold text-slate-800 text-xs block">{u.buildingName || "Main Building"}</span>
-          <span className="text-[11px] text-[#006a61] font-medium">{u.wingName ? `Wing ${u.wingName}` : "Wing —"}</span>
+          <span className="text-[11px] text-[#006a61] font-medium">{u.wingName ? `Wing ${u.wingName}` : "Single Tower"}</span>
         </div>
       ),
     },
@@ -532,7 +532,7 @@ export default function UnitsPage() {
             <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
               <span className="text-slate-400 block mb-1">Building Wing</span>
               <span className="font-mono font-bold text-[#070235]">
-                {selectedUnit?.wingName ? `Wing ${selectedUnit.wingName}` : "Standard"}
+                {selectedUnit?.wingName ? `Wing ${selectedUnit.wingName}` : "Single Tower"}
               </span>
             </div>
           </div>
