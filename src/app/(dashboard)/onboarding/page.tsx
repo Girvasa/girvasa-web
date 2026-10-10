@@ -23,6 +23,23 @@ import { OnboardingProgressResponse } from "@/types/subscription";
 import { BuildingResponse } from "@/types/structure";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
+export interface FloorConfig {
+  floorNumber: number;
+  totalFlats: number;
+  threeBhkCount: number;
+  twoBhkCount: number;
+}
+
+const DEFAULT_7_FLOOR_46_FLATS_PRESET: FloorConfig[] = [
+  { floorNumber: 1, totalFlats: 7, threeBhkCount: 2, twoBhkCount: 5 },
+  { floorNumber: 2, totalFlats: 7, threeBhkCount: 2, twoBhkCount: 5 },
+  { floorNumber: 3, totalFlats: 7, threeBhkCount: 2, twoBhkCount: 5 },
+  { floorNumber: 4, totalFlats: 7, threeBhkCount: 2, twoBhkCount: 5 },
+  { floorNumber: 5, totalFlats: 7, threeBhkCount: 2, twoBhkCount: 5 },
+  { floorNumber: 6, totalFlats: 6, threeBhkCount: 2, twoBhkCount: 4 },
+  { floorNumber: 7, totalFlats: 5, threeBhkCount: 2, twoBhkCount: 3 },
+];
+
 export default function OnboardingWizardPage() {
   const router = useRouter();
 
@@ -35,13 +52,15 @@ export default function OnboardingWizardPage() {
   const [buildings, setBuildings] = useState<BuildingResponse[]>([]);
   const [towerName, setTowerName] = useState("");
   const [towerCode, setTowerCode] = useState("");
-  const [towerFloors, setTowerFloors] = useState<number>(14);
+  const [towerFloors, setTowerFloors] = useState<number>(7);
   const [isAddingTower, setIsAddingTower] = useState(false);
 
   // Step 3 state: Units
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>("");
-  const [unitPrefix, setUnitPrefix] = useState<string>("A-");
+  const [unitPrefix, setUnitPrefix] = useState<string>("");
   const [flatsPerFloor, setFlatsPerFloor] = useState<number>(4);
+  const [generationTab, setGenerationTab] = useState<"matrix" | "uniform">("matrix");
+  const [floorConfigs, setFloorConfigs] = useState<FloorConfig[]>(DEFAULT_7_FLOOR_46_FLATS_PRESET);
   const [isGeneratingUnits, setIsGeneratingUnits] = useState(false);
   const [generatedCount, setGeneratedCount] = useState<number>(0);
 
@@ -132,6 +151,71 @@ export default function OnboardingWizardPage() {
     }
   };
 
+  const apply7FloorPreset = () => {
+    setFloorConfigs(DEFAULT_7_FLOOR_46_FLATS_PRESET);
+  };
+
+  const updateFloorConfig = (floorNumber: number, field: keyof FloorConfig, value: number) => {
+    setFloorConfigs((prev) =>
+      prev.map((fc) => {
+        if (fc.floorNumber !== floorNumber) return fc;
+        const updated = { ...fc, [field]: value };
+        if (field === "threeBhkCount") {
+          updated.twoBhkCount = Math.max(0, updated.totalFlats - value);
+        } else if (field === "totalFlats") {
+          updated.threeBhkCount = Math.min(updated.threeBhkCount, value);
+          updated.twoBhkCount = Math.max(0, value - updated.threeBhkCount);
+        }
+        return updated;
+      })
+    );
+  };
+
+  const handleGenerateFloorMatrix = async () => {
+    if (!selectedBuildingId) {
+      setError("Please select a tower first.");
+      return;
+    }
+
+    setIsGeneratingUnits(true);
+    setError(null);
+    let count = 0;
+
+    try {
+      for (const fc of floorConfigs) {
+        for (let flatIndex = 1; flatIndex <= fc.totalFlats; flatIndex++) {
+          const flatSuffix = flatIndex < 10 ? `0${flatIndex}` : `${flatIndex}`;
+          const flatNum = `${unitPrefix}${fc.floorNumber}${flatSuffix}`;
+          const is3Bhk = flatIndex <= fc.threeBhkCount;
+          const config = is3Bhk ? "3BHK" : "2BHK";
+          const area = is3Bhk ? 1250.0 : 950.0;
+
+          try {
+            await endpoints.structure.createUnit({
+              buildingId: selectedBuildingId,
+              unitNumber: flatNum,
+              floorNumber: fc.floorNumber,
+              unitType: "RESIDENTIAL",
+              configuration: config,
+              areaSqft: area,
+            });
+            count++;
+          } catch {
+            // Duplicate ignore if already exists
+          }
+        }
+      }
+
+      setGeneratedCount(count);
+      const refreshedProgress = await endpoints.subscription.getOnboardingProgress();
+      setProgress(refreshedProgress);
+    } catch (err: any) {
+      setError(err?.message || "Failed to generate flats.");
+    } finally {
+      setIsGeneratingUnits(false);
+    }
+  };
+
   const handleQuickGenerateUnits = async () => {
     if (!selectedBuildingId) {
       setError("Please select a tower first.");
@@ -144,19 +228,20 @@ export default function OnboardingWizardPage() {
 
     try {
       const selectedBld = buildings.find((b) => b.id === selectedBuildingId);
-      const totalFloors = selectedBld ? (selectedBld as any).totalFloors || 10 : 10;
+      const totalFloors = selectedBld ? (selectedBld as any).totalFloors || 7 : 7;
 
-      // Generate sample units for the building
-      for (let floor = 1; floor <= Math.min(totalFloors, 5); floor++) {
+      for (let floor = 1; floor <= totalFloors; floor++) {
         for (let flatIndex = 1; flatIndex <= flatsPerFloor; flatIndex++) {
-          const flatNum = `${unitPrefix}${floor}0${flatIndex}`;
+          const flatSuffix = flatIndex < 10 ? `0${flatIndex}` : `${flatIndex}`;
+          const flatNum = `${unitPrefix}${floor}${flatSuffix}`;
           try {
             await endpoints.structure.createUnit({
               buildingId: selectedBuildingId,
               unitNumber: flatNum,
               floorNumber: floor,
-              unitType: "FLAT",
-              areaSqFt: 1050.0,
+              unitType: "RESIDENTIAL",
+              configuration: "2BHK",
+              areaSqft: 950.0,
             });
             count++;
           } catch {
@@ -418,15 +503,34 @@ export default function OnboardingWizardPage() {
           </div>
 
           <div className="p-5 rounded-2xl bg-[#eaedff]/50 border border-[#c4c1fb]/50 space-y-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#006a61]" />
-              <h3 className="text-xs font-bold text-[#070235] uppercase tracking-wider">Fast Sample Unit Generator</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#006a61]" />
+                <h3 className="text-xs font-bold text-[#070235] uppercase tracking-wider">Building Inventory Builder</h3>
+              </div>
+              <div className="flex rounded-lg bg-white p-1 border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setGenerationTab("matrix")}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                    generationTab === "matrix" ? "bg-[#070235] text-white" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Floor-by-Floor Matrix (Custom 2BHK/3BHK)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGenerationTab("uniform")}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                    generationTab === "uniform" ? "bg-[#070235] text-white" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Uniform Generator
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-slate-600">
-              Generate sample flats for initial system readiness (e.g. A-101, A-102, A-201).
-            </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">Target Tower</label>
                 <select
@@ -443,42 +547,152 @@ export default function OnboardingWizardPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Prefix</label>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Unit Prefix (Optional)</label>
                 <input
                   type="text"
+                  placeholder="e.g. A- or leave empty for 101, 201"
                   value={unitPrefix}
                   onChange={(e) => setUnitPrefix(e.target.value)}
                   className="w-full h-9 px-3 text-xs rounded-lg border border-slate-300 focus:outline-none"
                 />
               </div>
+            </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Flats per Floor</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={8}
-                  value={flatsPerFloor}
-                  onChange={(e) => setFlatsPerFloor(Number(e.target.value))}
-                  className="w-full h-9 px-3 text-xs rounded-lg border border-slate-300 focus:outline-none"
-                />
+            {generationTab === "matrix" ? (
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-white border border-teal-200 text-xs">
+                  <div>
+                    <span className="font-bold text-[#070235] block">Quick Preset: 7 Floors (46 Flats)</span>
+                    <span className="text-slate-500 text-[11px]">
+                      Floors 1–5: 7 flats (2×3BHK + 5×2BHK) • Floor 6: 6 flats • Floor 7: 5 flats
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={apply7FloorPreset}
+                    className="px-3 py-1.5 bg-[#006a61] hover:bg-[#00524b] text-white font-bold text-xs rounded-lg shadow-sm transition-all shrink-0"
+                  >
+                    Apply 46-Flat Preset
+                  </button>
+                </div>
+
+                {/* Floor Matrix Table */}
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Floor Level</th>
+                        <th className="py-2.5 px-3">Total Flats</th>
+                        <th className="py-2.5 px-3 text-[#006a61]">3 BHK Count (1250 sq.ft)</th>
+                        <th className="py-2.5 px-3 text-[#070235]">2 BHK Count (950 sq.ft)</th>
+                        <th className="py-2.5 px-3 text-right">Sample Units</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {floorConfigs.map((fc) => (
+                        <tr key={fc.floorNumber} className="hover:bg-slate-50/50">
+                          <td className="py-2 px-3 font-bold text-slate-900">Floor {fc.floorNumber}</td>
+                          <td className="py-2 px-3">
+                            <input
+                              type="number"
+                              min={1}
+                              max={12}
+                              value={fc.totalFlats}
+                              onChange={(e) => updateFloorConfig(fc.floorNumber, "totalFlats", Number(e.target.value))}
+                              className="w-16 h-7 px-2 border border-slate-200 rounded text-center font-semibold"
+                            />
+                          </td>
+                          <td className="py-2 px-3">
+                            <input
+                              type="number"
+                              min={0}
+                              max={fc.totalFlats}
+                              value={fc.threeBhkCount}
+                              onChange={(e) => updateFloorConfig(fc.floorNumber, "threeBhkCount", Number(e.target.value))}
+                              className="w-16 h-7 px-2 border border-teal-200 rounded text-center text-[#006a61] font-bold"
+                            />
+                          </td>
+                          <td className="py-2 px-3">
+                            <span className="font-semibold text-slate-700 px-2 py-1 bg-slate-100 rounded">
+                              {fc.twoBhkCount} flats
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-right text-[11px] font-mono text-slate-500">
+                            {unitPrefix}{fc.floorNumber}01 – {unitPrefix}{fc.floorNumber}{fc.totalFlats < 10 ? `0${fc.totalFlats}` : fc.totalFlats}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Calculation Summary */}
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                  <div className="flex items-center gap-4">
+                    <span>
+                      Total Flats:{" "}
+                      <strong className="text-slate-900">
+                        {floorConfigs.reduce((s, f) => s + f.totalFlats, 0)} Units
+                      </strong>
+                    </span>
+                    <span>
+                      3 BHK:{" "}
+                      <strong className="text-[#006a61]">
+                        {floorConfigs.reduce((s, f) => s + f.threeBhkCount, 0)} Units
+                      </strong>
+                    </span>
+                    <span>
+                      2 BHK:{" "}
+                      <strong className="text-[#070235]">
+                        {floorConfigs.reduce((s, f) => s + f.twoBhkCount, 0)} Units
+                      </strong>
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateFloorMatrix}
+                    disabled={isGeneratingUnits || !selectedBuildingId}
+                    className="px-5 h-8 bg-[#006a61] hover:bg-[#00524b] text-white font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-60"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isGeneratingUnits ? "animate-spin" : ""}`} />
+                    <span>
+                      {isGeneratingUnits
+                        ? "Creating Flats..."
+                        : `Generate All ${floorConfigs.reduce((s, f) => s + f.totalFlats, 0)} Flats`}
+                    </span>
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Flats per Floor (Uniform)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={flatsPerFloor}
+                      onChange={(e) => setFlatsPerFloor(Number(e.target.value))}
+                      className="w-full h-9 px-3 text-xs rounded-lg border border-slate-300 focus:outline-none"
+                    />
+                  </div>
+                </div>
 
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-slate-500">
-                {generatedCount > 0 ? `Successfully generated ${generatedCount} flats!` : "Ready to generate"}
-              </span>
-
-              <button
-                onClick={handleQuickGenerateUnits}
-                disabled={isGeneratingUnits || !selectedBuildingId}
-                className="px-4 h-8 bg-[#006a61] hover:bg-[#00524b] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-60"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isGeneratingUnits ? "animate-spin" : ""}`} />
-                <span>{isGeneratingUnits ? "Generating..." : "Generate Flats"}</span>
-              </button>
-            </div>
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={handleQuickGenerateUnits}
+                    disabled={isGeneratingUnits || !selectedBuildingId}
+                    className="px-4 h-8 bg-[#006a61] hover:bg-[#00524b] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-60"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isGeneratingUnits ? "animate-spin" : ""}`} />
+                    <span>{isGeneratingUnits ? "Generating..." : "Generate Uniform Flats"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">

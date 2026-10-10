@@ -130,6 +130,7 @@ export class ApiClient {
     try {
       response = await fetch(url, config);
     } catch (networkErr: any) {
+      console.error("API Network Error:", networkErr, "Target URL:", url);
       throw new ApiError(0, "Network error: unable to reach the Girvasa API service.");
     }
 
