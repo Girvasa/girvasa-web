@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { tokenStorage } from "../auth/tokenStorage";
 import { AuthTokensResponse, OtpResponseDto, UserResponse } from "@/types/auth";
 import { CurrentSocietyContext, UserSocietyMembership } from "@/types/tenant";
 import { BuildingResponse, UnitResponse, WingResponse } from "@/types/structure";
@@ -292,9 +293,42 @@ export const endpoints = {
 
   // Audit
   audit: {
-    getLogs: async (params?: { eventType?: string; page?: number; limit?: number }) => {
+    getLogs: async (params?: {
+      eventType?: string;
+      action?: string;
+      resourceType?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      page?: number;
+      size?: number;
+    }) => {
       const res = await api.get<any>("/audit/events", { params });
-      return Array.isArray(res) ? res : res?.content || [];
+      return res;
+    },
+    exportLogs: async (filters?: {
+      dateFrom?: string;
+      dateTo?: string;
+      action?: string;
+      resourceType?: string;
+      eventType?: string;
+    }) => {
+      const baseUrl = api.getBaseUrl();
+      const token = tokenStorage.getAccessToken();
+      const societyId = tokenStorage.getActiveSocietyId();
+      const response = await fetch(`${baseUrl}/audit/exports`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/csv, */*",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(societyId ? { "X-Society-Id": societyId } : {}),
+        },
+        body: JSON.stringify(filters || {}),
+      });
+      if (!response.ok) {
+        throw new Error(`Audit export failed with HTTP ${response.status}`);
+      }
+      return await response.blob();
     },
   },
 

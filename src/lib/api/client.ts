@@ -56,6 +56,16 @@ export class ApiClient {
     this.baseUrl = normalizeBaseUrl(baseUrl);
   }
 
+  getBaseUrl(): string {
+    if (typeof window !== "undefined") {
+      const custom =
+        (window as any).__GIRVASA_API_BASE_URL__ ||
+        localStorage.getItem("girvasa_api_base_url");
+      if (custom) return normalizeBaseUrl(custom);
+    }
+    return this.baseUrl;
+  }
+
   setBaseUrl(url: string) {
     this.baseUrl = normalizeBaseUrl(url);
   }
@@ -81,7 +91,7 @@ export class ApiClient {
 
     let url = endpoint.startsWith("http")
       ? endpoint
-      : `${this.baseUrl}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+      : `${this.getBaseUrl()}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
     if (params) {
       const searchParams = new URLSearchParams();
@@ -141,7 +151,7 @@ export class ApiClient {
         if (!this.isRefreshing) {
           this.isRefreshing = true;
           try {
-            const refreshRes = await fetch(`${this.baseUrl}/auth/refresh`, {
+            const refreshRes = await fetch(`${this.getBaseUrl()}/auth/refresh`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",

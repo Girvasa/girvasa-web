@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Bell, CheckCheck, ExternalLink, ShieldAlert, Sparkles, X } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { requestNotificationPermission, isPushNotificationSupported } from "@/lib/notifications/webPushService";
 import { useRouter } from "next/navigation";
+import { useTenant } from "@/lib/tenant/TenantContext";
 
 interface NotificationItem {
   id: string;
@@ -20,6 +21,7 @@ interface NotificationItem {
 }
 
 export const NotificationDropdown: React.FC = () => {
+  const { activeSocietyId } = useTenant();
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -32,10 +34,25 @@ export const NotificationDropdown: React.FC = () => {
     if (typeof window !== "undefined" && "Notification" in window) {
       setPushStatus(Notification.permission);
     }
+  }, []);
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!activeSocietyId) return;
+    try {
+      const res = await api.get<{ unreadCount?: number; count?: number }>("/notifications/unread-count");
+      const count = res?.unreadCount ?? res?.count ?? 0;
+      setUnreadCount(count);
+    } catch {
+      // Graceful fallback if unauthenticated or network error
+    }
+  }, [activeSocietyId]);
+
+  useEffect(() => {
+    if (!activeSocietyId) return;
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000); // 30s poll
     return () => clearInterval(interval);
-  }, []);
+  }, [activeSocietyId, fetchUnreadCount]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,17 +65,6 @@ export const NotificationDropdown: React.FC = () => {
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
-
-  const fetchUnreadCount = async () => {
-    try {
-      const res = await api.get<{ count: number }>("/notifications/unread-count");
-      if (res && typeof res.count === "number") {
-        setUnreadCount(res.count);
-      }
-    } catch {
-      // Graceful fallback if unauthenticated or network error
-    }
-  };
 
   const fetchNotifications = async () => {
     setLoading(true);

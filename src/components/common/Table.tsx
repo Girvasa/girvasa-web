@@ -27,7 +27,9 @@ export function Table<T>({
   onRowClick,
   className,
 }: TableProps<T>) {
-  if (isLoading) {
+  const rows = Array.isArray(data) ? data : (data as any)?.content || [];
+
+  if (isLoading && rows.length === 0) {
     return (
       <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="animate-pulse space-y-4 p-6">
@@ -43,9 +45,14 @@ export function Table<T>({
   }
 
   return (
-    <div className={cn("w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm", className)}>
+    <div className={cn("w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm relative", className)}>
+      {isLoading && (
+        <div className="absolute top-0 left-0 right-0 h-1 bg-slate-100 overflow-hidden z-20">
+          <div className="h-full bg-[#006a61] w-full animate-pulse" />
+        </div>
+      )}
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
+        <table className={cn("w-full text-left text-sm text-slate-600 transition-opacity duration-150", isLoading ? "opacity-60 pointer-events-none select-none" : "opacity-100")}>
           <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
             <tr>
               {columns.map((col, idx) => (
