@@ -211,12 +211,12 @@ export default function LoginPage() {
 
           {/* Step 1: Phone */}
           {step === "PHONE" && (
-            <form onSubmit={handleRequestOtp} className="relative z-10 mt-6 flex flex-col gap-4">
+            <form onSubmit={handleRequestOtp} noValidate className="relative z-10 mt-6 flex flex-col gap-4">
               <div>
                 <label className="block text-xs font-semibold text-[#070235] mb-1.5">
                   Mobile Number
                 </label>
-                <div className="flex items-stretch bg-white rounded-xl border border-slate-200 shadow-sm focus-within:border-[#070235] focus-within:ring-1 focus-within:ring-[#070235] transition-all">
+                <div className={`flex items-stretch bg-white rounded-xl border ${error ? "border-rose-400 ring-1 ring-rose-400" : "border-slate-200 focus-within:border-[#070235] focus-within:ring-1 focus-within:ring-[#070235]"} shadow-sm transition-all`}>
                   <div className="flex items-center gap-1.5 px-3.5 bg-slate-50 rounded-l-xl text-xs font-semibold text-[#131b2e] border-r border-slate-200">
                     <span className="text-base leading-none">🇮🇳</span>
                     <span>+91</span>
@@ -229,8 +229,10 @@ export default function LoginPage() {
                       placeholder="e.g. 9876543210"
                       type="tel"
                       value={mobileNumber}
-                      onChange={(e) => setMobileNumber(e.target.value)}
-                      required
+                      onChange={(e) => {
+                        setMobileNumber(e.target.value);
+                        if (error) setError(null);
+                      }}
                     />
                     {mobileNumber.length === 10 && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
@@ -239,10 +241,16 @@ export default function LoginPage() {
                     )}
                   </div>
                 </div>
-                <p className="mt-1.5 text-[11px] text-[#47464f] flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#006a61] shrink-0" />
-                  Accessible to registered Flat Owners, Tenants, Committee Members, and Staff.
-                </p>
+                {error ? (
+                  <p className="mt-1.5 text-xs text-rose-600 font-medium flex items-center gap-1">
+                    <span>{error}</span>
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-[11px] text-[#47464f] flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#006a61] shrink-0" />
+                    Accessible to registered Flat Owners, Tenants, Committee Members, and Staff.
+                  </p>
+                )}
               </div>
 
               <button

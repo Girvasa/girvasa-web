@@ -126,11 +126,31 @@ export interface AuditLogResponse {
   id: string;
   societyId?: string;
   eventType: string;
+  userId?: string;
+  userName?: string;
   actorUserId?: string;
   actorName?: string;
+  resource?: string;
+  resourceId?: string;
   targetEntity?: string;
   targetEntityId?: string;
-  description: string;
+  action?: string;
+  description?: string;
+  metadata?: string;
   ipAddress?: string;
-  timestamp: string;
+  userAgent?: string;
+  createdAt?: string;
+  timestamp?: string;
 }
+
+export interface AuditPageResponse {
+  content: AuditLogResponse[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
