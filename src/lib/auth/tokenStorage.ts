@@ -19,6 +19,7 @@ class TokenStorage {
     this.memoryAccessToken = token;
     if (typeof window !== "undefined") {
       sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+      localStorage.setItem(ACCESS_TOKEN_KEY, token);
     }
   }
 

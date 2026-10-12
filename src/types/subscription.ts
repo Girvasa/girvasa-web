@@ -50,3 +50,23 @@ export interface OnboardingProgressResponse {
   totalMembers: number;
   completed: boolean;
 }
+
+export interface SocietySubscriptionDetailResponse {
+  id: string;
+  societyId: string;
+  plan: SubscriptionPlanDto;
+  status: "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
+  trialEndsAt: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  daysRemaining: number;
+  isExpiringSoon: boolean;
+  isExpired: boolean;
+  gatewayPaymentId?: string;
+}
+
+export interface RenewSubscriptionRequest {
+  planCode: string;
+  billingMonths: number;
+  paymentMethod?: string;
+}

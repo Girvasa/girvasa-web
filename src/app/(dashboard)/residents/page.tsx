@@ -78,6 +78,7 @@ export default function ResidentsPage() {
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
   const [selectedResidentId, setSelectedResidentId] = useState<string>("res-1");
+  const [isDossierModalOpen, setIsDossierModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
@@ -512,9 +513,9 @@ export default function ResidentsPage() {
       </div>
 
       {/* 4. Master Layout Split: Table (Left/Center) + Active Quick Inspector Drawer (Right) */}
-      <div className="grid grid-cols-1 2xl:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* Table View Container (8 cols) */}
-        <div className="2xl:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+        <div className="xl:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
           {isLoading ? (
             <div className="p-16 text-center text-slate-500 flex flex-col items-center justify-center">
               <div className="w-8 h-8 border-4 border-[#070235] border-t-transparent rounded-full animate-spin mb-3" />
@@ -694,6 +695,7 @@ export default function ResidentsPage() {
                             type="button"
                             onClick={() => {
                               setSelectedResidentId(r.id);
+                              setIsDossierModalOpen(true);
                             }}
                             className="p-1.5 rounded-lg hover:bg-[#eaedff] text-[#070235] transition-colors"
                             title="View Dossier"
@@ -740,7 +742,7 @@ export default function ResidentsPage() {
 
         {/* Quick Resident Details Side Drawer (4 cols sticky top-20 - Stitch Design) */}
         {selectedResident ? (
-        <div className="2xl:col-span-4 bg-white rounded-2xl shadow-md border border-slate-200/80 p-5 flex flex-col gap-4 sticky top-20 text-xs">
+        <div className="xl:col-span-4 bg-white rounded-2xl shadow-md border border-slate-200/80 p-5 flex flex-col gap-4 sticky top-20 text-xs">
           {/* Drawer Header */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -813,7 +815,7 @@ export default function ResidentsPage() {
           </div>
         </div>
         ) : (
-          <div className="2xl:col-span-4 bg-white rounded-2xl border border-dashed border-slate-200 p-8 flex flex-col items-center justify-center text-center text-xs text-slate-500">
+          <div className="xl:col-span-4 bg-white rounded-2xl border border-dashed border-slate-200 p-8 flex flex-col items-center justify-center text-center text-xs text-slate-500">
             <Users className="w-10 h-10 text-slate-300 mb-2" />
             <span className="font-semibold text-slate-700">No Resident Selected</span>
             <p className="text-slate-400 mt-1">Select a resident from the table to view statutory profile details.</p>
@@ -956,6 +958,80 @@ export default function ResidentsPage() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* 7. Resident Member Dossier Modal */}
+      <Modal
+        isOpen={isDossierModalOpen && !!selectedResident}
+        onClose={() => setIsDossierModalOpen(false)}
+        title="Resident Member Dossier"
+        description="Comprehensive statutory member record, unit allotment details, KYC compliance, and dues statement."
+        maxWidth="md"
+      >
+        {selectedResident && (
+          <div className="space-y-4 pt-1 text-xs">
+            <div className="flex items-center gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="w-12 h-12 rounded-2xl bg-[#070235] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-sm">
+                {selectedResident.initials}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-slate-900 text-sm truncate">{selectedResident.name}</h4>
+                  <span className="px-2 py-0.5 rounded-lg bg-[#86f2e4]/30 text-[#006f66] font-bold text-xs">
+                    Flat {selectedResident.unit}
+                  </span>
+                </div>
+                <span className="text-slate-400 text-xs mt-0.5 block">
+                  Induction Date: {selectedResident.allotmentDate}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl border border-slate-100 bg-white shadow-xs">
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Primary Contact</span>
+                <span className="font-mono font-bold text-slate-900 text-xs mt-0.5 block">{selectedResident.phone || "—"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Membership Status</span>
+                <span className="font-bold text-[#006a61] text-xs mt-0.5 block">{selectedResident.kycStatus || "VERIFIED"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Occupancy Category</span>
+                <span className="font-semibold text-slate-900 text-xs mt-0.5 block">{selectedResident.occupancyBadge || "Resident"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Share Certificate</span>
+                <span className="font-semibold text-slate-900 text-xs mt-0.5 block">{selectedResident.shareCertNo || "—"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Voting Rights</span>
+                <span className="font-semibold text-slate-900 text-xs mt-0.5 block">{selectedResident.votingStatus || "Verified"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Outstanding Dues</span>
+                <span className={`font-bold text-xs mt-0.5 block ${selectedResident.duesStatus === "OVERDUE" ? "text-rose-600" : "text-[#006a61]"}`}>
+                  {selectedResident.duesAmount > 0 ? `₹${selectedResident.duesAmount.toLocaleString()}` : "NIL (Current)"}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-slate-600">
+              <span>Society Census UID:</span>
+              <span className="font-mono font-bold text-[#070235]">#{selectedResident.id?.substring(0, 8)}</span>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsDossierModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold"
+              >
+                Close Dossier
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

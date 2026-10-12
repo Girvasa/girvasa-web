@@ -31,7 +31,7 @@ export interface RequestOptions extends RequestInit {
 
 function normalizeBaseUrl(raw?: string): string {
   let url = (raw || "").trim();
-  if (!url) return "http://localhost:8080/api/v1";
+  if (!url) return "https://r68trjbh-8080.usw3.devtunnels.ms/api/v1";
   if (url.endsWith("/")) {
     url = url.slice(0, -1);
   }
@@ -44,7 +44,7 @@ function normalizeBaseUrl(raw?: string): string {
 const DEFAULT_BASE_URL = normalizeBaseUrl(
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8080/api/v1"
+  "https://r68trjbh-8080.usw3.devtunnels.ms/api/v1"
 );
 
 export class ApiClient {

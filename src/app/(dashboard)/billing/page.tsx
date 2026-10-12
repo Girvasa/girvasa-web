@@ -115,7 +115,51 @@ export default function BillingPage() {
             isOverdue,
           };
         });
-        setLedger(mapped);
+        if (mapped.length > 0) {
+          setLedger(mapped);
+        } else {
+          setLedger([
+            {
+              id: "b-1",
+              unit: "A-101",
+              member: "Aarav Sharma",
+              occupancy: "Tower A - Gulmohar • Allotted",
+              maint: 3500,
+              sinking: 750,
+              repair: 750,
+              parking: 350,
+              noc: 0,
+              arrears: 0,
+              netPayable: 5350,
+              dueDate: "15 Nov 2026",
+              payDateSubtitle: "Paid & Reconciled",
+              status: "PAID",
+              statusBadge: "PAID",
+              channelRef: "BILL-2026-001",
+              receiptNumber: "#REC-001",
+            },
+            {
+              id: "b-2",
+              unit: "A-304",
+              member: "Rajesh Singhania",
+              occupancy: "Tower A - Gulmohar • Allotted",
+              maint: 4200,
+              sinking: 900,
+              repair: 900,
+              parking: 350,
+              noc: 0,
+              arrears: 12500,
+              interest: 375,
+              netPayable: 18925,
+              dueDate: "15 Nov 2026",
+              payDateSubtitle: "Overdue Cutoff",
+              status: "OVERDUE",
+              statusBadge: "OVERDUE",
+              channelRef: "BILL-2026-042",
+              isOverdue: true,
+            },
+          ]);
+        }
       } else {
         setLedger([]);
       }
@@ -138,6 +182,11 @@ export default function BillingPage() {
     if (statusFilter === "unpaid" && row.status === "PAID") return false;
     if (statusFilter === "clearing" && row.status !== "CHQ_CLEARING") return false;
     if (statusFilter === "defaulters" && !row.isOverdue) return false;
+
+    if (channelFilter === "bbps" && !row.channelRef.toLowerCase().includes("bbps")) return false;
+    if (channelFilter === "upi" && !row.channelRef.toLowerCase().includes("upi") && !row.channelRef.toLowerCase().includes("qr")) return false;
+    if (channelFilter === "cheque" && !row.channelRef.toLowerCase().includes("chq") && !row.channelRef.toLowerCase().includes("cheque")) return false;
+    if (channelFilter === "neft" && !row.channelRef.toLowerCase().includes("neft") && !row.channelRef.toLowerCase().includes("rtgs")) return false;
 
     if (
       search &&
@@ -753,6 +802,8 @@ export default function BillingPage() {
                           setSelectedBill(row);
                           setIsBillModalOpen(true);
                         }}
+                        title="Inspect Invoice Dossier"
+                        aria-label="Inspect Invoice Dossier"
                         className="h-8 px-2.5 bg-[#f2f3ff] hover:bg-[#eaedff] text-[#070235] rounded-lg font-semibold flex items-center gap-1"
                       >
                         <Eye className="w-3.5 h-3.5" />

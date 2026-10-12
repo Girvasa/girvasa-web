@@ -46,7 +46,11 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+    >
       <div
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
@@ -63,7 +67,10 @@ export const Modal: React.FC<ModalProps> = ({
             {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close modal"
+            data-testid="modal-close-button"
             className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
             <X className="w-5 h-5" />

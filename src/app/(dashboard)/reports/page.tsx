@@ -14,6 +14,7 @@ import {
   Printer,
   ChevronRight,
   RefreshCw,
+  Eye,
 } from "lucide-react";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Badge } from "@/components/common/Badge";
@@ -35,6 +36,10 @@ export default function ReportsPage() {
   const [isAuditorNoteOpen, setIsAuditorNoteOpen] = useState(false);
   const [auditorNoteText, setAuditorNoteText] = useState("");
   const [notesList, setNotesList] = useState<string[]>([]);
+
+  // Schedule Modal State
+  const [selectedSchedule, setSelectedSchedule] = useState<{ title: string; actRef: string; amount: number; description: string } | null>(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   const fetchReports = useCallback(async () => {
     if (!activeSocietyId) return;
@@ -269,8 +274,26 @@ export default function ReportsPage() {
                   <h3 className="font-bold text-slate-900 uppercase tracking-wide border-b border-slate-100 pb-2">
                     Capital &amp; Liabilities
                   </h3>
-                  <div className="flex justify-between py-1 border-b border-slate-50">
-                    <span className="text-slate-600">Statutory Reserve Fund (Sec. 66)</span>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50">
+                    <span className="text-slate-600 flex items-center gap-1.5">
+                      <span>Statutory Reserve Fund (Sec. 66)</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSchedule({
+                            title: "Statutory Reserve Fund",
+                            actRef: "Maharashtra Co-operative Societies Act Sec. 66",
+                            amount: statutoryReserve,
+                            description: "Mandatory allocation of at least 25% of net operational surplus to permanent statutory reserve fund.",
+                          });
+                          setIsScheduleModalOpen(true);
+                        }}
+                        className="p-1 rounded text-slate-400 hover:text-[#070235] hover:bg-slate-100 transition-colors"
+                        title="Inspect Schedule Breakdown"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
                     <span className="font-bold text-slate-900">{formatCurrency(statutoryReserve)}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-50">
@@ -294,8 +317,26 @@ export default function ReportsPage() {
                   <h3 className="font-bold text-slate-900 uppercase tracking-wide border-b border-slate-100 pb-2">
                     Property &amp; Assets
                   </h3>
-                  <div className="flex justify-between py-1 border-b border-slate-50">
-                    <span className="text-slate-600">Maintenance Receivables (Dues)</span>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50">
+                    <span className="text-slate-600 flex items-center gap-1.5">
+                      <span>Maintenance Receivables (Dues)</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSchedule({
+                            title: "Maintenance Receivables (Dues)",
+                            actRef: "MCS Bye-law 67 & Form N-1 Schedule C",
+                            amount: totalOutstanding,
+                            description: "Unpaid resident monthly assessment and recovery dues across enrolled wings and units.",
+                          });
+                          setIsScheduleModalOpen(true);
+                        }}
+                        className="p-1 rounded text-slate-400 hover:text-[#070235] hover:bg-slate-100 transition-colors"
+                        title="Inspect Schedule Breakdown"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
                     <span className="font-bold text-slate-900">{formatCurrency(totalOutstanding)}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-50">
@@ -403,6 +444,37 @@ export default function ReportsPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Schedule Inspection Modal */}
+      <Modal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        title={`Accounting Schedule Dossier: ${selectedSchedule?.title || "Ledger Schedule"}`}
+        maxWidth="md"
+      >
+        {selectedSchedule && (
+          <div className="space-y-4 text-xs">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#070235] text-sm">{selectedSchedule.title}</span>
+                <span className="font-bold text-emerald-700 text-sm">{formatCurrency(selectedSchedule.amount)}</span>
+              </div>
+              <p className="text-slate-600 leading-relaxed">{selectedSchedule.description}</p>
+            </div>
+            <div className="p-3 rounded-lg border border-slate-100 bg-white">
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Statutory Framework</span>
+              <span className="text-[#006a61] font-semibold text-xs mt-1 block">
+                {selectedSchedule.actRef}
+              </span>
+            </div>
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <Button variant="secondary" size="sm" onClick={() => setIsScheduleModalOpen(false)}>
+                Close Schedule
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

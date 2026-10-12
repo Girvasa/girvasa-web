@@ -23,6 +23,7 @@ import {
   BarChart3,
   ShieldCheck,
   Settings,
+  Activity,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ const navItems: NavItem[] = [
   { name: "Reports", href: "/reports", icon: BarChart3, moduleKey: "reports" },
   { name: "Audit Trail", href: "/audit", icon: ShieldCheck, moduleKey: "audit" },
   { name: "Settings", href: "/settings", icon: Settings, moduleKey: "settings" },
+  { name: "Platform Watch", href: "/platform/watch", icon: Activity, moduleKey: "platform_watch" },
 ];
 
 export interface SidebarProps {
