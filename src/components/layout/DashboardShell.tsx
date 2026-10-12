@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
+import { SubscriptionAlertBanner } from "@/components/subscription/SubscriptionAlertBanner";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Loader2 } from "lucide-react";
 
@@ -42,7 +43,10 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">{children}</div>
+          <div className="mx-auto max-w-7xl">
+            <SubscriptionAlertBanner />
+            {children}
+          </div>
         </main>
       </div>
     </div>

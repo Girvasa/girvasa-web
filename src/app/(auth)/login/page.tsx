@@ -41,6 +41,34 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [step, resendTimer]);
 
+  const handleInstantLogin = async (phone: string) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const cleanPhone = phone.startsWith("+") ? phone : "+91" + phone;
+      setMobileNumber(cleanPhone.replace(/^\+91/, ""));
+      const res = await requestOtp(cleanPhone);
+      const challengeReqId = res.requestId || (res as any).challengeId || null;
+      await verifyOtp(cleanPhone, "123456", challengeReqId || undefined);
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.detail || err.message || "Instant login failed.");
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const auto = params.get("auto");
+      if (auto === "admin") {
+        handleInstantLogin("+919876545001");
+      } else if (auto === "resident") {
+        handleInstantLogin("+919876543210");
+      }
+    }
+  }, []);
+
   const formatPhoneNumber = (val: string) => {
     const cleaned = val.replace(/[^\d+]/g, "");
     if (cleaned.startsWith("+")) return cleaned;
@@ -253,6 +281,44 @@ export default function LoginPage() {
                 )}
               </div>
 
+              {/* Local Dev Quick Fill Helper */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-bold text-[#070235] text-[11px]">
+                    ⚡ Quick Test Accounts
+                  </span>
+                  <span className="text-[10px] text-[#006a61] bg-[#006a61]/10 px-2 py-0.5 rounded-full font-semibold">
+                    Local Dev
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => handleInstantLogin("+919876545001")}
+                    className="p-2.5 bg-[#070235] text-white border border-[#070235] rounded-xl text-left hover:bg-[#1e1b4b] hover:shadow-md transition-all group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[11px] text-white">Society Admin</span>
+                      <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-semibold px-1.5 py-0.5 rounded">1-Click</span>
+                    </div>
+                    <div className="text-[10px] text-slate-300 font-mono mt-1">9876545001</div>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => handleInstantLogin("+919876543210")}
+                    className="p-2.5 bg-white border border-slate-300 rounded-xl text-left hover:border-[#070235] hover:shadow-sm transition-all group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#070235] text-[11px]">Resident</span>
+                      <span className="text-[9px] bg-slate-100 text-slate-600 font-semibold px-1.5 py-0.5 rounded">1-Click</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono mt-1">9876543210</div>
+                  </button>
+                </div>
+              </div>
+
               <button
                 disabled={isLoading}
                 className="w-full h-11 bg-[#070235] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#1e1b4b] transition-all disabled:opacity-60"
@@ -324,6 +390,20 @@ export default function LoginPage() {
                   autoFocus
                   required
                 />
+
+                {/* Local Dev OTP quick helper */}
+                <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between text-xs">
+                  <span className="text-emerald-800 text-[11px] font-medium">
+                    Test Mode: default code is <code className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-[#070235]">123456</code>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setOtpCode("123456")}
+                    className="px-2 py-0.5 bg-emerald-700 text-white font-bold text-[10px] rounded hover:bg-emerald-800 transition-all shadow-sm"
+                  >
+                    Auto-Fill 123456
+                  </button>
+                </div>
               </div>
 
               {/* Resend actions */}

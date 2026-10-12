@@ -876,6 +876,78 @@ export default function UnitsPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Unit Dossier Modal */}
+      {selectedUnit && (
+        <Modal
+          isOpen={!!selectedUnit}
+          onClose={() => setSelectedUnit(null)}
+          title={`Flat Dossier — Unit ${selectedUnit.unitNumber}`}
+          description={`Comprehensive structural and occupancy records for Unit ${selectedUnit.unitNumber}.`}
+          maxWidth="lg"
+        >
+          <div className="space-y-4 pt-1 text-xs">
+            {/* Header Strip */}
+            <div className="flex items-center justify-between p-4 bg-[#f2f3ff] rounded-2xl border border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#070235] text-white flex items-center justify-center font-bold text-base shadow-sm">
+                  {selectedUnit.unitNumber}
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    {selectedUnit.buildingName || "Main Tower"} • Floor {selectedUnit.floorNumber}
+                  </h3>
+                  <span className="text-slate-500 text-xs">
+                    {selectedUnit.wingName ? `Wing: ${selectedUnit.wingName} • ` : ""}
+                    Configuration: {selectedUnit.configuration || "2BHK"}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                {getStatusBadge(selectedUnit.status)}
+                <span className="text-[11px] text-slate-400 block mt-1">
+                  Assessable: {selectedUnit.squareFeet || 1000} sq.ft
+                </span>
+              </div>
+            </div>
+
+            {/* Spatial & Physical Attributes */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Premises Type</span>
+                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{selectedUnit.unitType}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Floor Level</span>
+                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">Level {selectedUnit.floorNumber}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Carpet / Built-up</span>
+                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{selectedUnit.squareFeet || 1000} sq.ft</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Building Tower</span>
+                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{selectedUnit.buildingName || "Society Tower"}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Subdivision Wing</span>
+                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{selectedUnit.wingName || "Single Tower"}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Statutory Registration</span>
+                <span className="font-semibold text-[#006a61] text-xs mt-0.5 block">Form I Compliant</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <Button variant="secondary" size="sm" onClick={() => setSelectedUnit(null)}>
+                Close Dossier
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

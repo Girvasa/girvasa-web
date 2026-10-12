@@ -27,7 +27,10 @@ import {
   SelfServeRegistrationRequest,
   SelfServeRegistrationResponse,
   OnboardingProgressResponse,
+  SocietySubscriptionDetailResponse,
+  RenewSubscriptionRequest,
 } from "@/types/subscription";
+import { PlatformWatchMetricsResponse } from "@/types/platform";
 
 export const endpoints = {
   // Auth
@@ -133,6 +136,12 @@ export const endpoints = {
       api.get<any[]>("/billing/periods"),
     generateBills: (billingPeriodId: string) =>
       api.post<any>(`/billing/periods/${billingPeriodId}/generate-bills`, {}),
+    getChargeHeads: (params?: { includeInactive?: boolean }) =>
+      api.get<any[]>("/billing/charge-heads", { params }),
+    createChargeHead: (data: any) =>
+      api.post<any>("/billing/charge-heads", data),
+    updateChargeHead: (chargeHeadId: string, data: any) =>
+      api.patch<any>(`/billing/charge-heads/${chargeHeadId}`, data),
   },
 
   // Payments
@@ -342,5 +351,17 @@ export const endpoints = {
       api.get<OnboardingProgressResponse>("/societies/current/onboarding"),
     updateOnboardingStep: (targetStep: string) =>
       api.patch<OnboardingProgressResponse>("/societies/current/onboarding/step", { targetStep }),
+    getCurrentSubscription: () =>
+      api.get<SocietySubscriptionDetailResponse>("/societies/current/subscription"),
+    renewSubscription: (data: RenewSubscriptionRequest) =>
+      api.post<SocietySubscriptionDetailResponse>("/societies/current/subscription/renew", data),
+    simulateSubscription: (daysRemaining: number) =>
+      api.post<SocietySubscriptionDetailResponse>(`/societies/current/subscription/simulate?daysRemaining=${daysRemaining}`, {}),
+  },
+
+  // Platform Live Watch & Telemetry
+  platform: {
+    getWatchMetrics: () =>
+      api.get<PlatformWatchMetricsResponse>("/platform/metrics", { skipAuth: false, skipTenant: true }),
   },
 };
