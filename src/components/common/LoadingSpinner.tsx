@@ -16,7 +16,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   return (
     <div className={`flex flex-col items-center justify-center p-8 text-slate-500 ${className}`}>
-      <RefreshCw className={`${iconSize} animate-spin text-[#070235] mb-2`} />
+      <RefreshCw className={`${iconSize} animate-spin text-[#107A48] mb-2`} />
       {message && <p className="text-xs font-semibold text-slate-600">{message}</p>}
     </div>
   );

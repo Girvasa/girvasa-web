@@ -32,9 +32,9 @@ export const SocietySelector: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 rounded-lg border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+        className="flex items-center space-x-2 rounded-lg border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#107A48]/20"
       >
-        <Building2 className="w-4 h-4 text-blue-600" />
+        <Building2 className="w-4 h-4 text-[#107A48]" />
         <span className="font-semibold text-slate-900 max-w-[140px] sm:max-w-[200px] truncate">
           {currentSociety ? currentSociety.societyName : "Select Society"}
         </span>
@@ -68,7 +68,7 @@ export const SocietySelector: React.FC = () => {
                       <div className="font-medium text-slate-900">{soc.societyName}</div>
                       <div className="text-[10px] text-slate-500 font-mono">{soc.societyCode}</div>
                     </div>
-                    {isSelected && <Check className="w-4 h-4 text-blue-600" />}
+                    {isSelected && <Check className="w-4 h-4 text-[#107A48]" />}
                   </button>
                 );
               })

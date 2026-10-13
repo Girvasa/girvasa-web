@@ -48,7 +48,7 @@ const FALLBACK_GATE_RECORDS: GateRecord[] = [
   {
     id: "v-demo-1",
     visitorName: "Sunil Sharma",
-    avatar: "https://ui-avatars.com/api/?name=Sunil+Sharma&background=070235&color=fff",
+    avatar: "https://ui-avatars.com/api/?name=Sunil+Sharma&background=107A48&color=fff",
     category: "DELIVERY",
     categoryBadge: "Courier Delivery",
     passRef: "PASS-9201",
@@ -151,7 +151,7 @@ export default function VisitorsPage() {
             visitorName: v.visitor?.fullName || v.visitorName || "Guest Visitor",
             avatar:
               v.visitor?.avatarUrl ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(v.visitor?.fullName || v.visitorName || "Visitor")}&background=070235&color=fff`,
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(v.visitor?.fullName || v.visitorName || "Visitor")}&background=107A48&color=fff`,
             category,
             categoryBadge: v.visitorType || v.categoryName || "Guest",
             passRef: v.passCode ? `Pass #${v.passCode}` : (v.visitNumber || `OTP #${v.id.substring(0, 4)}`),
@@ -279,14 +279,14 @@ export default function VisitorsPage() {
   return (
     <div className="flex flex-col w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans antialiased text-slate-900">
       {/* 1. Command Header */}
-      <div className="bg-[#f2f3ff] p-6 rounded-2xl shadow-sm border border-slate-200/80">
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight text-[#070235]">
+              <h1 className="text-2xl font-bold tracking-tight text-[#1E293B]">
                 Visitor &amp; Gate Console
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#86f2e4]/40 text-[#006f66] text-xs font-bold border border-[#86f2e4]">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#107A48] text-xs font-bold border border-emerald-200/60">
                 Gate Operations Active
               </span>
             </div>
@@ -311,7 +311,7 @@ export default function VisitorsPage() {
                 setFormError(null);
                 setIsEntryModalOpen(true);
               }}
-              className="flex items-center gap-1.5 bg-[#070235] text-white hover:bg-[#1e1b4b] px-4 py-2 rounded-xl shadow-md text-xs font-semibold transition-all"
+              className="flex items-center gap-1.5 bg-[#107A48] text-white hover:bg-[#0D623A] px-4 py-2 rounded-xl shadow-md text-xs font-semibold transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>+ Log Walk-in Entry</span>
@@ -325,7 +325,7 @@ export default function VisitorsPage() {
         <div
           className={`p-3.5 rounded-xl text-xs font-medium flex items-center justify-between border ${
             actionMessage.type === "success"
-              ? "bg-[#86f2e4]/20 border-[#86f2e4] text-[#006f66]"
+              ? "bg-emerald-50 border-emerald-200 text-[#107A48]"
               : "bg-rose-50 border-rose-200 text-rose-700"
           }`}
         >
@@ -344,16 +344,16 @@ export default function VisitorsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Inside Premises */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-[#006a61]"></div>
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#107A48]"></div>
           <div className="flex items-center justify-between mb-1 text-slate-400">
             <span className="text-[11px] font-semibold uppercase tracking-wider">Inside Campus Now</span>
-            <Users className="w-4 h-4 text-[#006a61]" />
+            <Users className="w-4 h-4 text-[#107A48]" />
           </div>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-2xl font-bold text-slate-900 tracking-tight">
               {records.filter((r) => r.status === "ACTIVE_INSIDE").length}
             </span>
-            <span className="text-xs text-[#006a61] font-bold">Active Passes</span>
+            <span className="text-xs text-[#107A48] font-bold">Active Passes</span>
           </div>
           <span className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
             {records.filter((r) => r.status === "ACTIVE_INSIDE" && r.category === "DELIVERY").length} Delivery •{" "}
@@ -364,14 +364,14 @@ export default function VisitorsPage() {
 
         {/* Metric 2: Total Footfall Today */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-[#070235]"></div>
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#1E293B]"></div>
           <div className="flex items-center justify-between mb-1 text-slate-400">
             <span className="text-[11px] font-semibold uppercase tracking-wider">Total Recorded Logs</span>
-            <Users className="w-4 h-4 text-[#070235]" />
+            <Users className="w-4 h-4 text-[#1E293B]" />
           </div>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-2xl font-bold text-slate-900 tracking-tight">{records.length}</span>
-            <span className="text-xs text-[#070235] font-bold">Total Entries</span>
+            <span className="text-xs text-[#1E293B] font-bold">Total Entries</span>
           </div>
           <span className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
             {records.filter((r) => r.status === "EXITED").length} Checked Out
@@ -380,19 +380,19 @@ export default function VisitorsPage() {
 
         {/* Metric 3: Pre-Approved Expected */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-[#6bd8cb]"></div>
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#0D9488]"></div>
           <div className="flex items-center justify-between mb-1 text-slate-400">
             <span className="text-[11px] font-semibold uppercase tracking-wider">Expected Pre-Approved</span>
-            <ShieldCheck className="w-4 h-4 text-[#006a61]" />
+            <ShieldCheck className="w-4 h-4 text-[#0D9488]" />
           </div>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-2xl font-bold text-slate-900 tracking-tight">
               {records.filter((r) => r.status === "EXPECTED").length}
             </span>
-            <span className="text-xs text-[#006a61] font-bold">Awaiting Arrival</span>
+            <span className="text-xs text-[#0D9488] font-bold">Awaiting Arrival</span>
           </div>
           <span className="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-[#006a61]" />
+            <CheckCircle2 className="w-3 h-3 text-[#107A48]" />
             <span>Resident Verified Passes</span>
           </span>
         </div>
@@ -419,17 +419,17 @@ export default function VisitorsPage() {
       {/* 3. Search & Quick Verification Bar */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row gap-3 items-center">
         <form onSubmit={handleVerifyPass} className="relative flex-1 w-full">
-          <QrCode className="w-4 h-4 absolute left-3 top-3 text-[#070235]" />
+          <QrCode className="w-4 h-4 absolute left-3 top-3 text-[#107A48]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search visitor name, flat (e.g. A-402), vehicle or enter pass code..."
-            className="w-full h-10 pl-9 pr-24 bg-[#f2f3ff] rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#070235]"
+            className="w-full h-10 pl-9 pr-24 bg-slate-50 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#107A48] border border-slate-200"
           />
           <button
             type="submit"
-            className="absolute right-1.5 top-1.5 bg-[#070235] text-white hover:bg-[#1e1b4b] text-xs px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 shadow-sm transition-all"
+            className="absolute right-1.5 top-1.5 bg-[#107A48] text-white hover:bg-[#0D623A] text-xs px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 shadow-sm transition-all"
           >
             <Search className="w-3 h-3" />
             <span>Search</span>
@@ -457,12 +457,12 @@ export default function VisitorsPage() {
                 onClick={() => setFilterTab(tab)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   filterTab === tab
-                    ? "bg-[#070235] text-white shadow-sm"
-                    : "bg-white text-slate-600 hover:bg-[#eaedff] border border-slate-200"
+                    ? "bg-[#107A48] text-white shadow-sm"
+                    : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
                 }`}
               >
                 <span>{tab === "ALL" ? "All Entries" : tab === "DELIVERY" ? "Deliveries" : tab === "STAFF" ? "Staff" : tab === "EXPECTED" ? "Expected" : "Exits"}</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${filterTab === tab ? "bg-white/20 text-white" : "bg-[#eaedff] text-[#070235]"}`}>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${filterTab === tab ? "bg-white/20 text-white" : "bg-emerald-50 text-[#107A48]"}`}>
                   {count}
                 </span>
               </button>
@@ -475,7 +475,7 @@ export default function VisitorsPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
-            <div className="w-8 h-8 border-3 border-[#070235] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-3 border-[#107A48] border-t-transparent rounded-full animate-spin"></div>
             <span className="text-xs text-slate-500 font-medium">Syncing live gate manifest with server...</span>
           </div>
         ) : error ? (
@@ -484,7 +484,7 @@ export default function VisitorsPage() {
             <p className="text-sm font-semibold text-slate-800">{error}</p>
             <button
               onClick={() => fetchVisits()}
-              className="px-4 py-2 bg-[#070235] text-white text-xs font-semibold rounded-lg hover:bg-slate-800"
+              className="px-4 py-2 bg-[#107A48] text-white text-xs font-semibold rounded-lg hover:bg-[#0D623A]"
             >
               Retry
             </button>
@@ -504,7 +504,7 @@ export default function VisitorsPage() {
                   setFormError(null);
                   setIsEntryModalOpen(true);
                 }}
-                className="mt-3 px-4 py-2 bg-[#070235] text-white text-xs font-semibold rounded-xl hover:bg-[#1e1b4b]"
+                className="mt-3 px-4 py-2 bg-[#107A48] text-white text-xs font-semibold rounded-xl hover:bg-[#0D623A]"
               >
                 + Log First Walk-in Visitor
               </button>
@@ -514,7 +514,7 @@ export default function VisitorsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-[#f2f3ff] text-slate-600 font-semibold border-b border-slate-200">
+                <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                   <th className="py-3 px-4">Visitor &amp; Category</th>
                   <th className="py-3 px-4">Flat / Campus Target</th>
                   <th className="py-3 px-4">Purpose / Vehicle</th>
@@ -524,7 +524,7 @@ export default function VisitorsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredRecords.map((r) => (
-                  <tr key={r.id} className="hover:bg-[#f2f3ff]/50 transition-colors">
+                  <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
                     {/* Visitor & Category */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
@@ -537,11 +537,11 @@ export default function VisitorsPage() {
                           <span className="font-bold text-slate-900 text-sm">{r.visitorName}</span>
                           <div className="flex items-center gap-1.5 text-slate-500 text-[11px] mt-0.5">
                             {r.category === "DELIVERY" && <Truck className="w-3 h-3 text-orange-600" />}
-                            {r.category === "GUEST" && <Users className="w-3 h-3 text-[#006a61]" />}
-                            {r.category === "STAFF" && <Building className="w-3 h-3 text-[#5b598c]" />}
+                            {r.category === "GUEST" && <Users className="w-3 h-3 text-[#107A48]" />}
+                            {r.category === "STAFF" && <Building className="w-3 h-3 text-[#1E293B]" />}
                             {r.category === "TECHNICIAN" && <Wrench className="w-3 h-3 text-blue-600" />}
                             <span>{r.categoryBadge}</span>
-                            <span className="bg-[#eaedff] px-1 py-0.2 rounded text-[#070235] font-semibold text-[10px]">
+                            <span className="bg-emerald-50 px-1 py-0.2 rounded text-[#107A48] font-semibold text-[10px]">
                               {r.passRef}
                             </span>
                           </div>
@@ -574,7 +574,7 @@ export default function VisitorsPage() {
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit ${
                             r.status === "ACTIVE_INSIDE"
-                              ? "bg-[#86f2e4]/30 text-[#006f66]"
+                              ? "bg-emerald-50 text-[#107A48]"
                               : r.status === "EXPECTED"
                               ? "bg-amber-100 text-amber-800"
                               : "bg-slate-100 text-slate-600"
@@ -595,7 +595,7 @@ export default function VisitorsPage() {
                             setSelectedVisitor(r);
                             setIsPassModalOpen(true);
                           }}
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#070235] hover:bg-slate-50 transition-colors"
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#107A48] hover:bg-emerald-50 transition-colors"
                           title="Inspect Visitor Gate Pass Dossier"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -604,7 +604,7 @@ export default function VisitorsPage() {
                           <button
                             type="button"
                             onClick={() => handleCheckIn(r.id)}
-                            className="px-2.5 py-1.5 rounded-lg bg-[#070235] text-white hover:bg-[#1e1b4b] font-semibold transition-colors flex items-center gap-1 shadow-sm"
+                            className="px-2.5 py-1.5 rounded-lg bg-[#107A48] text-white hover:bg-[#0D623A] font-semibold transition-colors flex items-center gap-1 shadow-sm"
                           >
                             <LogIn className="w-3.5 h-3.5" />
                             <span>Check In</span>
@@ -630,9 +630,9 @@ export default function VisitorsPage() {
         )}
 
         {/* Table Footer */}
-        <div className="p-4 bg-[#f2f3ff] flex items-center justify-between text-xs text-slate-500 border-t border-slate-200">
+        <div className="p-4 bg-slate-50 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200">
           <span>Showing {filteredRecords.length} of {records.length} total entries</span>
-          <span className="font-semibold text-[#070235]">Society Gate Console</span>
+          <span className="font-semibold text-[#1E293B]">Society Gate Console</span>
         </div>
       </div>
 
@@ -661,7 +661,7 @@ export default function VisitorsPage() {
               value={walkinForm.name}
               onChange={(e) => setWalkinForm({ ...walkinForm, name: e.target.value })}
               placeholder="e.g. Ramesh Patil"
-              className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#070235] text-slate-900 border border-slate-200"
+              className="w-full h-10 px-3 bg-slate-50 rounded-xl focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#107A48] text-slate-900 border border-slate-200"
             />
           </div>
 
@@ -676,7 +676,7 @@ export default function VisitorsPage() {
                 value={walkinForm.phone}
                 onChange={(e) => setWalkinForm({ ...walkinForm, phone: e.target.value })}
                 placeholder="9876543210"
-                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#070235] text-slate-900 border border-slate-200"
+                className="w-full h-10 px-3 bg-slate-50 rounded-xl focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#107A48] text-slate-900 border border-slate-200"
               />
             </div>
             <div>
@@ -689,7 +689,7 @@ export default function VisitorsPage() {
                 value={walkinForm.flat}
                 onChange={(e) => setWalkinForm({ ...walkinForm, flat: e.target.value })}
                 placeholder="e.g. A-402"
-                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#070235] text-slate-900 border border-slate-200"
+                className="w-full h-10 px-3 bg-slate-50 rounded-xl focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#107A48] text-slate-900 border border-slate-200"
               />
             </div>
           </div>
@@ -702,7 +702,7 @@ export default function VisitorsPage() {
               <select
                 value={walkinForm.type}
                 onChange={(e) => setWalkinForm({ ...walkinForm, type: e.target.value })}
-                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#070235] text-slate-900 border border-slate-200"
+                className="w-full h-10 px-3 bg-slate-50 rounded-xl focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#107A48] text-slate-900 border border-slate-200"
               >
                 <option value="GUEST">Guest / Friend</option>
                 <option value="DELIVERY">Delivery Agent</option>
@@ -720,7 +720,7 @@ export default function VisitorsPage() {
                 value={walkinForm.vehicle}
                 onChange={(e) => setWalkinForm({ ...walkinForm, vehicle: e.target.value })}
                 placeholder="MH-04-XX-0000"
-                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#070235] text-slate-900 uppercase font-mono border border-slate-200"
+                className="w-full h-10 px-3 bg-slate-50 rounded-xl focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#107A48] text-slate-900 uppercase font-mono border border-slate-200"
               />
             </div>
           </div>
@@ -734,7 +734,7 @@ export default function VisitorsPage() {
               value={walkinForm.purpose}
               onChange={(e) => setWalkinForm({ ...walkinForm, purpose: e.target.value })}
               placeholder="e.g. Maintenance repair, Personal visit"
-              className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#070235] text-slate-900 border border-slate-200"
+              className="w-full h-10 px-3 bg-slate-50 rounded-xl focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#107A48] text-slate-900 border border-slate-200"
             />
           </div>
 
@@ -749,7 +749,7 @@ export default function VisitorsPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl bg-[#070235] text-white font-bold hover:bg-[#1e1b4b] shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-[#107A48] text-white font-bold hover:bg-[#0D623A] shadow-sm flex items-center gap-1.5 disabled:opacity-50 transition-colors"
             >
               {isSubmitting ? "Registering Entry..." : "Log Gate Entry"}
             </button>
@@ -776,7 +776,7 @@ export default function VisitorsPage() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h4 className="font-bold text-slate-900 text-sm truncate">{selectedVisitor.visitorName}</h4>
-                  <span className="px-2 py-0.5 rounded-full bg-[#eaedff] text-[#070235] font-semibold text-[10px]">
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-[#107A48] font-semibold text-[10px]">
                     {selectedVisitor.categoryBadge}
                   </span>
                 </div>
@@ -809,7 +809,7 @@ export default function VisitorsPage() {
               </div>
               <div>
                 <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Perimeter Status</span>
-                <span className="font-bold text-[#006a61] text-xs mt-0.5 block">
+                <span className="font-bold text-[#107A48] text-xs mt-0.5 block">
                   {selectedVisitor.status === "ACTIVE_INSIDE" ? "Inside Campus" : selectedVisitor.status === "EXPECTED" ? "Pre-Approved" : "Exited"}
                 </span>
               </div>
@@ -824,7 +824,7 @@ export default function VisitorsPage() {
                       handleCheckIn(selectedVisitor.id);
                       setIsPassModalOpen(false);
                     }}
-                    className="px-3 py-1.5 rounded-lg bg-[#070235] text-white hover:bg-[#1e1b4b] text-xs font-semibold"
+                    className="px-3 py-1.5 rounded-lg bg-[#107A48] text-white hover:bg-[#0D623A] text-xs font-semibold transition-colors"
                   >
                     Check In Now
                   </button>

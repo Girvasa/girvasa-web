@@ -237,8 +237,8 @@ export default function DashboardPage() {
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#86f2e4]/30 text-[#006f66] font-semibold text-xs border border-[#86f2e4]/60">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#006a61] animate-ping"></span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-50 text-[#107A48] font-semibold text-xs border border-emerald-200/60">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#107A48] animate-ping"></span>
                 LIVE AUDIT
               </span>
               <span className="text-xs text-slate-500 font-medium">MCS Act Sec 79 Compliance</span>
@@ -247,7 +247,7 @@ export default function DashboardPage() {
                 Reg: {currentSociety?.societyCode ? `MH/${currentSociety.societyCode}` : "MH/REG/ACTIVE"}
               </span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#070235]">
+            <h1 className="text-2xl font-bold tracking-tight text-[#1E293B]">
               Society Operational Command Center
             </h1>
             <p className="text-xs text-slate-500">
@@ -258,7 +258,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2.5 flex-wrap shrink-0">
             <Link
               href="/billing"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#070235] hover:bg-[#1e1b4b] text-white text-xs font-semibold shadow-md transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#107A48] hover:bg-[#0D623A] text-white text-xs font-semibold shadow-md transition-all"
             >
               <Zap className="w-4 h-4" />
               <span>Billing Console</span>
@@ -269,13 +269,13 @@ export default function DashboardPage() {
 
       {/* Onboarding Wizard Setup In-Progress Banner */}
       {onboardingProgress && !onboardingProgress.completed && (
-        <div className="bg-gradient-to-r from-amber-500/10 via-teal-500/10 to-indigo-500/10 border border-teal-600/20 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-teal-500/10 border border-emerald-600/20 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-start sm:items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-[#006a61] text-white shrink-0 shadow-sm">
+            <div className="p-2.5 rounded-xl bg-[#107A48] text-white shrink-0 shadow-sm">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#070235]">
+              <h3 className="text-sm font-bold text-[#1E293B]">
                 Society Setup In Progress (Step {onboardingProgress.onboardingStatus === "WIZARD_STEP_1" ? "1" : onboardingProgress.onboardingStatus === "WIZARD_STEP_2" ? "2" : onboardingProgress.onboardingStatus === "WIZARD_STEP_3" ? "3" : "4"} of 4)
               </h3>
               <p className="text-xs text-slate-600 mt-0.5">
@@ -285,7 +285,7 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/onboarding"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#006a61] hover:bg-[#00524b] text-white text-xs font-semibold shadow-sm transition-all shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#107A48] hover:bg-[#0D623A] text-white text-xs font-semibold shadow-sm transition-all shrink-0"
           >
             <span>Resume Setup Wizard</span>
             <ArrowRight className="w-4 h-4" />
@@ -297,13 +297,13 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* KPI 1: Collections */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden group">
-          <div className="h-1 bg-[#006a61] absolute top-0 left-0 right-0"></div>
+          <div className="h-1 bg-[#107A48] absolute top-0 left-0 right-0"></div>
           <div>
             <div className="flex items-center justify-between pb-1 text-slate-500">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Collections
               </span>
-              <span className="p-1 rounded bg-[#86f2e4]/30 text-[#006f66]">
+              <span className="p-1 rounded bg-emerald-50 text-[#107A48]">
                 <Receipt className="w-4 h-4" />
               </span>
             </div>
@@ -314,8 +314,8 @@ export default function DashboardPage() {
               Billed: {formatCurrency(totalBilled)} ({collectionPct}% collected)
             </p>
           </div>
-          <div className="mt-3 pt-1 bg-[#f2f3ff] px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
-            <span className="text-[#006a61] font-semibold flex items-center">
+          <div className="mt-3 pt-1 bg-emerald-50/50 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
+            <span className="text-[#107A48] font-semibold flex items-center">
               <TrendingUp className="w-3.5 h-3.5 mr-1" />
               {bills.filter((b) => b.status === "PAID").length} Cleared
             </span>
@@ -325,38 +325,38 @@ export default function DashboardPage() {
 
         {/* KPI 2: Overdue Dues */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden group">
-          <div className="h-1 bg-[#ba1a1a] absolute top-0 left-0 right-0"></div>
+          <div className="h-1 bg-red-500 absolute top-0 left-0 right-0"></div>
           <div>
             <div className="flex items-center justify-between pb-1 text-slate-500">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Overdue Dues
               </span>
-              <span className="p-1 rounded bg-[#ffdad6] text-[#93000a]">
+              <span className="p-1 rounded bg-red-50 text-red-700">
                 <AlertTriangle className="w-4 h-4" />
               </span>
             </div>
             <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="text-xl font-bold text-[#ba1a1a]">{formatCurrency(overdueAmount)}</span>
+              <span className="text-xl font-bold text-red-600">{formatCurrency(overdueAmount)}</span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               {bills.filter((b) => b.status === "OVERDUE").length} units with outstanding arrears
             </p>
           </div>
-          <div className="mt-3 pt-1 bg-[#f2f3ff] px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
+          <div className="mt-3 pt-1 bg-slate-50 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
             <span className="text-slate-600 font-medium">Interest Applicable</span>
-            <span className="text-[#ba1a1a] font-semibold">Action Due</span>
+            <span className="text-red-600 font-semibold">Action Due</span>
           </div>
         </div>
 
         {/* KPI 3: Occupancy Ratio */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden group">
-          <div className="h-1 bg-[#5b598c] absolute top-0 left-0 right-0"></div>
+          <div className="h-1 bg-[#1E293B] absolute top-0 left-0 right-0"></div>
           <div>
             <div className="flex items-center justify-between pb-1 text-slate-500">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Unit Occupancy
               </span>
-              <span className="p-1 rounded bg-[#eaedff] text-[#070235]">
+              <span className="p-1 rounded bg-slate-100 text-[#1E293B]">
                 <Building className="w-4 h-4" />
               </span>
             </div>
@@ -368,9 +368,9 @@ export default function DashboardPage() {
               {occupiedUnits} Occupied • {vacantUnits} Vacant
             </p>
           </div>
-          <div className="mt-3 pt-1 bg-[#f2f3ff] px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
+          <div className="mt-3 pt-1 bg-slate-50 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
             <span className="text-slate-700 font-medium">{vacantUnits} Vacant</span>
-            <span className="text-[#006a61] font-semibold">
+            <span className="text-[#107A48] font-semibold">
               {totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0}% Active
             </span>
           </div>
@@ -378,45 +378,45 @@ export default function DashboardPage() {
 
         {/* KPI 4: Active Visitors */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden group">
-          <div className="h-1 bg-[#006a61] absolute top-0 left-0 right-0"></div>
+          <div className="h-1 bg-[#0D9488] absolute top-0 left-0 right-0"></div>
           <div>
             <div className="flex items-center justify-between pb-1 text-slate-500">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Active Visitors
               </span>
-              <span className="p-1 rounded bg-[#86f2e4]/30 text-[#006f66]">
+              <span className="p-1 rounded bg-teal-50 text-[#0D9488]">
                 <ShieldCheck className="w-4 h-4" />
               </span>
             </div>
             <div className="mt-1 flex items-baseline gap-1.5">
               <span className="text-xl font-bold text-slate-900">{activeVisitors}</span>
-              <span className="text-xs text-[#006a61] font-medium">Inside Perimeter</span>
+              <span className="text-xs text-[#0D9488] font-medium">Inside Perimeter</span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               {visits.length} logs captured today
             </p>
           </div>
-          <div className="mt-3 pt-1 bg-[#f2f3ff] px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
+          <div className="mt-3 pt-1 bg-slate-50 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
             <span className="text-slate-400 font-medium">Main Gate Entry</span>
-            <span className="text-[#006a61] font-semibold">Active</span>
+            <span className="text-[#0D9488] font-semibold">Active</span>
           </div>
         </div>
 
         {/* KPI 5: Facility Helpdesk */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between relative overflow-hidden group">
-          <div className="h-1 bg-[#ffdad6] absolute top-0 left-0 right-0"></div>
+          <div className="h-1 bg-amber-500 absolute top-0 left-0 right-0"></div>
           <div>
             <div className="flex items-center justify-between pb-1 text-slate-500">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Facility Helpdesk
               </span>
-              <span className="p-1 rounded bg-[#e2e7ff] text-[#131b2e]">
+              <span className="p-1 rounded bg-amber-50 text-amber-700">
                 <MessageSquareWarning className="w-4 h-4" />
               </span>
             </div>
             <div className="mt-1 flex items-baseline gap-1.5">
               <span className="text-xl font-bold text-slate-900">{openComplaints}</span>
-              <span className="text-xs text-[#ba1a1a] font-semibold">
+              <span className="text-xs text-amber-600 font-semibold">
                 {highPriorityComplaints.length} Urgent
               </span>
             </div>
@@ -424,8 +424,8 @@ export default function DashboardPage() {
               {complaints.filter((c) => c.status === "RESOLVED").length} Resolved of {complaints.length}
             </p>
           </div>
-          <div className="mt-3 pt-1 bg-[#f2f3ff] px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
-            <span className="text-[#ba1a1a] font-medium">{openComplaints} Open</span>
+          <div className="mt-3 pt-1 bg-slate-50 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
+            <span className="text-amber-600 font-medium">{openComplaints} Open</span>
             <span className="text-slate-500">Live Support</span>
           </div>
         </div>
@@ -442,9 +442,9 @@ export default function DashboardPage() {
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   Statutory Reserve Allocation
                 </span>
-                <h2 className="text-base font-bold text-[#070235]">Mandatory Society Funds Ledger</h2>
+                <h2 className="text-base font-bold text-[#1E293B]">Mandatory Society Funds Ledger</h2>
               </div>
-              <div className="flex items-center gap-1.5 bg-[#eaedff] px-3 py-1 rounded-lg text-[#181445] text-xs font-semibold">
+              <div className="flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-lg text-[#107A48] text-xs font-semibold">
                 <Building className="w-3.5 h-3.5" />
                 <span>Total Reserves: {formatCurrency(totalReserves)}</span>
               </div>
@@ -452,21 +452,21 @@ export default function DashboardPage() {
 
             {/* Visual Graph Representation (CSS Flex Distribution Bar) */}
             <div className="flex flex-col gap-2 pt-1">
-              <div className="w-full h-4 bg-[#f2f3ff] rounded-full overflow-hidden flex shadow-inner">
+              <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
                 {totalReserves > 0 ? (
                   <>
                     <div
-                      className="bg-[#070235] h-full hover:opacity-90 transition-all cursor-pointer"
+                      className="bg-[#107A48] h-full hover:opacity-90 transition-all cursor-pointer"
                       style={{ width: `${Math.round((sinkingFund / totalReserves) * 100)}%` }}
                       title={`Sinking Fund: ${formatCurrency(sinkingFund)}`}
                     ></div>
                     <div
-                      className="bg-[#5b598c] h-full hover:opacity-90 transition-all cursor-pointer"
+                      className="bg-[#1E293B] h-full hover:opacity-90 transition-all cursor-pointer"
                       style={{ width: `${Math.round((repairFund / totalReserves) * 100)}%` }}
                       title={`Repair Fund: ${formatCurrency(repairFund)}`}
                     ></div>
                     <div
-                      className="bg-[#006a61] h-full hover:opacity-90 transition-all cursor-pointer"
+                      className="bg-[#0D9488] h-full hover:opacity-90 transition-all cursor-pointer"
                       style={{ width: `${Math.max(5, Math.round((generalReserve / totalReserves) * 100))}%` }}
                       title={`General Reserve: ${formatCurrency(generalReserve)}`}
                     ></div>
@@ -485,25 +485,25 @@ export default function DashboardPage() {
 
             {/* Fund Cards Breakdown */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-1">
-              <div className="p-3 rounded-xl bg-[#f2f3ff] flex flex-col">
+              <div className="p-3 rounded-xl bg-slate-50 flex flex-col">
                 <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#070235] shrink-0"></span>
+                  <span className="h-2 w-2 rounded-full bg-[#107A48] shrink-0"></span>
                   <span className="text-xs text-slate-500 font-medium truncate">Sinking Fund (0.25%)</span>
                 </div>
                 <span className="text-sm font-bold text-slate-900 mt-1">{formatCurrency(sinkingFund)}</span>
                 <span className="text-[11px] text-slate-400">Statutory Escrow</span>
               </div>
-              <div className="p-3 rounded-xl bg-[#f2f3ff] flex flex-col">
+              <div className="p-3 rounded-xl bg-slate-50 flex flex-col">
                 <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#5b598c] shrink-0"></span>
+                  <span className="h-2 w-2 rounded-full bg-[#1E293B] shrink-0"></span>
                   <span className="text-xs text-slate-500 font-medium truncate">Repair &amp; Paint</span>
                 </div>
                 <span className="text-sm font-bold text-slate-900 mt-1">{formatCurrency(repairFund)}</span>
                 <span className="text-[11px] text-slate-400">Special Reserve</span>
               </div>
-              <div className="p-3 rounded-xl bg-[#f2f3ff] flex flex-col">
+              <div className="p-3 rounded-xl bg-slate-50 flex flex-col">
                 <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#006a61] shrink-0"></span>
+                  <span className="h-2 w-2 rounded-full bg-[#0D9488] shrink-0"></span>
                   <span className="text-xs text-slate-500 font-medium truncate">General Reserve</span>
                 </div>
                 <span className="text-sm font-bold text-slate-900 mt-1">{formatCurrency(generalReserve)}</span>
@@ -519,10 +519,10 @@ export default function DashboardPage() {
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   Automated Ledger Vouchers
                 </span>
-                <h2 className="text-base font-bold text-[#070235]">Recent Maintenance Collections</h2>
+                <h2 className="text-base font-bold text-[#1E293B]">Recent Maintenance Collections</h2>
               </div>
               {/* Tab Pills */}
-              <div className="inline-flex p-1 bg-[#f2f3ff] rounded-xl gap-1">
+              <div className="inline-flex p-1 bg-slate-100 rounded-xl gap-1">
                 <button
                   type="button"
                   onClick={() => setCollectionTab("ALL")}
@@ -545,7 +545,7 @@ export default function DashboardPage() {
                   type="button"
                   onClick={() => setCollectionTab("OVERDUE")}
                   className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-                    collectionTab === "OVERDUE" ? "bg-[#ffdad6] text-[#93000a] shadow-sm" : "text-[#ba1a1a] hover:bg-[#ffdad6]/40"
+                    collectionTab === "OVERDUE" ? "bg-red-100 text-red-700 shadow-sm font-bold" : "text-red-600 hover:bg-red-50"
                   }`}
                 >
                   Overdue ({allCollections.filter((c) => c.isOverdue).length})
@@ -563,7 +563,7 @@ export default function DashboardPage() {
                 </p>
                 <Link
                   href="/billing"
-                  className="mt-3 text-xs font-semibold text-[#070235] underline hover:text-[#1e1b4b]"
+                  className="mt-3 text-xs font-semibold text-[#107A48] underline hover:text-[#0D623A]"
                 >
                   Go to Billing Management &rarr;
                 </Link>
@@ -572,7 +572,7 @@ export default function DashboardPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-[#f2f3ff] text-slate-600 text-xs font-semibold">
+                    <tr className="bg-slate-50 text-slate-600 text-xs font-semibold">
                       <th className="py-2.5 px-3 rounded-l-lg">Unit &amp; Member</th>
                       <th className="py-2.5 px-3">Voucher Ref</th>
                       <th className="py-2.5 px-3 text-right">Amount</th>
@@ -585,15 +585,15 @@ export default function DashboardPage() {
                     {filteredCollections.map((col) => (
                       <tr
                         key={col.id}
-                        className={`hover:bg-[#f2f3ff]/50 transition-colors ${
-                          col.isOverdue ? "bg-[#ffdad6]/20 hover:bg-[#ffdad6]/30" : ""
+                        className={`hover:bg-slate-50/80 transition-colors ${
+                          col.isOverdue ? "bg-red-50/40 hover:bg-red-50/70" : ""
                         }`}
                       >
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2.5">
                             <span
                               className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
-                                col.isOverdue ? "bg-[#ffdad6] text-[#93000a]" : "bg-[#eaedff] text-[#070235]"
+                                col.isOverdue ? "bg-red-100 text-red-700" : "bg-emerald-50 text-[#107A48]"
                               }`}
                             >
                               {col.unit}
@@ -605,13 +605,13 @@ export default function DashboardPage() {
                           </div>
                         </td>
                         <td className="py-3 px-3">
-                          <span className={`font-semibold ${col.isOverdue ? "text-[#ba1a1a]" : "text-slate-700"}`}>
+                          <span className={`font-semibold ${col.isOverdue ? "text-red-600" : "text-slate-700"}`}>
                             {col.voucher}
                           </span>
                           <span className="block text-[11px] text-slate-400">{col.cycle}</span>
                         </td>
                         <td className="py-3 px-3 text-right">
-                          <span className={`font-bold ${col.isOverdue ? "text-[#ba1a1a]" : "text-slate-900"}`}>
+                          <span className={`font-bold tabular-nums ${col.isOverdue ? "text-red-600" : "text-slate-900"}`}>
                             {formatCurrency(col.amount)}
                           </span>
                           {col.interest && (
@@ -621,7 +621,7 @@ export default function DashboardPage() {
                         <td className="py-3 px-3">
                           <span className="inline-flex items-center gap-1 text-slate-700">
                             {col.isVerified ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-[#006a61]" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#107A48]" />
                             ) : (
                               <Clock className="w-3.5 h-3.5 text-slate-400" />
                             )}
@@ -632,8 +632,8 @@ export default function DashboardPage() {
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
                               col.isOverdue
-                                ? "bg-[#ffdad6] text-[#93000a]"
-                                : "bg-[#86f2e4]/30 text-[#006f66]"
+                                ? "bg-red-50 text-red-700"
+                                : "bg-emerald-50 text-[#107A48]"
                             }`}
                           >
                             {col.status}
@@ -643,7 +643,7 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => setSelectedVoucher(col)}
-                            className="p-1.5 rounded-lg inline-flex text-slate-400 hover:text-[#070235] hover:bg-[#eaedff] transition-colors"
+                            className="p-1.5 rounded-lg inline-flex text-slate-400 hover:text-[#107A48] hover:bg-emerald-50 transition-colors"
                             title="Inspect Voucher Dossier"
                             aria-label="Inspect Voucher Dossier"
                           >
@@ -668,10 +668,10 @@ export default function DashboardPage() {
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   Perimeter Security Surveillance
                 </span>
-                <h2 className="text-base font-bold text-[#070235]">Active GatePass Stream</h2>
+                <h2 className="text-base font-bold text-[#1E293B]">Active GatePass Stream</h2>
               </div>
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#86f2e4]/30 text-[#006f66] text-xs font-semibold">
-                <span className="h-2 w-2 rounded-full bg-[#006a61] animate-pulse"></span>
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-[#107A48] text-xs font-semibold">
+                <span className="h-2 w-2 rounded-full bg-[#107A48] animate-pulse"></span>
                 Live Feed
               </span>
             </div>
@@ -680,17 +680,17 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-3">
               {visits.length > 0 ? (
                 visits.slice(0, 3).map((v) => (
-                  <div key={v.id} className="p-3 bg-[#f2f3ff] rounded-xl flex items-start justify-between gap-3">
+                  <div key={v.id} className="p-3 bg-slate-50 rounded-xl flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#e2e7ff] flex items-center justify-center text-[#070235] font-bold shrink-0">
-                        <Users className="w-4 h-4 text-[#006a61]" />
+                      <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-[#107A48] font-bold shrink-0">
+                        <Users className="w-4 h-4 text-[#107A48]" />
                       </div>
                       <div className="flex flex-col text-xs">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-slate-900 truncate">
                             {v.visitor?.fullName || v.visitorName || "Visitor"}
                           </span>
-                          <span className="px-1.5 py-0.2 rounded bg-[#eaedff] text-[#070235] text-[10px] font-bold">
+                          <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-[#107A48] text-[10px] font-bold">
                             {v.unitNumber || v.hostUnitNumber || "Campus"}
                           </span>
                         </div>
@@ -698,7 +698,7 @@ export default function DashboardPage() {
                           {v.vehicleNumber ? `Vehicle: ${v.vehicleNumber} • ` : ""}
                           {v.visitorType || "Guest"}
                         </span>
-                        <span className="text-[#006a61] font-semibold mt-0.5">
+                        <span className="text-[#107A48] font-semibold mt-0.5">
                           Status: {v.status} • {v.purpose || "Perimeter Pass"}
                         </span>
                       </div>
@@ -709,7 +709,7 @@ export default function DashboardPage() {
                   </div>
                 ))
               ) : (
-                <div className="py-8 flex flex-col items-center justify-center text-center bg-[#f2f3ff] rounded-xl">
+                <div className="py-8 flex flex-col items-center justify-center text-center bg-slate-50 rounded-xl">
                   <ShieldCheck className="w-8 h-8 text-slate-400 mb-2" />
                   <p className="text-xs font-semibold text-slate-700">No Active Visitors On-Campus</p>
                   <p className="text-[11px] text-slate-500">
@@ -721,9 +721,9 @@ export default function DashboardPage() {
 
             <Link
               href="/visitors"
-              className="w-full py-2.5 rounded-xl bg-[#eaedff] text-[#181445] hover:bg-[#dae2fd] transition-colors flex items-center justify-center gap-2 text-xs font-semibold"
+              className="w-full py-2.5 rounded-xl bg-slate-100 text-[#1E293B] hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 text-xs font-semibold"
             >
-              <Radio className="w-4 h-4 text-[#006a61]" />
+              <Radio className="w-4 h-4 text-[#107A48]" />
               <span>Open Full Guard Console (Gate 1 &amp; 2)</span>
             </Link>
           </div>
@@ -735,9 +735,9 @@ export default function DashboardPage() {
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   Helpdesk Dispatch
                 </span>
-                <h2 className="text-base font-bold text-[#070235]">Urgent Facility Tickets</h2>
+                <h2 className="text-base font-bold text-[#1E293B]">Urgent Facility Tickets</h2>
               </div>
-              <span className="text-xs font-bold text-[#ba1a1a]">
+              <span className="text-xs font-bold text-red-600">
                 {highPriorityComplaints.length} High Priority
               </span>
             </div>
@@ -750,18 +750,18 @@ export default function DashboardPage() {
                     <div
                       key={c.id}
                       className={`p-3.5 rounded-xl flex flex-col gap-2 ${
-                        isHigh ? "bg-[#ffdad6]/30 border border-[#ffdad6]" : "bg-[#f2f3ff]"
+                        isHigh ? "bg-red-50/50 border border-red-200" : "bg-slate-50"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wide ${
-                            isHigh ? "bg-[#ba1a1a] text-white" : "bg-[#e2e7ff] text-slate-800"
+                            isHigh ? "bg-red-600 text-white" : "bg-slate-100 text-slate-800"
                           }`}
                         >
                           {c.priority} SEVERITY
                         </span>
-                        <span className={`text-xs font-semibold ${isHigh ? "text-[#ba1a1a]" : "text-slate-500"}`}>
+                        <span className={`text-xs font-semibold ${isHigh ? "text-red-600" : "text-slate-500"}`}>
                           Status: {c.status}
                         </span>
                       </div>
@@ -777,7 +777,7 @@ export default function DashboardPage() {
                         <span>{c.unitNumber ? `Unit: ${c.unitNumber}` : c.categoryName || "Facility Ticket"}</span>
                         <Link
                           href="/complaints"
-                          className="text-[#070235] font-semibold hover:underline flex items-center gap-0.5"
+                          className="text-[#107A48] font-semibold hover:underline flex items-center gap-0.5"
                         >
                           <span>Review Ticket</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -788,8 +788,8 @@ export default function DashboardPage() {
                 })}
               </div>
             ) : (
-              <div className="py-8 flex flex-col items-center justify-center text-center bg-[#f2f3ff] rounded-xl">
-                <CheckCircle2 className="w-8 h-8 text-[#006a61] mb-2" />
+              <div className="py-8 flex flex-col items-center justify-center text-center bg-slate-50 rounded-xl">
+                <CheckCircle2 className="w-8 h-8 text-[#107A48] mb-2" />
                 <p className="text-xs font-semibold text-slate-700">All Facility Systems Operational</p>
                 <p className="text-[11px] text-slate-500">
                   Zero active critical complaints reported across society infrastructure.
@@ -805,15 +805,15 @@ export default function DashboardPage() {
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   Legal &amp; Cooperative Registry
                 </span>
-                <h2 className="text-base font-bold text-[#070235]">Statutory Compliance Status</h2>
+                <h2 className="text-base font-bold text-[#1E293B]">Statutory Compliance Status</h2>
               </div>
-              <ShieldCheck className="w-5 h-5 text-[#006a61]" />
+              <ShieldCheck className="w-5 h-5 text-[#107A48]" />
             </div>
 
             <div className="divide-y divide-slate-100 text-xs">
               <div className="py-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#006a61] shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#107A48] shrink-0" />
                   <div className="flex flex-col">
                     <span className="font-bold text-slate-900">&apos;I&apos; &amp; &apos;J&apos; Member Registers</span>
                     <span className="text-slate-500 text-[11px]">MCS Act Sec 79(2) Format • {totalUnits} Units Tracked</span>
@@ -821,7 +821,7 @@ export default function DashboardPage() {
                 </div>
                 <Link
                   href="/residents"
-                  className="px-2.5 py-1 rounded-lg bg-[#eaedff] text-slate-700 hover:bg-[#dae2fd] transition-colors font-semibold"
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 text-[#1E293B] hover:bg-slate-200 transition-colors font-semibold"
                 >
                   View Census
                 </Link>
@@ -835,20 +835,20 @@ export default function DashboardPage() {
                     <span className="text-slate-500 text-[11px]">{currentSociety?.societyName || "Active"}</span>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded bg-[#eaedff] text-[#070235] font-semibold text-[10px]">
+                <span className="px-2 py-0.5 rounded bg-emerald-50 text-[#107A48] font-semibold text-[10px]">
                   {currentSociety?.status || "ACTIVE"}
                 </span>
               </div>
 
               <div className="py-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <Calendar className="w-4 h-4 text-[#070235] shrink-0" />
+                  <Calendar className="w-4 h-4 text-[#107A48] shrink-0" />
                   <div className="flex flex-col">
                     <span className="font-bold text-slate-900">Governance &amp; Audit Sync</span>
                     <span className="text-slate-500 text-[11px]">Active Session Verified</span>
                   </div>
                 </div>
-                <span className="text-[#006a61] font-bold text-xs">Synchronized</span>
+                <span className="text-[#107A48] font-bold text-xs">Synchronized</span>
               </div>
             </div>
           </div>
@@ -864,7 +864,7 @@ export default function DashboardPage() {
           maxWidth="lg"
         >
           <div className="space-y-4 text-xs">
-            <div className="p-4 bg-[#f2f3ff] rounded-2xl flex items-center justify-between">
+            <div className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between">
               <div>
                 <span className="text-[11px] text-slate-400 uppercase font-semibold">Billed Unit &amp; Member</span>
                 <div className="text-base font-bold text-slate-900">{selectedVoucher.unit} — {selectedVoucher.member}</div>
@@ -872,14 +872,14 @@ export default function DashboardPage() {
               </div>
               <div className="text-right">
                 <span className="text-[11px] text-slate-400 uppercase font-semibold">Billing Cycle</span>
-                <div className="text-sm font-bold text-[#070235]">{selectedVoucher.cycle}</div>
+                <div className="text-sm font-bold text-[#1E293B]">{selectedVoucher.cycle}</div>
                 <div className="text-slate-500">Ref: {selectedVoucher.voucher}</div>
               </div>
             </div>
 
             <div className="border border-slate-200 rounded-xl overflow-hidden">
               <table className="w-full text-left">
-                <thead className="bg-[#f2f3ff] text-slate-600 font-semibold">
+                <thead className="bg-slate-50 text-slate-600 font-semibold">
                   <tr>
                     <th className="p-3">Statutory Head (MCS Schedule)</th>
                     <th className="p-3 text-right">Amount (₹)</th>
@@ -888,19 +888,19 @@ export default function DashboardPage() {
                 <tbody className="divide-y divide-slate-100">
                   <tr>
                     <td className="p-3 font-medium text-slate-900">Base Maintenance &amp; Common Utilities</td>
-                    <td className="p-3 text-right font-bold text-slate-900">{formatCurrency(Math.round(selectedVoucher.amount * 0.7))}</td>
+                    <td className="p-3 text-right font-bold text-slate-900 tabular-nums">{formatCurrency(Math.round(selectedVoucher.amount * 0.7))}</td>
                   </tr>
                   <tr>
                     <td className="p-3 font-medium text-slate-900">Statutory Sinking Fund Reserve (0.25%)</td>
-                    <td className="p-3 text-right font-bold text-slate-900">{formatCurrency(Math.round(selectedVoucher.amount * 0.15))}</td>
+                    <td className="p-3 text-right font-bold text-slate-900 tabular-nums">{formatCurrency(Math.round(selectedVoucher.amount * 0.15))}</td>
                   </tr>
                   <tr>
                     <td className="p-3 font-medium text-slate-900">Major Repair &amp; Painting Reserve (0.75%)</td>
-                    <td className="p-3 text-right font-bold text-slate-900">{formatCurrency(Math.round(selectedVoucher.amount * 0.15))}</td>
+                    <td className="p-3 text-right font-bold text-slate-900 tabular-nums">{formatCurrency(Math.round(selectedVoucher.amount * 0.15))}</td>
                   </tr>
-                  <tr className="bg-[#f2f3ff] font-bold text-slate-900">
+                  <tr className="bg-slate-50 font-bold text-slate-900">
                     <td className="p-3">Total Payable / Settled</td>
-                    <td className="p-3 text-right text-base text-[#070235]">{formatCurrency(selectedVoucher.amount)}</td>
+                    <td className="p-3 text-right text-base text-[#107A48] tabular-nums">{formatCurrency(selectedVoucher.amount)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -908,7 +908,7 @@ export default function DashboardPage() {
 
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <span className="text-slate-600 font-medium">Payment Channel / Audit Status:</span>
-              <span className={`font-bold ${selectedVoucher.isOverdue ? "text-[#ba1a1a]" : "text-[#006a61]"}`}>
+              <span className={`font-bold ${selectedVoucher.isOverdue ? "text-red-600" : "text-[#107A48]"}`}>
                 {selectedVoucher.channel} • {selectedVoucher.status}
               </span>
             </div>
@@ -916,14 +916,14 @@ export default function DashboardPage() {
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
               <Link
                 href="/billing"
-                className="px-4 py-2 rounded-xl bg-[#f2f3ff] hover:bg-[#eaedff] text-[#070235] font-semibold text-xs"
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1E293B] font-semibold text-xs"
               >
                 Open in Full Billing Register &rarr;
               </Link>
               <button
                 type="button"
                 onClick={() => setSelectedVoucher(null)}
-                className="px-4 py-2 rounded-xl bg-[#070235] text-white font-bold hover:bg-[#1e1b4b] text-xs"
+                className="px-4 py-2 rounded-xl bg-[#107A48] text-white font-bold hover:bg-[#0D623A] text-xs transition-colors"
               >
                 Close Dossier
               </button>

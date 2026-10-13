@@ -30,7 +30,7 @@ export const UserProfileMenu: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2.5 rounded-lg p-1.5 hover:bg-slate-100 transition-colors focus:outline-none"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white shadow-sm">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#107A48] text-xs font-semibold text-white shadow-sm">
           {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
         </div>
         <div className="hidden sm:block text-left">
