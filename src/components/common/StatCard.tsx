@@ -14,14 +14,14 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   subtext,
   icon,
-  variant = "blue",
+  variant = "emerald",
 }) => {
   const iconBgs = {
-    blue: "bg-blue-50 text-blue-600",
-    emerald: "bg-emerald-50 text-emerald-600",
-    amber: "bg-amber-50 text-amber-600",
-    rose: "bg-rose-50 text-rose-600",
-    indigo: "bg-indigo-50 text-indigo-600",
+    blue: "bg-emerald-50 text-[#107A48]",
+    emerald: "bg-emerald-50 text-[#107A48]",
+    amber: "bg-amber-50 text-[#B45309]",
+    rose: "bg-rose-50 text-[#B91C1C]",
+    indigo: "bg-slate-100 text-[#1E293B]",
     slate: "bg-slate-100 text-slate-700",
   };
 

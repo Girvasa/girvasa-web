@@ -14,11 +14,11 @@ export const Badge: React.FC<BadgeProps> = ({
   ...props
 }) => {
   const variants = {
-    success: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    warning: "bg-amber-50 text-amber-700 border-amber-200",
-    danger: "bg-rose-50 text-rose-700 border-rose-200",
-    info: "bg-blue-50 text-blue-700 border-blue-200",
-    neutral: "bg-slate-100 text-slate-700 border-slate-200",
+    success: "bg-[#ECFDF5] text-[#047857] border-[#A7F3D0]",
+    warning: "bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]",
+    danger: "bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]",
+    info: "bg-[#CCFBF1] text-[#0F766E] border-[#99F6E4]",
+    neutral: "bg-[#F1F5F9] text-[#334155] border-[#E2E8F0]",
   };
 
   const sizes = {

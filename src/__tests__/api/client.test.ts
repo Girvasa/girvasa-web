@@ -92,4 +92,117 @@ describe("ApiClient", () => {
       expect(err.code).toBe("ACCESS_DENIED");
     }
   });
+
+  it("should failover to fallback Dev Tunnel URL when primary encounters a network error", async () => {
+    const fallbackClient = new ApiClient(
+      "http://localhost:8080/api/v1",
+      "https://r68trjbh-8080.usw3.devtunnels.ms/api/v1"
+    );
+
+    const fetchMock = vi
+      .fn()
+      // First call (localhost) fails with connection refused
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      // Second call (Dev Tunnel fallback) succeeds
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({ data: { status: "UP", service: "girvasa-backend" } }),
+      });
+    global.fetch = fetchMock;
+
+    const result = await fallbackClient.get<any>("/health");
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // 1st call went to localhost
+    expect(fetchMock.mock.calls[0][0]).toBe("http://localhost:8080/api/v1/health");
+    // 2nd call went to dev tunnel fallback
+    expect(fetchMock.mock.calls[1][0]).toBe("https://r68trjbh-8080.usw3.devtunnels.ms/api/v1/health");
+    expect(result).toEqual({ status: "UP", service: "girvasa-backend" });
+    expect(fallbackClient.isFallbackActive()).toBe(true);
+  });
+
+  it("should route subsequent requests directly to fallback Dev Tunnel during cooldown", async () => {
+    const fallbackClient = new ApiClient(
+      "http://localhost:8080/api/v1",
+      "https://r68trjbh-8080.usw3.devtunnels.ms/api/v1"
+    );
+
+    const fetchMock = vi
+      .fn()
+      // First request: primary fails, fallback succeeds
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({ data: { ping: "pong1" } }),
+      })
+      // Second request: directly hits fallback without trying localhost
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({ data: { ping: "pong2" } }),
+      });
+    global.fetch = fetchMock;
+
+    await fallbackClient.get<any>("/ping");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    // Second request
+    const result2 = await fallbackClient.get<any>("/ping");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    // 3rd overall call went directly to fallback URL
+    expect(fetchMock.mock.calls[2][0]).toBe("https://r68trjbh-8080.usw3.devtunnels.ms/api/v1/ping");
+    expect(result2).toEqual({ ping: "pong2" });
+  });
+
+  it("should failover to fallback URL when primary returns HTTP 502/503 Bad Gateway", async () => {
+    const fallbackClient = new ApiClient(
+      "http://localhost:8080/api/v1",
+      "https://r68trjbh-8080.usw3.devtunnels.ms/api/v1"
+    );
+
+    const fetchMock = vi
+      .fn()
+      // Primary returns 502 Bad Gateway
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        statusText: "Bad Gateway",
+        headers: new Headers(),
+        text: async () => "Bad Gateway",
+      })
+      // Fallback returns 200 OK
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({ data: { message: "recovered" } }),
+      });
+    global.fetch = fetchMock;
+
+    const result = await fallbackClient.get<any>("/service");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][0]).toBe("http://localhost:8080/api/v1/service");
+    expect(fetchMock.mock.calls[1][0]).toBe("https://r68trjbh-8080.usw3.devtunnels.ms/api/v1/service");
+    expect(result).toEqual({ message: "recovered" });
+  });
+
+  it("should reset to primary URL when resetToPrimary is called", () => {
+    const fallbackClient = new ApiClient(
+      "http://localhost:8080/api/v1",
+      "https://r68trjbh-8080.usw3.devtunnels.ms/api/v1"
+    );
+
+    (fallbackClient as any).fallbackActive = true;
+    (fallbackClient as any).lastPrimaryFailureTime = Date.now();
+    expect(fallbackClient.isFallbackActive()).toBe(true);
+
+    fallbackClient.resetToPrimary();
+    expect(fallbackClient.isFallbackActive()).toBe(false);
+    expect(fallbackClient.getBaseUrl()).toBe("http://localhost:8080/api/v1");
+  });
 });

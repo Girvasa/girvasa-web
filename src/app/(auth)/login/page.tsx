@@ -129,42 +129,42 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-[#faf8ff] font-sans text-[#131b2e] antialiased min-h-screen flex flex-col justify-between">
+    <div className="bg-[#F8FAFC] font-sans text-[#1E293B] antialiased min-h-screen flex flex-col justify-between">
       {/* Top Header */}
-      <header className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100">
+      <header className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-200">
         <div className="h-16 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#070235] text-white flex items-center justify-center font-bold text-base shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-[#107A48] text-white flex items-center justify-center font-bold text-base shadow-sm">
                 G
               </div>
               <div className="flex flex-col">
-                <span className="text-base font-bold tracking-tight text-[#070235] leading-none">GIRVASA</span>
-                <span className="text-[10px] text-[#47464f] uppercase tracking-wider font-semibold">Society OS</span>
+                <span className="text-base font-bold tracking-tight text-[#1E293B] leading-none">GIRVASA</span>
+                <span className="text-[10px] text-[#64748B] uppercase tracking-wider font-semibold">Society OS</span>
               </div>
             </div>
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#006a61]/10 text-[#006a61] border border-[#006a61]/20">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#107A48] border border-emerald-200/60">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span className="text-xs font-semibold">256-Bit Encrypted MCS-Compliant Gateway</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden lg:flex items-center gap-1.5 text-xs text-[#47464f]">
-              <Phone className="w-3.5 h-3.5 text-[#006a61]" />
+            <div className="hidden lg:flex items-center gap-1.5 text-xs text-[#64748B]">
+              <Phone className="w-3.5 h-3.5 text-[#107A48]" />
               <span>Support:</span>
-              <a className="font-semibold text-[#070235] hover:underline" href="tel:+918850409901">
+              <a className="font-semibold text-[#1E293B] hover:underline" href="tel:+918850409901">
                 +91 8850 40 9901
               </a>
             </div>
             <div className="flex items-center bg-slate-100 rounded-lg p-0.5 text-xs">
-              <button className="px-2.5 py-1 rounded font-bold bg-white text-[#070235] shadow-sm" type="button">
+              <button className="px-2.5 py-1 rounded font-bold bg-white text-[#1E293B] shadow-sm" type="button">
                 EN
               </button>
-              <button className="px-2.5 py-1 rounded text-[#47464f] hover:text-[#070235]" type="button">
+              <button className="px-2.5 py-1 rounded text-[#64748B] hover:text-[#1E293B]" type="button">
                 MR
               </button>
-              <button className="px-2.5 py-1 rounded text-[#47464f] hover:text-[#070235]" type="button">
+              <button className="px-2.5 py-1 rounded text-[#64748B] hover:text-[#1E293B]" type="button">
                 HI
               </button>
             </div>
@@ -174,21 +174,21 @@ export default function LoginPage() {
 
       {/* Main Content Area */}
       <main className="w-full pt-20 flex-1 flex flex-col justify-center items-center py-10 px-4 sm:px-6">
-        <div className="w-full max-w-[580px] bg-white rounded-2xl shadow-xl shadow-[#070235]/5 p-6 sm:p-10 relative overflow-hidden border border-slate-100">
+        <div className="w-full max-w-[580px] bg-white rounded-2xl shadow-xl shadow-slate-900/5 p-6 sm:p-10 relative overflow-hidden border border-slate-200">
           {/* Subtle Background Glow */}
-          <div className="absolute -right-20 -top-20 w-56 h-56 rounded-full bg-gradient-to-br from-[#006a61]/10 via-[#070235]/5 to-transparent blur-2xl pointer-events-none"></div>
-          <div className="absolute -left-20 -bottom-20 w-56 h-56 rounded-full bg-gradient-to-tr from-[#eaedff] to-transparent blur-2xl pointer-events-none"></div>
+          <div className="absolute -right-20 -top-20 w-56 h-56 rounded-full bg-gradient-to-br from-[#107A48]/10 via-[#1E293B]/5 to-transparent blur-2xl pointer-events-none"></div>
+          <div className="absolute -left-20 -bottom-20 w-56 h-56 rounded-full bg-gradient-to-tr from-emerald-50 to-transparent blur-2xl pointer-events-none"></div>
 
           {/* Compliance Top Badge & Titles */}
           <div className="relative z-10 flex flex-col items-center text-center">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-[#070235] text-[11px] uppercase tracking-wider mb-3 shadow-sm font-semibold">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#006a61]" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-[#1E293B] text-[11px] uppercase tracking-wider mb-3 shadow-sm font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#107A48]" />
               <span>MCS Act &amp; Model Bye-Laws Compliant</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#070235]">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E293B]">
               Sign In to Your Society Portal
             </h1>
-            <p className="text-xs sm:text-sm text-[#47464f] max-w-[440px] mt-1.5 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#64748B] max-w-[440px] mt-1.5 leading-relaxed">
               Enter your registered 10-digit mobile number to receive a secure one-time password (OTP).
             </p>
           </div>
@@ -202,11 +202,11 @@ export default function LoginPage() {
                   setError(null);
                 }}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg transition-all ${
-                  step === "PHONE" ? "bg-white text-[#070235] shadow-sm font-bold" : "text-[#47464f]"
+                  step === "PHONE" ? "bg-white text-[#1E293B] shadow-sm font-bold" : "text-[#64748B]"
                 }`}
                 type="button"
               >
-                <span className={`w-2 h-2 rounded-full ${step === "PHONE" ? "bg-[#006a61]" : "bg-slate-400"}`}></span>
+                <span className={`w-2 h-2 rounded-full ${step === "PHONE" ? "bg-[#107A48]" : "bg-slate-400"}`}></span>
                 Step 1: Mobile Phone
               </button>
               <button
@@ -214,11 +214,11 @@ export default function LoginPage() {
                   if (mobileNumber) setStep("OTP");
                 }}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg transition-all ${
-                  step === "OTP" ? "bg-white text-[#070235] shadow-sm font-bold" : "text-[#47464f]"
+                  step === "OTP" ? "bg-white text-[#1E293B] shadow-sm font-bold" : "text-[#64748B]"
                 }`}
                 type="button"
               >
-                <span className={`w-2 h-2 rounded-full ${step === "OTP" ? "bg-[#006a61]" : "bg-slate-400"}`}></span>
+                <span className={`w-2 h-2 rounded-full ${step === "OTP" ? "bg-[#107A48]" : "bg-slate-400"}`}></span>
                 Step 2: OTP Verification
               </button>
             </div>
@@ -241,17 +241,17 @@ export default function LoginPage() {
           {step === "PHONE" && (
             <form onSubmit={handleRequestOtp} noValidate className="relative z-10 mt-6 flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#070235] mb-1.5">
+                <label className="block text-xs font-semibold text-[#1E293B] mb-1.5">
                   Mobile Number
                 </label>
-                <div className={`flex items-stretch bg-white rounded-xl border ${error ? "border-rose-400 ring-1 ring-rose-400" : "border-slate-200 focus-within:border-[#070235] focus-within:ring-1 focus-within:ring-[#070235]"} shadow-sm transition-all`}>
-                  <div className="flex items-center gap-1.5 px-3.5 bg-slate-50 rounded-l-xl text-xs font-semibold text-[#131b2e] border-r border-slate-200">
+                <div className={`flex items-stretch bg-white rounded-xl border ${error ? "border-rose-400 ring-1 ring-rose-400" : "border-slate-200 focus-within:border-[#107A48] focus-within:ring-1 focus-within:ring-[#107A48]"} shadow-sm transition-all`}>
+                  <div className="flex items-center gap-1.5 px-3.5 bg-slate-50 rounded-l-xl text-xs font-semibold text-[#1E293B] border-r border-slate-200">
                     <span className="text-base leading-none">🇮🇳</span>
                     <span>+91</span>
                   </div>
                   <div className="relative flex-1">
                     <input
-                      className="w-full h-11 px-3.5 text-sm text-[#070235] bg-transparent outline-none rounded-r-xl tracking-wide placeholder:text-slate-400 font-medium"
+                      className="w-full h-11 px-3.5 text-sm text-[#1E293B] bg-transparent outline-none rounded-r-xl tracking-wide placeholder:text-slate-400 font-medium"
                       id="mobile-number-input"
                       maxLength={10}
                       placeholder="e.g. 9876543210"
@@ -264,7 +264,7 @@ export default function LoginPage() {
                     />
                     {mobileNumber.length === 10 && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
-                        <CheckCircle2 className="w-4 h-4 text-[#006a61]" />
+                        <CheckCircle2 className="w-4 h-4 text-[#107A48]" />
                       </div>
                     )}
                   </div>
@@ -274,8 +274,8 @@ export default function LoginPage() {
                     <span>{error}</span>
                   </p>
                 ) : (
-                  <p className="mt-1.5 text-[11px] text-[#47464f] flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#006a61] shrink-0" />
+                  <p className="mt-1.5 text-[11px] text-[#64748B] flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#107A48] shrink-0" />
                     Accessible to registered Flat Owners, Tenants, Committee Members, and Staff.
                   </p>
                 )}
@@ -284,10 +284,10 @@ export default function LoginPage() {
               {/* Local Dev Quick Fill Helper */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-[#070235] text-[11px]">
+                  <span className="font-bold text-[#1E293B] text-[11px]">
                     ⚡ Quick Test Accounts
                   </span>
-                  <span className="text-[10px] text-[#006a61] bg-[#006a61]/10 px-2 py-0.5 rounded-full font-semibold">
+                  <span className="text-[10px] text-[#107A48] bg-emerald-50 px-2 py-0.5 rounded-full font-semibold">
                     Local Dev
                   </span>
                 </div>
@@ -296,7 +296,7 @@ export default function LoginPage() {
                     type="button"
                     disabled={isLoading}
                     onClick={() => handleInstantLogin("+919876545001")}
-                    className="p-2.5 bg-[#070235] text-white border border-[#070235] rounded-xl text-left hover:bg-[#1e1b4b] hover:shadow-md transition-all group"
+                    className="p-2.5 bg-[#1E293B] text-white border border-[#1E293B] rounded-xl text-left hover:bg-[#0F172A] hover:shadow-md transition-all group"
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-[11px] text-white">Society Admin</span>
@@ -308,10 +308,10 @@ export default function LoginPage() {
                     type="button"
                     disabled={isLoading}
                     onClick={() => handleInstantLogin("+919876543210")}
-                    className="p-2.5 bg-white border border-slate-300 rounded-xl text-left hover:border-[#070235] hover:shadow-sm transition-all group"
+                    className="p-2.5 bg-white border border-slate-300 rounded-xl text-left hover:border-[#107A48] hover:shadow-sm transition-all group"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#070235] text-[11px]">Resident</span>
+                      <span className="font-bold text-[#1E293B] text-[11px]">Resident</span>
                       <span className="text-[9px] bg-slate-100 text-slate-600 font-semibold px-1.5 py-0.5 rounded">1-Click</span>
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono mt-1">9876543210</div>
@@ -321,7 +321,7 @@ export default function LoginPage() {
 
               <button
                 disabled={isLoading}
-                className="w-full h-11 bg-[#070235] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#1e1b4b] transition-all disabled:opacity-60"
+                className="w-full h-11 bg-[#107A48] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#0D623A] transition-all disabled:opacity-60"
                 type="submit"
               >
                 <span>{isLoading ? "Dispatching OTP..." : "Send Verification Code"}</span>
@@ -332,7 +332,7 @@ export default function LoginPage() {
                 <p className="text-[11px] text-slate-500 mb-1.5">Setting up a new society or residential project?</p>
                 <Link
                   href="/register"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#006a61] hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#107A48] hover:underline"
                 >
                   <Building className="w-3.5 h-3.5" />
                   <span>Register Society & Start 14-Day Free Trial →</span>
@@ -345,15 +345,15 @@ export default function LoginPage() {
           {step === "OTP" && (
             <form onSubmit={handleVerifyOtp} className="relative z-10 mt-6 flex flex-col gap-4">
               {/* Dispatch Alert */}
-              <div className="p-3.5 rounded-xl bg-[#eaedff] border border-[#c4c1fb]/50 flex items-start justify-between gap-3 shadow-sm">
+              <div className="p-3.5 rounded-xl bg-[#F1F5F9] border border-slate-200 flex items-start justify-between gap-3 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#070235] text-white flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-full bg-[#107A48] text-white flex items-center justify-center shrink-0 mt-0.5">
                     <MessageSquare className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-[#070235]">OTP Dispatched</div>
-                    <p className="text-[11px] text-[#47464f] mt-0.5">
-                      Sent to registered mobile number <span className="font-semibold text-[#070235]">{mobileNumber}</span>.
+                    <div className="text-xs font-bold text-[#1E293B]">OTP Dispatched</div>
+                    <p className="text-[11px] text-[#64748B] mt-0.5">
+                      Sent to registered mobile number <span className="font-semibold text-[#1E293B]">{mobileNumber}</span>.
                     </p>
                   </div>
                 </div>
@@ -363,7 +363,7 @@ export default function LoginPage() {
                     setStep("PHONE");
                     setError(null);
                   }}
-                  className="text-xs font-semibold text-[#006a61] hover:underline shrink-0"
+                  className="text-xs font-semibold text-[#107A48] hover:underline shrink-0"
                 >
                   Change
                 </button>
@@ -371,11 +371,11 @@ export default function LoginPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-[#070235]">
+                  <label className="text-xs font-semibold text-[#1E293B]">
                     Enter 6-Digit Verification Code
                   </label>
-                  <span className="text-[11px] text-[#47464f] flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#006a61] animate-pulse"></span>
+                  <span className="text-[11px] text-[#64748B] flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#107A48] animate-pulse"></span>
                     SMS + WhatsApp dispatched
                   </span>
                 </div>
@@ -394,12 +394,12 @@ export default function LoginPage() {
                 {/* Local Dev OTP quick helper */}
                 <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between text-xs">
                   <span className="text-emerald-800 text-[11px] font-medium">
-                    Test Mode: default code is <code className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-[#070235]">123456</code>
+                    Test Mode: default code is <code className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-[#1E293B]">123456</code>
                   </span>
                   <button
                     type="button"
                     onClick={() => setOtpCode("123456")}
-                    className="px-2 py-0.5 bg-emerald-700 text-white font-bold text-[10px] rounded hover:bg-emerald-800 transition-all shadow-sm"
+                    className="px-2 py-0.5 bg-[#107A48] text-white font-bold text-[10px] rounded hover:bg-[#0D623A] transition-all shadow-sm"
                   >
                     Auto-Fill 123456
                   </button>
@@ -408,11 +408,11 @@ export default function LoginPage() {
 
               {/* Resend actions */}
               <div className="flex flex-wrap items-center justify-between gap-2 py-1 text-xs">
-                <div className="flex items-center gap-1.5 text-[#47464f]">
-                  <Clock className="w-3.5 h-3.5 text-[#006a61]" />
+                <div className="flex items-center gap-1.5 text-[#64748B]">
+                  <Clock className="w-3.5 h-3.5 text-[#107A48]" />
                   <span>
                     Resend in{" "}
-                    <span className="font-bold text-[#070235]">
+                    <span className="font-bold text-[#1E293B]">
                       00:{resendTimer < 10 ? `0${resendTimer}` : resendTimer}s
                     </span>
                   </span>
@@ -422,7 +422,7 @@ export default function LoginPage() {
                     type="button"
                     disabled={resendTimer > 0}
                     onClick={() => handleRequestOtp()}
-                    className="font-semibold text-[#006a61] hover:underline disabled:opacity-40"
+                    className="font-semibold text-[#107A48] hover:underline disabled:opacity-40"
                   >
                     Resend via SMS
                   </button>
@@ -431,7 +431,7 @@ export default function LoginPage() {
                     type="button"
                     disabled={resendTimer > 0}
                     onClick={() => handleRequestOtp()}
-                    className="font-semibold text-[#006a61] hover:underline disabled:opacity-40"
+                    className="font-semibold text-[#107A48] hover:underline disabled:opacity-40"
                   >
                     Send via WhatsApp
                   </button>
@@ -440,7 +440,7 @@ export default function LoginPage() {
 
               <button
                 disabled={isLoading}
-                className="w-full h-11 bg-[#070235] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#1e1b4b] transition-all disabled:opacity-60"
+                className="w-full h-11 bg-[#107A48] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#0D623A] transition-all disabled:opacity-60"
                 type="submit"
               >
                 <span>{isLoading ? "Verifying Token..." : "Authenticate & Open Society Console"}</span>
@@ -450,8 +450,8 @@ export default function LoginPage() {
           )}
 
           {/* Security & Audit Disclaimer */}
-          <div className="mt-6 pt-4 border-t border-slate-100 flex items-start gap-2 text-[11px] text-[#47464f]">
-            <Lock className="w-3.5 h-3.5 text-[#006a61] shrink-0 mt-0.5" />
+          <div className="mt-6 pt-4 border-t border-slate-100 flex items-start gap-2 text-[11px] text-[#64748B]">
+            <Lock className="w-3.5 h-3.5 text-[#107A48] shrink-0 mt-0.5" />
             <p>
               Pursuant to Maharashtra Co-operative Societies Bye-Laws, all administrative logins are subject to device fingerprinting and immutable session audit logging.
             </p>
@@ -460,10 +460,10 @@ export default function LoginPage() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full bg-white border-t border-slate-100 py-3 px-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#47464f] gap-2">
+      <footer className="w-full bg-white border-t border-slate-100 py-3 px-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#64748B] gap-2">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#86f2e4]/30 text-[#006f66] font-semibold">
-            <span className="w-2 h-2 rounded-full bg-[#006a61]"></span>
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-emerald-50 text-[#107A48] font-semibold">
+            <span className="w-2 h-2 rounded-full bg-[#107A48]"></span>
             <span>Statutory Year FY 2026-27 Active</span>
           </div>
           <span className="hidden md:inline">Maharashtra Co-operative Societies Act 1960 Regd. Compliance</span>

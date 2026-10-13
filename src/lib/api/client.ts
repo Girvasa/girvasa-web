@@ -29,9 +29,12 @@ export interface RequestOptions extends RequestInit {
   skipTenant?: boolean;
 }
 
-function normalizeBaseUrl(raw?: string): string {
+export const DEV_TUNNEL_FALLBACK_URL = "https://r68trjbh-8080.usw3.devtunnels.ms/api/v1";
+export const DEFAULT_PRIMARY_URL = "http://localhost:8080/api/v1";
+
+function normalizeBaseUrl(raw?: string, defaultFallback: string = DEFAULT_PRIMARY_URL): string {
   let url = (raw || "").trim();
-  if (!url) return "https://r68trjbh-8080.usw3.devtunnels.ms/api/v1";
+  if (!url) return defaultFallback;
   if (url.endsWith("/")) {
     url = url.slice(0, -1);
   }
@@ -41,19 +44,63 @@ function normalizeBaseUrl(raw?: string): string {
   return url;
 }
 
-const DEFAULT_BASE_URL = normalizeBaseUrl(
+const PRIMARY_BASE_URL = normalizeBaseUrl(
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://r68trjbh-8080.usw3.devtunnels.ms/api/v1"
+  DEFAULT_PRIMARY_URL,
+  DEFAULT_PRIMARY_URL
+);
+
+const FALLBACK_BASE_URL = normalizeBaseUrl(
+  process.env.NEXT_PUBLIC_API_FALLBACK_URL ||
+  DEV_TUNNEL_FALLBACK_URL,
+  DEV_TUNNEL_FALLBACK_URL
 );
 
 export class ApiClient {
-  private baseUrl: string;
+  private primaryUrl: string;
+  private fallbackUrl: string;
+  private fallbackActive: boolean = false;
+  private lastPrimaryFailureTime: number = 0;
+  private readonly PRIMARY_COOLDOWN_MS: number = 30000;
   private isRefreshing: boolean = false;
   private refreshSubscribers: ((token: string | null) => void)[] = [];
 
-  constructor(baseUrl: string = DEFAULT_BASE_URL) {
-    this.baseUrl = normalizeBaseUrl(baseUrl);
+  constructor(
+    baseUrl: string = PRIMARY_BASE_URL,
+    fallbackUrl: string = FALLBACK_BASE_URL
+  ) {
+    this.primaryUrl = normalizeBaseUrl(baseUrl, DEFAULT_PRIMARY_URL);
+    this.fallbackUrl = normalizeBaseUrl(fallbackUrl, DEV_TUNNEL_FALLBACK_URL);
+  }
+
+  isFallbackActive(): boolean {
+    if (!this.fallbackUrl || this.primaryUrl === this.fallbackUrl) {
+      return false;
+    }
+    if (!this.fallbackActive) {
+      return false;
+    }
+    const now = Date.now();
+    if (now - this.lastPrimaryFailureTime > this.PRIMARY_COOLDOWN_MS) {
+      // Cooldown expired; give primary another opportunity
+      this.fallbackActive = false;
+      return false;
+    }
+    return true;
+  }
+
+  resetToPrimary(): void {
+    this.fallbackActive = false;
+    this.lastPrimaryFailureTime = 0;
+  }
+
+  getPrimaryUrl(): string {
+    return this.primaryUrl;
+  }
+
+  getFallbackUrl(): string {
+    return this.fallbackUrl;
   }
 
   getBaseUrl(): string {
@@ -61,13 +108,18 @@ export class ApiClient {
       const custom =
         (window as any).__GIRVASA_API_BASE_URL__ ||
         localStorage.getItem("girvasa_api_base_url");
-      if (custom) return normalizeBaseUrl(custom);
+      if (custom) return normalizeBaseUrl(custom, this.primaryUrl);
     }
-    return this.baseUrl;
+    return this.isFallbackActive() ? this.fallbackUrl : this.primaryUrl;
   }
 
   setBaseUrl(url: string) {
-    this.baseUrl = normalizeBaseUrl(url);
+    this.primaryUrl = normalizeBaseUrl(url, DEFAULT_PRIMARY_URL);
+    this.resetToPrimary();
+  }
+
+  setFallbackUrl(url: string) {
+    this.fallbackUrl = normalizeBaseUrl(url, DEV_TUNNEL_FALLBACK_URL);
   }
 
   private onTokenRefreshed(token: string | null) {
@@ -86,12 +138,24 @@ export class ApiClient {
     return "req-" + Math.random().toString(36).substring(2, 11) + "-" + Date.now();
   }
 
+  private buildUrl(endpoint: string, base: string): string {
+    if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+      if (endpoint.startsWith(this.primaryUrl)) {
+        return endpoint.replace(this.primaryUrl, base);
+      }
+      if (endpoint.startsWith(this.fallbackUrl)) {
+        return endpoint.replace(this.fallbackUrl, base);
+      }
+      return endpoint;
+    }
+    return `${base}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+  }
+
   async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { params, skipAuth, skipTenant, headers, ...customConfig } = options;
 
-    let url = endpoint.startsWith("http")
-      ? endpoint
-      : `${this.getBaseUrl()}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+    const currentBase = this.getBaseUrl();
+    let url = this.buildUrl(endpoint, currentBase);
 
     if (params) {
       const searchParams = new URLSearchParams();
@@ -137,11 +201,47 @@ export class ApiClient {
     };
 
     let response: Response;
+    const canFallback =
+      Boolean(this.fallbackUrl) &&
+      this.fallbackUrl !== this.primaryUrl &&
+      !this.isFallbackActive();
+
     try {
       response = await fetch(url, config);
+
+      // If primary returned a bad gateway / gateway timeout (502, 503, 504), fail over
+      if (canFallback && (response.status === 502 || response.status === 503 || response.status === 504)) {
+        console.warn(
+          `[ApiClient] Primary API (${this.primaryUrl}) returned HTTP ${response.status}. Retrying via fallback Dev Tunnel (${this.fallbackUrl})...`
+        );
+        this.fallbackActive = true;
+        this.lastPrimaryFailureTime = Date.now();
+        const fallbackTargetUrl = url.includes("?")
+          ? `${this.buildUrl(endpoint, this.fallbackUrl)}?${url.split("?")[1]}`
+          : this.buildUrl(endpoint, this.fallbackUrl);
+        response = await fetch(fallbackTargetUrl, config);
+      }
     } catch (networkErr: any) {
-      console.error("API Network Error:", networkErr, "Target URL:", url);
-      throw new ApiError(0, "Network error: unable to reach the Girvasa API service.");
+      if (canFallback) {
+        console.warn(
+          `[ApiClient] Primary API (${this.primaryUrl}) is unreachable (${networkErr?.message || networkErr}). Failing over to Dev Tunnel (${this.fallbackUrl})...`
+        );
+        this.fallbackActive = true;
+        this.lastPrimaryFailureTime = Date.now();
+        const fallbackTargetUrl = url.includes("?")
+          ? `${this.buildUrl(endpoint, this.fallbackUrl)}?${url.split("?")[1]}`
+          : this.buildUrl(endpoint, this.fallbackUrl);
+
+        try {
+          response = await fetch(fallbackTargetUrl, config);
+        } catch (fallbackErr: any) {
+          console.error("API Fallback Network Error:", fallbackErr, "Target URL:", fallbackTargetUrl);
+          throw new ApiError(0, "Network error: unable to reach both primary and fallback Girvasa API services.");
+        }
+      } else {
+        console.error("API Network Error:", networkErr, "Target URL:", url);
+        throw new ApiError(0, "Network error: unable to reach the Girvasa API service.");
+      }
     }
 
     // Handle 401 Unauthorized with token refresh
@@ -156,6 +256,7 @@ export class ApiClient {
               headers: {
                 "Content-Type": "application/json",
                 Accept: "application/json",
+                "X-Tunnel-Skip-Anti-Phishing-Page": "true",
               },
               body: JSON.stringify({ refreshToken }),
             });
@@ -204,7 +305,10 @@ export class ApiClient {
                     Authorization: `Bearer ${newToken}`,
                   },
                 };
-                const retriedResponse = await fetch(url, retriedConfig);
+                const retriedUrl = url.includes("?")
+                  ? `${this.buildUrl(endpoint, this.getBaseUrl())}?${url.split("?")[1]}`
+                  : this.buildUrl(endpoint, this.getBaseUrl());
+                const retriedResponse = await fetch(retriedUrl, retriedConfig);
                 const data = await this.parseResponse<T>(retriedResponse);
                 resolve(data);
               } catch (retryErr) {
