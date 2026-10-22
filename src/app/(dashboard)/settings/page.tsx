@@ -21,9 +21,13 @@ import { useTenant } from "@/lib/tenant/TenantContext";
 import { endpoints } from "@/lib/api/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { SocietySubscriptionDetailResponse, SubscriptionPlanDto } from "@/types/subscription";
+import { AccessDenied } from "@/components/common/AccessDenied";
+import { usePermission } from "@/lib/rbac/usePermission";
 
 export default function SettingsPage() {
   const { currentSociety, activeSocietyId } = useTenant();
+  const { canAccessModule } = usePermission();
+  const canAccessSettings = canAccessModule("settings");
 
   // Active navigation tab: Profile, Billing, and Subscription
   const [activeTab, setActiveTab] = useState<"PROFILE" | "BILLING" | "SUBSCRIPTION">("PROFILE");
@@ -181,6 +185,12 @@ export default function SettingsPage() {
       console.error(err);
     }
   };
+
+  if (!canAccessSettings) {
+    return (
+      <AccessDenied message="Society configuration is restricted to Society Administrators and Management Committee Members." />
+    );
+  }
 
   return (
     <div className="flex flex-col w-full max-w-6xl mx-auto space-y-6">

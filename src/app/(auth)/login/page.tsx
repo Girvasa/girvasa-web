@@ -26,6 +26,7 @@ export default function LoginPage() {
 
   const [step, setStep] = useState<"PHONE" | "OTP">("PHONE");
   const [mobileNumber, setMobileNumber] = useState("");
+  const [activeChannel, setActiveChannel] = useState<"SMS" | "WHATSAPP">("SMS");
   const [requestId, setRequestId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -41,34 +42,6 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [step, resendTimer]);
 
-  const handleInstantLogin = async (phone: string) => {
-    setError(null);
-    setIsLoading(true);
-    try {
-      const cleanPhone = phone.startsWith("+") ? phone : "+91" + phone;
-      setMobileNumber(cleanPhone.replace(/^\+91/, ""));
-      const res = await requestOtp(cleanPhone);
-      const challengeReqId = res.requestId || (res as any).challengeId || null;
-      await verifyOtp(cleanPhone, "123456", challengeReqId || undefined);
-      router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.detail || err.message || "Instant login failed.");
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const auto = params.get("auto");
-      if (auto === "admin") {
-        handleInstantLogin("+919876545001");
-      } else if (auto === "resident") {
-        handleInstantLogin("+919876543210");
-      }
-    }
-  }, []);
-
   const formatPhoneNumber = (val: string) => {
     const cleaned = val.replace(/[^\d+]/g, "");
     if (cleaned.startsWith("+")) return cleaned;
@@ -76,7 +49,7 @@ export default function LoginPage() {
     return cleaned;
   };
 
-  const handleRequestOtp = async (e?: React.FormEvent) => {
+  const handleRequestOtp = async (channel: "SMS" | "WHATSAPP" = "SMS", e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setError(null);
 
@@ -86,9 +59,10 @@ export default function LoginPage() {
       return;
     }
 
+    setActiveChannel(channel);
     setIsLoading(true);
     try {
-      const res = await requestOtp(formatted);
+      const res = await requestOtp(formatted, channel);
       const challengeReqId = res.requestId || (res as any).challengeId || null;
       if (challengeReqId) {
         setRequestId(challengeReqId);
@@ -97,7 +71,9 @@ export default function LoginPage() {
       setResendTimer(45);
       setInfoMessage(
         res.message ||
-          "OTP sent successfully. In local development mode, check backend logs for your 6-digit code."
+          (channel === "WHATSAPP"
+            ? `OTP code sent directly to your WhatsApp at ${formatted}.`
+            : `OTP sent successfully via SMS to ${formatted}.`)
       );
     } catch (err: any) {
       setError(err.detail || err.message || "Failed to send OTP challenge.");
@@ -239,7 +215,7 @@ export default function LoginPage() {
 
           {/* Step 1: Phone */}
           {step === "PHONE" && (
-            <form onSubmit={handleRequestOtp} noValidate className="relative z-10 mt-6 flex flex-col gap-4">
+            <form onSubmit={(e) => handleRequestOtp("SMS", e)} noValidate className="relative z-10 mt-6 flex flex-col gap-4">
               <div>
                 <label className="block text-xs font-semibold text-[#1E293B] mb-1.5">
                   Mobile Number
@@ -254,7 +230,7 @@ export default function LoginPage() {
                       className="w-full h-11 px-3.5 text-sm text-[#1E293B] bg-transparent outline-none rounded-r-xl tracking-wide placeholder:text-slate-400 font-medium"
                       id="mobile-number-input"
                       maxLength={10}
-                      placeholder="e.g. 9876543210"
+                      placeholder="Enter 10-digit mobile number"
                       type="tel"
                       value={mobileNumber}
                       onChange={(e) => {
@@ -281,52 +257,25 @@ export default function LoginPage() {
                 )}
               </div>
 
-              {/* Local Dev Quick Fill Helper */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-[#1E293B] text-[11px]">
-                    ⚡ Quick Test Accounts
-                  </span>
-                  <span className="text-[10px] text-[#107A48] bg-emerald-50 px-2 py-0.5 rounded-full font-semibold">
-                    Local Dev
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={() => handleInstantLogin("+919876545001")}
-                    className="p-2.5 bg-[#1E293B] text-white border border-[#1E293B] rounded-xl text-left hover:bg-[#0F172A] hover:shadow-md transition-all group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[11px] text-white">Society Admin</span>
-                      <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-semibold px-1.5 py-0.5 rounded">1-Click</span>
-                    </div>
-                    <div className="text-[10px] text-slate-300 font-mono mt-1">9876545001</div>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={() => handleInstantLogin("+919876543210")}
-                    className="p-2.5 bg-white border border-slate-300 rounded-xl text-left hover:border-[#107A48] hover:shadow-sm transition-all group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#1E293B] text-[11px]">Resident</span>
-                      <span className="text-[9px] bg-slate-100 text-slate-600 font-semibold px-1.5 py-0.5 rounded">1-Click</span>
-                    </div>
-                    <div className="text-[10px] text-slate-500 font-mono mt-1">9876543210</div>
-                  </button>
-                </div>
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <button
+                  disabled={isLoading}
+                  className="flex-1 h-11 bg-[#107A48] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#0D623A] transition-all disabled:opacity-60"
+                  type="submit"
+                >
+                  <span>{isLoading && activeChannel === "SMS" ? "Dispatching SMS..." : "Send SMS OTP"}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  disabled={isLoading}
+                  type="button"
+                  onClick={(e) => handleRequestOtp("WHATSAPP", e)}
+                  className="flex-1 h-11 bg-[#25D366] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#1EBE5D] transition-all disabled:opacity-60"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>{isLoading && activeChannel === "WHATSAPP" ? "Dispatching..." : "Send via WhatsApp"}</span>
+                </button>
               </div>
-
-              <button
-                disabled={isLoading}
-                className="w-full h-11 bg-[#107A48] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#0D623A] transition-all disabled:opacity-60"
-                type="submit"
-              >
-                <span>{isLoading ? "Dispatching OTP..." : "Send Verification Code"}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
 
               <div className="mt-2 pt-3 border-t border-slate-100 text-center">
                 <p className="text-[11px] text-slate-500 mb-1.5">Setting up a new society or residential project?</p>
@@ -347,13 +296,15 @@ export default function LoginPage() {
               {/* Dispatch Alert */}
               <div className="p-3.5 rounded-xl bg-[#F1F5F9] border border-slate-200 flex items-start justify-between gap-3 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#107A48] text-white flex items-center justify-center shrink-0 mt-0.5">
+                  <div className={`w-8 h-8 rounded-full ${activeChannel === "WHATSAPP" ? "bg-[#25D366]" : "bg-[#107A48]"} text-white flex items-center justify-center shrink-0 mt-0.5`}>
                     <MessageSquare className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-[#1E293B]">OTP Dispatched</div>
+                    <div className="text-xs font-bold text-[#1E293B]">
+                      {activeChannel === "WHATSAPP" ? "WhatsApp OTP Dispatched" : "SMS OTP Dispatched"}
+                    </div>
                     <p className="text-[11px] text-[#64748B] mt-0.5">
-                      Sent to registered mobile number <span className="font-semibold text-[#1E293B]">{mobileNumber}</span>.
+                      Sent via {activeChannel === "WHATSAPP" ? "WhatsApp chat" : "SMS"} to <span className="font-semibold text-[#1E293B]">{mobileNumber}</span>.
                     </p>
                   </div>
                 </div>
@@ -375,35 +326,21 @@ export default function LoginPage() {
                     Enter 6-Digit Verification Code
                   </label>
                   <span className="text-[11px] text-[#64748B] flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#107A48] animate-pulse"></span>
-                    SMS + WhatsApp dispatched
+                    <span className={`w-1.5 h-1.5 rounded-full ${activeChannel === "WHATSAPP" ? "bg-[#25D366]" : "bg-[#107A48]"} animate-pulse`}></span>
+                    {activeChannel === "WHATSAPP" ? "WhatsApp message dispatched" : "SMS text dispatched"}
                   </span>
                 </div>
 
                 <Input
                   type="text"
                   maxLength={6}
-                  placeholder="e.g. 123456"
+                  placeholder="Enter 6-digit code"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
                   className="font-mono text-center tracking-widest text-lg font-bold"
                   autoFocus
                   required
                 />
-
-                {/* Local Dev OTP quick helper */}
-                <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between text-xs">
-                  <span className="text-emerald-800 text-[11px] font-medium">
-                    Test Mode: default code is <code className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-[#1E293B]">123456</code>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setOtpCode("123456")}
-                    className="px-2 py-0.5 bg-[#107A48] text-white font-bold text-[10px] rounded hover:bg-[#0D623A] transition-all shadow-sm"
-                  >
-                    Auto-Fill 123456
-                  </button>
-                </div>
               </div>
 
               {/* Resend actions */}
@@ -421,7 +358,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     disabled={resendTimer > 0}
-                    onClick={() => handleRequestOtp()}
+                    onClick={() => handleRequestOtp("SMS")}
                     className="font-semibold text-[#107A48] hover:underline disabled:opacity-40"
                   >
                     Resend via SMS
@@ -430,10 +367,11 @@ export default function LoginPage() {
                   <button
                     type="button"
                     disabled={resendTimer > 0}
-                    onClick={() => handleRequestOtp()}
-                    className="font-semibold text-[#107A48] hover:underline disabled:opacity-40"
+                    onClick={() => handleRequestOtp("WHATSAPP")}
+                    className="font-semibold text-[#25D366] hover:underline disabled:opacity-40 flex items-center gap-1"
                   >
-                    Send via WhatsApp
+                    <MessageSquare className="w-3.5 h-3.5 inline" />
+                    <span>Send via WhatsApp</span>
                   </button>
                 </div>
               </div>

@@ -23,8 +23,13 @@ import { endpoints } from "@/lib/api/endpoints";
 import { PlatformWatchMetricsResponse, SocietyWatchItem } from "@/types/platform";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { AccessDenied } from "@/components/common/AccessDenied";
+import { usePermission } from "@/lib/rbac/usePermission";
 
 export default function PlatformWatchPage() {
+  const { canAccessModule } = usePermission();
+  const canAccessWatch = canAccessModule("platform_watch");
+
   const [metrics, setMetrics] = useState<PlatformWatchMetricsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -34,6 +39,10 @@ export default function PlatformWatchPage() {
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(new Date());
 
   const fetchMetrics = useCallback(async (showRefreshingState = false) => {
+    if (!canAccessWatch) {
+      setIsLoading(false);
+      return;
+    }
     if (showRefreshingState) setIsRefreshing(true);
     setError(null);
     try {
@@ -88,6 +97,12 @@ export default function PlatformWatchPage() {
     const dist = users?.roleDistribution as Record<string, number> | undefined;
     return dist?.[role] || 0;
   };
+
+  if (!canAccessWatch) {
+    return (
+      <AccessDenied message="Platform Watch telemetry is strictly restricted to Platform Super Admins and System Developers." />
+    );
+  }
 
   if (isLoading && !metrics) {
     return (
@@ -378,20 +393,19 @@ export default function PlatformWatchPage() {
             </div>
 
             <div className="mt-5 rounded-xl bg-slate-50 p-4 border border-slate-100">
-              <div className="text-xs font-semibold text-slate-700 mb-2">Web Administrative Roles</div>
+              <div className="text-xs font-semibold text-slate-700 mb-2">Web Management Roles (ADR-034 Core)</div>
               <div className="flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200">
                   Society Admin: <strong>{getRoleCount("SOCIETY_ADMIN")}</strong>
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 border border-indigo-200">
-                  Committee: <strong>{getRoleCount("COMMITTEE_MEMBER")}</strong>
-                </span>
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 border border-amber-200">
                   Accountant: <strong>{getRoleCount("ACCOUNTANT")}</strong>
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 border border-slate-200">
-                  Facility Mgr: <strong>{getRoleCount("FACILITY_MANAGER")}</strong>
-                </span>
+                {getRoleCount("COMMITTEE_MEMBER") > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 border border-indigo-200">
+                    Committee (Legacy): <strong>{getRoleCount("COMMITTEE_MEMBER")}</strong>
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -406,7 +420,7 @@ export default function PlatformWatchPage() {
                 <div>
                   <h3 className="text-base font-bold text-slate-900">Mobile App Users</h3>
                   <p className="text-xs text-slate-500">
-                    Smartphones: Residents, Flat Owners, Tenants, Gate Security Guards
+                    Smartphones: Residents (Owners/Tenants) & Gate Security Guards
                   </p>
                 </div>
               </div>
@@ -419,7 +433,7 @@ export default function PlatformWatchPage() {
             </div>
 
             <div className="mt-5 rounded-xl bg-slate-50 p-4 border border-slate-100">
-              <div className="text-xs font-semibold text-slate-700 mb-2">Mobile Operational Roles</div>
+              <div className="text-xs font-semibold text-slate-700 mb-2">Mobile Operational Roles (ADR-034 Core)</div>
               <div className="flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 border border-emerald-200">
                   Residents: <strong>{getRoleCount("RESIDENT")}</strong>
@@ -427,12 +441,11 @@ export default function PlatformWatchPage() {
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-700 border border-orange-200">
                   Security Guards: <strong>{getRoleCount("SECURITY_GUARD")}</strong>
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs font-medium text-cyan-700 border border-cyan-200">
-                  Owners: <strong>{getRoleCount("OWNER")}</strong>
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700 border border-purple-200">
-                  Staff: <strong>{getRoleCount("MAINTENANCE_STAFF")}</strong>
-                </span>
+                {getRoleCount("OWNER") > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs font-medium text-cyan-700 border border-cyan-200">
+                    Owners (Legacy): <strong>{getRoleCount("OWNER")}</strong>
+                  </span>
+                )}
               </div>
             </div>
           </div>

@@ -8,6 +8,11 @@ export function usePermission() {
   const roles = useMemo(() => currentSociety?.roles || [], [currentSociety?.roles]);
   const isPlatformAdmin = !!currentSociety?.isPlatformAdmin;
 
+  const isPlatformSuperAdmin = isPlatformAdmin || roles.includes("PLATFORM_SUPER_ADMIN");
+  const isSocietyAdmin = isPlatformAdmin || roles.some((r) => ["SOCIETY_ADMIN", "COMMITTEE_MEMBER", "FACILITY_MANAGER"].includes(r));
+  const isAccountant = isPlatformAdmin || roles.includes("ACCOUNTANT");
+  const isWebAuthorized = isPlatformSuperAdmin || isSocietyAdmin || isAccountant;
+
   const hasPermission = useCallback(
     (permission: string): boolean => {
       if (isPlatformAdmin) return true;
@@ -27,57 +32,82 @@ export function usePermission() {
 
   const canAccessModule = useCallback(
     (moduleKey: string): boolean => {
-      if (isPlatformAdmin) return true;
+      // 1. If not authorized for web administration at all, deny all modules
+      if (!isWebAuthorized) return false;
+
+      // 2. Platform Super Admin / Developer has unrestricted platform & tenant access
+      if (isPlatformAdmin || isPlatformSuperAdmin) return true;
+
+      // 3. Module-by-module evaluation for Society Admin & Accountant
       switch (moduleKey) {
+        // Universal dashboard for authorized web users
         case "dashboard":
-          return true;
+          return isWebAuthorized;
+
+        // Society Operations & Governance (Society Admin / Secretary ONLY)
         case "buildings":
-        case "units":
-          return hasPermission("structure.view") || hasRole(["SOCIETY_ADMIN", "COMMITTEE_MEMBER", "FACILITY_MANAGER"]);
-        case "residents":
-          return hasPermission("resident.view") || hasRole(["SOCIETY_ADMIN", "COMMITTEE_MEMBER", "ACCOUNTANT"]);
-        case "billing":
-          return hasPermission("billing.view") || hasRole(["SOCIETY_ADMIN", "ACCOUNTANT", "COMMITTEE_MEMBER"]);
-        case "payments":
-          return hasPermission("payment.view") || hasRole(["SOCIETY_ADMIN", "ACCOUNTANT", "COMMITTEE_MEMBER"]);
+          return isSocietyAdmin;
         case "complaints":
-          return hasPermission("complaint.view") || hasRole(["SOCIETY_ADMIN", "FACILITY_MANAGER", "COMMITTEE_MEMBER", "RESIDENT"]);
+          return isSocietyAdmin;
         case "visitors":
-          return hasPermission("visitor.view") || hasRole(["SOCIETY_ADMIN", "SECURITY_GUARD", "FACILITY_MANAGER"]);
-        case "notices":
-          return hasPermission("notice.view") || true;
+          return isSocietyAdmin;
         case "amenities":
-          return hasPermission("amenity.view") || true;
+          return isSocietyAdmin;
+        case "parking":
+          return isSocietyAdmin;
+        case "notices":
+          return isSocietyAdmin;
         case "events":
         case "polls":
-          return true;
-        case "documents":
-          return hasPermission("document.view") || true;
+          return isSocietyAdmin;
         case "staff":
-          return hasPermission("staff.view") || hasRole(["SOCIETY_ADMIN", "FACILITY_MANAGER", "COMMITTEE_MEMBER"]);
         case "vendors":
-          return hasPermission("vendor.view") || hasRole(["SOCIETY_ADMIN", "FACILITY_MANAGER", "COMMITTEE_MEMBER"]);
-        case "parking":
-          return hasPermission("parking.view") || hasRole(["SOCIETY_ADMIN", "FACILITY_MANAGER", "COMMITTEE_MEMBER"]);
-        case "reports":
-          return hasPermission("report.view") || hasRole(["SOCIETY_ADMIN", "ACCOUNTANT", "COMMITTEE_MEMBER"]);
-        case "audit":
-          return hasPermission("audit.view") || hasRole(["SOCIETY_ADMIN", "PLATFORM_SUPER_ADMIN"]);
+          return isSocietyAdmin;
         case "settings":
-          return hasPermission("society.configure") || hasRole(["SOCIETY_ADMIN"]);
+          return isSocietyAdmin;
+
+        // Units & Residents: Admin manages full lifecycle; Accountant accesses for billing/ledger dispatch
+        case "units":
+        case "residents":
+          return isSocietyAdmin || isAccountant;
+
+        // Finance & Billing workstation (Accountant & Society Admin)
+        case "billing":
+        case "payments":
+        case "reports":
+          return isSocietyAdmin || isAccountant;
+
+        // Documents: Legal/society circulars (Admin) and financial/audit records (Accountant)
+        case "documents":
+          return isSocietyAdmin || isAccountant;
+
+        // Audit Trail: Society Admin and Statutory Auditors
+        case "audit":
+          return isSocietyAdmin;
+
+        // Platform Watch: STRICTLY Super Admin / Developer (never regular society admin/accountant)
+        case "platform_watch":
+          return false;
+
+        // Default-deny for any unspecified or new module
         default:
-          return true;
+          return false;
       }
     },
-    [isPlatformAdmin, hasPermission, hasRole]
+    [isWebAuthorized, isPlatformAdmin, isPlatformSuperAdmin, isSocietyAdmin, isAccountant]
   );
 
   return {
     permissions,
     roles,
     isPlatformAdmin,
+    isPlatformSuperAdmin,
+    isSocietyAdmin,
+    isAccountant,
+    isWebAuthorized,
     hasPermission,
     hasRole,
     canAccessModule,
   };
 }
+

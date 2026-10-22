@@ -12,8 +12,8 @@ describe("AuthContext lifecycle", () => {
     vi.restoreAllMocks();
   });
 
-  it("should request OTP challenge via endpoints.auth.requestOtp", async () => {
-    vi.spyOn(endpoints.auth, "requestOtp").mockResolvedValue({
+  it("should request OTP challenge via SMS and WhatsApp endpoints.auth.requestOtp", async () => {
+    const spy = vi.spyOn(endpoints.auth, "requestOtp").mockResolvedValue({
       challengeId: "ch-123",
       expiresInSeconds: 300,
       message: "OTP dispatched",
@@ -30,8 +30,14 @@ describe("AuthContext lifecycle", () => {
       response = await result.current.requestOtp("+919876543210");
     });
 
-    expect(endpoints.auth.requestOtp).toHaveBeenCalledWith("+919876543210");
+    expect(spy).toHaveBeenCalledWith("+919876543210", "SMS");
     expect(response.message).toBe("OTP dispatched");
+
+    // Test WhatsApp channel
+    await act(async () => {
+      await result.current.requestOtp("+919876543210", "WHATSAPP");
+    });
+    expect(spy).toHaveBeenCalledWith("+919876543210", "WHATSAPP");
   });
 
   it("should verify OTP, store JWT tokens, and populate authenticated user", async () => {

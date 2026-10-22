@@ -31,11 +31,34 @@ import {
   Lock,
   Grid,
   List,
+  Clock,
+  UserCheck,
+  UserX,
+  Loader2,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { Modal } from "@/components/common/Modal";
 import { endpoints } from "@/lib/api/endpoints";
 import { useTenant } from "@/lib/tenant/TenantContext";
 import { formatDate } from "@/lib/utils";
+
+export interface JoinRequestItem {
+  id: string;
+  referenceNumber: string;
+  societyId: string;
+  societyName?: string;
+  userId: string;
+  unitId?: string;
+  wingName?: string;
+  unitName: string;
+  residencyType: string;
+  fullName: string;
+  phoneNumber: string;
+  email?: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  rejectionReason?: string;
+  createdAt: string;
+}
 
 interface ResidentProfile {
   id: string;
@@ -82,6 +105,16 @@ export default function ResidentsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
+  // Tab switcher and Join Request State
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"directory" | "requests">("directory");
+  const [joinRequests, setJoinRequests] = useState<JoinRequestItem[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectTargetReq, setRejectTargetReq] = useState<JoinRequestItem | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
   // Form for onboarding
   const [onboardForm, setOnboardForm] = useState({
     name: "",
@@ -91,8 +124,6 @@ export default function ResidentsPage() {
     occupancyType: "OWNER",
     familyCount: 3,
   });
-
-
 
   const [census, setCensus] = useState<ResidentProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -158,9 +189,61 @@ export default function ResidentsPage() {
     }
   }, [activeSocietyId]);
 
+  const fetchJoinRequests = useCallback(async () => {
+    if (!activeSocietyId) return;
+    setIsLoadingRequests(true);
+    try {
+      const res: any = await endpoints.joinRequests.getJoinRequests({ status: "PENDING" });
+      const list = Array.isArray(res) ? res : res?.data || res?.content || [];
+      setJoinRequests(list);
+    } catch {
+      // Non-blocking
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  }, [activeSocietyId]);
+
   useEffect(() => {
     fetchLiveMembers();
-  }, [fetchLiveMembers]);
+    fetchJoinRequests();
+  }, [fetchLiveMembers, fetchJoinRequests]);
+
+  useEffect(() => {
+    if (searchParams && searchParams.get("tab") === "requests") {
+      setActiveTab("requests");
+    }
+  }, [searchParams]);
+
+  const handleApproveJoinRequest = async (req: JoinRequestItem) => {
+    setActionLoadingId(req.id);
+    try {
+      await endpoints.joinRequests.approveJoinRequest(req.id);
+      setJoinRequests((prev) => prev.filter((r) => r.id !== req.id));
+      await fetchLiveMembers();
+      alert(`✓ Approved ${req.fullName || "Resident"} for ${req.unitName}! Membership activated.`);
+    } catch (err: any) {
+      alert(`Failed to approve: ${err?.message || "Unknown error"}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleRejectJoinRequest = async () => {
+    if (!rejectTargetReq) return;
+    setActionLoadingId(rejectTargetReq.id);
+    try {
+      await endpoints.joinRequests.rejectJoinRequest(rejectTargetReq.id, rejectionReason);
+      setJoinRequests((prev) => prev.filter((r) => r.id !== rejectTargetReq.id));
+      setIsRejectModalOpen(false);
+      setRejectTargetReq(null);
+      setRejectionReason("");
+      alert(`Join application for ${rejectTargetReq.fullName || "Resident"} rejected.`);
+    } catch (err: any) {
+      alert(`Failed to reject: ${err?.message || "Unknown error"}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const filteredCensus = census.filter((item) => {
     if (wingFilter === "wing-a" && !item.unit.startsWith("A")) return false;
@@ -191,7 +274,8 @@ export default function ResidentsPage() {
         mobileNumber: onboardForm.phone,
         fullName: onboardForm.name,
         email: onboardForm.email,
-        role: onboardForm.occupancyType === "TENANT" ? "TENANT" : "RESIDENT",
+        role: "RESIDENT",
+        roleCodes: ["RESIDENT"],
         status: "ACTIVE",
       });
       await fetchLiveMembers();
@@ -275,6 +359,191 @@ export default function ResidentsPage() {
           </button>
         </div>
       </div>
+
+      {/* Tabs Switcher & Quick Notification Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab("directory")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === "directory"
+                ? "bg-[#070235] text-white shadow-sm"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Census &amp; Occupancy Directory</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+              activeTab === "directory" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
+            }`}>
+              {census.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("requests")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === "requests"
+                ? "bg-[#070235] text-white shadow-sm"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            <Clock className="w-4 h-4 text-amber-500" />
+            <span>Pending Join Requests</span>
+            {joinRequests.length > 0 ? (
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500 text-white font-bold animate-pulse">
+                {joinRequests.length} New
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500">
+                0
+              </span>
+            )}
+          </button>
+        </div>
+
+        {activeTab === "directory" && joinRequests.length > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+            <span className="font-semibold">{joinRequests.length} resident registration request(s) waiting for approval</span>
+            <button
+              type="button"
+              onClick={() => setActiveTab("requests")}
+              className="ml-2 font-bold text-amber-900 underline hover:text-amber-700"
+            >
+              Review Now &rarr;
+            </button>
+          </div>
+        )}
+      </div>
+
+      {activeTab === "requests" ? (
+        /* Join Requests Management View */
+        <div className="space-y-4">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Society Resident Join &amp; Registration Requests</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Review new resident registrations submitted via mobile/web. Approving automatically binds the member to their unit and sends a push notification unlocking their dashboard.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={fetchJoinRequests}
+                disabled={isLoadingRequests}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+              >
+                <Loader2 className={`w-3.5 h-3.5 ${isLoadingRequests ? "animate-spin" : ""}`} />
+                <span>Refresh Requests</span>
+              </button>
+            </div>
+
+            {isLoadingRequests ? (
+              <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center">
+                <Loader2 className="w-8 h-8 text-[#070235] animate-spin mb-2" />
+                <span className="text-xs font-semibold text-slate-700">Loading pending requests...</span>
+              </div>
+            ) : joinRequests.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-slate-800 text-sm">All Registration Requests Cleared</h3>
+                <p className="text-xs text-slate-400 mt-1 max-w-md">
+                  There are currently no pending resident join applications. When new users register for this society via the mobile app, their requests will appear here instantly for verification.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                {joinRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="bg-white rounded-2xl border border-slate-200/90 hover:border-slate-300 shadow-sm p-4 flex flex-col justify-between transition-all"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-10 h-10 rounded-xl bg-[#070235] text-white flex items-center justify-center font-bold text-sm">
+                            {(req.fullName || "UR").slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-900 text-sm leading-tight">{req.fullName || "Unregistered User"}</h4>
+                            <span className="text-[11px] font-mono text-slate-400">Ref: {req.referenceNumber}</span>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          PENDING
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 py-3 border-y border-slate-100 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Requested Unit:</span>
+                          <span className="font-bold text-slate-900">
+                            {req.unitName} {req.wingName ? `(${req.wingName})` : ""}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Residency Type:</span>
+                          <span className="font-semibold text-slate-700 px-2 py-0.5 rounded bg-slate-100 text-[11px]">
+                            {req.residencyType}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Mobile:</span>
+                          <span className="font-mono text-slate-800 font-semibold">{req.phoneNumber}</span>
+                        </div>
+                        {req.email && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400">Email:</span>
+                            <span className="text-slate-700 truncate max-w-[180px]">{req.email}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                          <span>Applied on:</span>
+                          <span>{req.createdAt ? formatDate(req.createdAt) : "Recently"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-3 mt-1">
+                      <button
+                        type="button"
+                        disabled={actionLoadingId === req.id}
+                        onClick={() => {
+                          setRejectTargetReq(req);
+                          setIsRejectModalOpen(true);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-700 text-xs font-semibold transition-colors disabled:opacity-50"
+                      >
+                        <UserX className="w-3.5 h-3.5" />
+                        <span>Reject</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={actionLoadingId === req.id}
+                        onClick={() => handleApproveJoinRequest(req)}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-colors disabled:opacity-50"
+                      >
+                        {actionLoadingId === req.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <UserCheck className="w-3.5 h-3.5" />
+                        )}
+                        <span>Approve</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
 
       {/* 2. Statistical Metric Grid (Audit-Grade Civic Analytics - 5 Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -822,6 +1091,8 @@ export default function ResidentsPage() {
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* 5. Onboard New Resident Modal */}
       <Modal
@@ -1028,6 +1299,67 @@ export default function ResidentsPage() {
                 className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold"
               >
                 Close Dossier
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 8. Reject Resident Registration Modal */}
+      <Modal
+        isOpen={isRejectModalOpen && !!rejectTargetReq}
+        onClose={() => {
+          setIsRejectModalOpen(false);
+          setRejectTargetReq(null);
+          setRejectionReason("");
+        }}
+        title="Reject Resident Registration Request"
+        description="Provide a clear reason for rejecting this join request. The applicant will be notified via mobile push and SMS/WhatsApp."
+        maxWidth="md"
+      >
+        {rejectTargetReq && (
+          <div className="space-y-4 pt-1 text-xs">
+            <div className="p-3.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-800">
+              <div className="font-bold text-sm">{rejectTargetReq.fullName || "Applicant"}</div>
+              <div className="text-xs text-rose-600 mt-0.5">
+                Requested Unit: <span className="font-semibold">{rejectTargetReq.unitName} {rejectTargetReq.wingName ? `(${rejectTargetReq.wingName})` : ""}</span> • {rejectTargetReq.residencyType} • Ref: {rejectTargetReq.referenceNumber}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                Reason for Rejection <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="e.g. Unverified tenancy agreement, incorrect unit allotment details, or invalid contact."
+                className="w-full p-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900 placeholder:text-slate-400 text-xs"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRejectModalOpen(false);
+                  setRejectTargetReq(null);
+                  setRejectionReason("");
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!rejectionReason.trim() || actionLoadingId === rejectTargetReq.id}
+                onClick={handleRejectJoinRequest}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold transition-colors"
+              >
+                {actionLoadingId === rejectTargetReq.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Confirm Rejection
               </button>
             </div>
           </div>

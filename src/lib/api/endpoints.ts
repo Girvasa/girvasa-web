@@ -35,8 +35,8 @@ import { PlatformWatchMetricsResponse } from "@/types/platform";
 export const endpoints = {
   // Auth
   auth: {
-    requestOtp: (mobileNumber: string) =>
-      api.post<OtpResponseDto>("/auth/otp/request", { mobileNumber }, { skipAuth: true, skipTenant: true }),
+    requestOtp: (mobileNumber: string, channel: 'SMS' | 'WHATSAPP' = 'SMS') =>
+      api.post<OtpResponseDto>("/auth/otp/request", { mobileNumber, channel }, { skipAuth: true, skipTenant: true }),
     verifyOtp: (mobileNumber: string, otpCode: string, requestId?: string) =>
       api.post<AuthTokensResponse>(
         "/auth/otp/verify",
@@ -363,5 +363,21 @@ export const endpoints = {
   platform: {
     getWatchMetrics: () =>
       api.get<PlatformWatchMetricsResponse>("/platform/metrics", { skipAuth: false, skipTenant: true }),
+  },
+
+  // Society Join Requests (Resident Self-Onboarding & Committee Approval)
+  joinRequests: {
+    getJoinRequests: (params?: {
+      status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+      search?: string;
+      page?: number;
+      limit?: number;
+    }) => api.get<any[]>("/join-requests", { params }),
+    getJoinRequest: (id: string) =>
+      api.get<any>(`/join-requests/${id}`),
+    approveJoinRequest: (id: string) =>
+      api.post<any>(`/join-requests/${id}/approve`),
+    rejectJoinRequest: (id: string, reason?: string) =>
+      api.post<any>(`/join-requests/${id}/reject`, { rejectionReason: reason }),
   },
 };

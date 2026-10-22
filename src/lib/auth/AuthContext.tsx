@@ -9,7 +9,7 @@ interface AuthContextType {
   user: UserResponse | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  requestOtp: (mobileNumber: string) => Promise<OtpResponseDto>;
+  requestOtp: (mobileNumber: string, channel?: "SMS" | "WHATSAPP") => Promise<OtpResponseDto>;
   verifyOtp: (mobileNumber: string, otpCode: string, requestId?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -45,8 +45,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshUser();
   }, [refreshUser]);
 
-  const requestOtp = async (mobileNumber: string): Promise<OtpResponseDto> => {
-    const res = await endpoints.auth.requestOtp(mobileNumber);
+  const requestOtp = async (mobileNumber: string, channel: "SMS" | "WHATSAPP" = "SMS"): Promise<OtpResponseDto> => {
+    const res = await endpoints.auth.requestOtp(mobileNumber, channel);
     const challengeId = res.requestId || res.challengeId;
     if (challengeId) {
       setLastRequestId(challengeId);
