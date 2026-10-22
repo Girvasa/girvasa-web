@@ -88,12 +88,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* Brand header */}
         <div className="flex h-16 items-center justify-between border-b border-slate-200/80 px-6">
           <Link href="/dashboard" className="flex items-center space-x-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#107A48] text-white font-bold shadow-md shadow-[#107A48]/20">
               G
             </div>
             <div>
               <div className="font-bold text-slate-900 text-base tracking-tight leading-none">GIRVASA</div>
-              <div className="text-[10px] font-semibold tracking-wider uppercase text-blue-600 mt-0.5">Society OS</div>
+              <div className="text-[10px] font-semibold tracking-wider uppercase text-[#107A48] mt-0.5">Society OS</div>
             </div>
           </Link>
           <button
@@ -123,14 +123,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 className={cn(
                   "flex items-center space-x-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
                   isActive
-                    ? "bg-blue-50 text-blue-700 font-semibold shadow-xs"
+                    ? "bg-emerald-50 text-[#107A48] font-semibold border-r-2 border-[#107A48]"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
                 <Icon
                   className={cn(
                     "w-4 h-4 transition-colors",
-                    isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
+                    isActive ? "text-[#107A48]" : "text-slate-400 group-hover:text-slate-600"
                   )}
                 />
                 <span>{item.name}</span>
