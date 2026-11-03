@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Calendar,
   AlertCircle,
+  MapPin,
 } from "lucide-react";
 import { Table, Column } from "@/components/common/Table";
 import { Modal } from "@/components/common/Modal";
@@ -74,13 +75,20 @@ export default function StaffPage() {
       guardName: "Ram Singh",
       staffId: "#SEC-102",
       shift: "Day Shift (07:00 - 19:00)",
-      status: "ON_DUTY" as const,
+      status: "ON_DUTY" as "ON_DUTY" | "ON_BREAK" | "OFF_DUTY" | "ON_LEAVE" | "BUNKING_DETECTED",
       activeDuration: "05:42:19",
       breakDuration: "14m / 45m limit",
       clearedIngress: 18,
       handoverDone: true,
       notes: "Service vendor logs verified; Delivery OTP bypass active.",
       isVerified: true,
+      leaveType: "Casual Leave",
+      telemetry: {
+        latitude: 18.521850,
+        longitude: 73.857920,
+        distanceMeters: 142,
+        speedKmh: 4.8,
+      },
     },
     {
       gateId: "GATE-03",
@@ -802,6 +810,8 @@ export default function StaffPage() {
             {gateRoster.map((gate) => {
               const isOnDuty = gate.status === "ON_DUTY";
               const isOnBreak = gate.status === "ON_BREAK";
+              const isBunking = gate.status === "BUNKING_DETECTED";
+              const isOnLeave = gate.status === "ON_LEAVE";
               return (
                 <div
                   key={gate.gateId}
@@ -818,14 +828,26 @@ export default function StaffPage() {
                       </div>
                       <span
                         className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${
-                          isOnDuty
+                          isBunking
+                            ? "bg-rose-50 text-rose-700 border border-rose-300 animate-pulse"
+                            : isOnLeave
+                            ? "bg-purple-50 text-purple-700 border border-purple-300"
+                            : isOnDuty
                             ? "bg-teal-50 text-[#006a61] border border-teal-200"
                             : isOnBreak
                             ? "bg-amber-50 text-amber-700 border border-amber-200"
                             : "bg-slate-100 text-slate-500 border border-slate-200"
                         }`}
                       >
-                        {isOnDuty ? "● ON DUTY" : isOnBreak ? "☕ ON BREAK" : "OFF DUTY"}
+                        {isBunking
+                          ? "⚠️ BUNKING DETECTED"
+                          : isOnLeave
+                          ? "📅 ON LEAVE"
+                          : isOnDuty
+                          ? "● ON DUTY"
+                          : isOnBreak
+                          ? "☕ ON BREAK"
+                          : "OFF DUTY"}
                       </span>
                     </div>
 
@@ -843,12 +865,91 @@ export default function StaffPage() {
                       </div>
                     </div>
 
+                    {/* Geofence Breach Alert & Exclusive GPS Telemetry */}
+                    {isBunking && (
+                      <div className="mb-3 p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-2">
+                        <div className="flex items-center gap-1.5 text-rose-700 font-bold text-xs">
+                          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span>GEOFENCE BREACH: POST ABANDONMENT</span>
+                        </div>
+                        <p className="text-[11px] text-rose-800 leading-tight">
+                          Guard moved {gate.telemetry?.distanceMeters ?? 142}m away from Gate 2 post without logging Punch Out or Tea Break. 60m perimeter breached.
+                        </p>
+                        {/* EXCLUSIVE GPS TELEMETRY (Hon. Secretary & Accountant RBAC) */}
+                        <div className="p-2.5 bg-white border border-rose-200 rounded-lg text-xs font-mono space-y-1 shadow-xs">
+                          <div className="text-[10px] text-rose-600 uppercase font-bold flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                            <span>Live GPS Telemetry (Secretary &amp; Accountant Only):</span>
+                          </div>
+                          <div className="text-slate-900 font-bold text-[11px]">
+                            Coordinates: {gate.telemetry?.latitude ?? 18.521850}° N, {gate.telemetry?.longitude ?? 73.857920}° E
+                          </div>
+                          <div className="text-slate-600 text-[10px]">
+                            {gate.telemetry?.distanceMeters ?? 142}m out of bounds (Limit: 60m) • Speed: {gate.telemetry?.speedKmh ?? 4.8} km/h • GPS Ping: Live
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGateRoster((prev) =>
+                              prev.map((g) =>
+                                g.gateId === gate.gateId
+                                  ? {
+                                      ...g,
+                                      status: "ON_DUTY",
+                                      notes: "Bunking alert resolved. Guard reported back to Gate 2.",
+                                    }
+                                  : g
+                              )
+                            );
+                            setActionNotice("Bunking alert resolved. Guard back at Gate 2 post.");
+                          }}
+                          className="w-full py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all text-center shadow-xs"
+                        >
+                          Resolve Alert (Guard Back at Post)
+                        </button>
+                      </div>
+                    )}
+
+                    {/* On Leave Notice Banner */}
+                    {isOnLeave && (
+                      <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-xl space-y-2">
+                        <div className="flex items-center gap-1.5 text-purple-700 font-bold text-xs">
+                          <Calendar className="w-4 h-4 text-purple-600 shrink-0" />
+                          <span>ON APPROVED LEAVE ({gate.leaveType ?? "Casual Leave"})</span>
+                        </div>
+                        <p className="text-[11px] text-purple-800 leading-tight">
+                          Ram Singh on approved leave. Reliever Suresh Patil deployed at Gate 2. Shift recorded without SLA penalty.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGateRoster((prev) =>
+                              prev.map((g) =>
+                                g.gateId === gate.gateId
+                                  ? {
+                                      ...g,
+                                      status: "ON_DUTY",
+                                      notes: "Leave ended. Ram Singh resumed active duty.",
+                                    }
+                                  : g
+                              )
+                            );
+                            setActionNotice("Leave ended. Ram Singh resumed active duty.");
+                          }}
+                          className="w-full py-1.5 px-3 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-bold transition-all text-center"
+                        >
+                          Resume Duty (Back from Leave)
+                        </button>
+                      </div>
+                    )}
+
                     {/* Live Metrics Grid */}
                     <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                       <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
                         <span className="text-[10px] text-slate-400 uppercase font-bold block">Active Shift Duration</span>
                         <span className="text-sm font-mono font-bold text-[#006a61] mt-0.5 block">
-                          {gate.activeDuration}
+                          {isOnLeave ? "On Leave" : isBunking ? "142m Breach" : gate.activeDuration}
                         </span>
                       </div>
                       <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
@@ -878,7 +979,51 @@ export default function StaffPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                  <div className="flex flex-col gap-2 pt-3 border-t border-slate-100">
+                    {gate.gateId === "GATE-02" && (
+                      <div className="flex items-center gap-1.5 w-full">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGateRoster((prev) =>
+                              prev.map((g) =>
+                                g.gateId === "GATE-02"
+                                  ? {
+                                      ...g,
+                                      status: g.status === "BUNKING_DETECTED" ? "ON_DUTY" : "BUNKING_DETECTED",
+                                      notes: g.status === "BUNKING_DETECTED" ? "Guard back at post." : "⚠️ Bunking flagged: 142m perimeter breach.",
+                                    }
+                                  : g
+                              )
+                            );
+                          }}
+                          className="flex-1 py-1 px-2 rounded-md border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 text-[11px] font-semibold transition-all text-center"
+                        >
+                          {gate.status === "BUNKING_DETECTED" ? "Reset Breach" : "Simulate 60m+ Breach"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGateRoster((prev) =>
+                              prev.map((g) =>
+                                g.gateId === "GATE-02"
+                                  ? {
+                                      ...g,
+                                      status: g.status === "ON_LEAVE" ? "ON_DUTY" : "ON_LEAVE",
+                                      leaveType: "Casual Leave",
+                                      notes: g.status === "ON_LEAVE" ? "Duty resumed." : "On approved casual leave. Reliever deployed.",
+                                    }
+                                  : g
+                              )
+                            );
+                          }}
+                          className="flex-1 py-1 px-2 rounded-md border border-purple-200 text-purple-700 bg-purple-50/50 hover:bg-purple-100 text-[11px] font-semibold transition-all text-center"
+                        >
+                          {gate.status === "ON_LEAVE" ? "End Leave" : "Mark Leave"}
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 w-full">
                     <button
                       type="button"
                       onClick={() => handleOpenRegularizeModal(gate)}
@@ -904,6 +1049,7 @@ export default function StaffPage() {
                     >
                       {gate.isVerified ? "✓ Verified" : "Verify Shift"}
                     </button>
+                    </div>
                   </div>
                 </div>
               );

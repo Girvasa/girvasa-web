@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   ShieldAlert,
+  MapPin,
   Smartphone,
   Sliders,
   MessageSquare,
@@ -1899,6 +1900,49 @@ export default function SuperAdminConsolePage() {
               </div>
               <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
                 <span>Penalty Deductions: ₹4,500</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Geofence Perimeter & Guard Bunking Audit (Platform Super Admin Telemetry) */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-rose-600" />
+                <h4 className="font-bold text-slate-900 text-xs">
+                  Active Geofence Perimeter Breaches &amp; Guard Telemetry (Super Admin View)
+                </h4>
+              </div>
+              <span className="text-[11px] text-rose-600 font-bold bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
+                1 Incident Under SLA Review
+              </span>
+            </div>
+            <div className="p-4">
+              <div className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900 text-xs">Ram Singh (#SEC-102)</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">
+                      POST ABANDONMENT (&gt;60m)
+                    </span>
+                    <span className="text-[11px] text-slate-500">Sapphire Towers RWA • Gate 2 (Service Ingress)</span>
+                  </div>
+                  <div className="text-xs text-rose-900 font-mono flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <span><strong>Coordinates:</strong> 18.521850° N, 73.857920° E</span>
+                    <span><strong>Distance from Post:</strong> 142m (Threshold: 60m)</span>
+                    <span><strong>Speed:</strong> 4.8 km/h</span>
+                    <span><strong>Status:</strong> Unexplained Departure without Punch Out / Break</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => alert("SLA Penalty notice of ₹500 issued to Terrier Security Services.")}
+                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs"
+                  >
+                    Apply Agency SLA Penalty
+                  </button>
+                </div>
               </div>
             </div>
           </div>
