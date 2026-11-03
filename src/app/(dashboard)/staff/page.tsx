@@ -979,51 +979,7 @@ export default function StaffPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-col gap-2 pt-3 border-t border-slate-100">
-                    {gate.gateId === "GATE-02" && (
-                      <div className="flex items-center gap-1.5 w-full">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGateRoster((prev) =>
-                              prev.map((g) =>
-                                g.gateId === "GATE-02"
-                                  ? {
-                                      ...g,
-                                      status: g.status === "BUNKING_DETECTED" ? "ON_DUTY" : "BUNKING_DETECTED",
-                                      notes: g.status === "BUNKING_DETECTED" ? "Guard back at post." : "⚠️ Bunking flagged: 142m perimeter breach.",
-                                    }
-                                  : g
-                              )
-                            );
-                          }}
-                          className="flex-1 py-1 px-2 rounded-md border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 text-[11px] font-semibold transition-all text-center"
-                        >
-                          {gate.status === "BUNKING_DETECTED" ? "Reset Breach" : "Simulate 60m+ Breach"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGateRoster((prev) =>
-                              prev.map((g) =>
-                                g.gateId === "GATE-02"
-                                  ? {
-                                      ...g,
-                                      status: g.status === "ON_LEAVE" ? "ON_DUTY" : "ON_LEAVE",
-                                      leaveType: "Casual Leave",
-                                      notes: g.status === "ON_LEAVE" ? "Duty resumed." : "On approved casual leave. Reliever deployed.",
-                                    }
-                                  : g
-                              )
-                            );
-                          }}
-                          className="flex-1 py-1 px-2 rounded-md border border-purple-200 text-purple-700 bg-purple-50/50 hover:bg-purple-100 text-[11px] font-semibold transition-all text-center"
-                        >
-                          {gate.status === "ON_LEAVE" ? "End Leave" : "Mark Leave"}
-                        </button>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 w-full">
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => handleOpenRegularizeModal(gate)}
@@ -1049,7 +1005,6 @@ export default function StaffPage() {
                     >
                       {gate.isVerified ? "✓ Verified" : "Verify Shift"}
                     </button>
-                    </div>
                   </div>
                 </div>
               );
