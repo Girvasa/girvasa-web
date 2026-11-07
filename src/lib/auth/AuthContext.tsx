@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { UserResponse, OtpResponseDto } from "@/types/auth";
 import { endpoints } from "../api/endpoints";
 import { tokenStorage } from "./tokenStorage";
+import { broadcastSessionEvent, registerSessionSync } from "./sessionSync";
 
 interface AuthContextType {
   user: UserResponse | null;
@@ -32,7 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const userData = await endpoints.auth.getCurrentUser();
-      setUser(userData);
+      if (tokenStorage.getAccessToken()) {
+        setUser(userData);
+      } else {
+        setUser(null);
+      }
     } catch {
       tokenStorage.clearTokens();
       setUser(null);
@@ -43,7 +48,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     refreshUser();
-  }, [refreshUser]);
+
+    const unbind = registerSessionSync({
+      onLogin: () => {
+        refreshUser();
+      },
+      onLogout: () => {
+        tokenStorage.clearTokens();
+        tokenStorage.clearActiveSocietyId();
+        setUser(null);
+        if (typeof window !== "undefined") {
+          const path = window.location.pathname;
+          if (
+            path.startsWith("/dashboard") ||
+            path.startsWith("/platform") ||
+            path.startsWith("/billing") ||
+            path.startsWith("/residents") ||
+            path.startsWith("/settings") ||
+            path.startsWith("/audit") ||
+            path.startsWith("/units")
+          ) {
+            try {
+              window.location.href = "/login";
+            } catch {
+              // jsdom navigation environment fallback
+            }
+          }
+        }
+      },
+      onSyncCheck: () => {
+        const token = tokenStorage.getAccessToken();
+        if (token && !user) {
+          refreshUser();
+        } else if (!token && user) {
+          setUser(null);
+        }
+      },
+    });
+
+    return unbind;
+  }, [refreshUser, user]);
 
   const requestOtp = async (mobileNumber: string, channel: "SMS" | "WHATSAPP" = "SMS"): Promise<OtpResponseDto> => {
     const res = await endpoints.auth.requestOtp(mobileNumber, channel);
@@ -64,6 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       tokenStorage.setRefreshToken(tokens.refreshToken);
     }
     await refreshUser();
+    broadcastSessionEvent("SESSION_LOGIN");
   };
 
   const logout = async () => {
@@ -75,6 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       tokenStorage.clearTokens();
       tokenStorage.clearActiveSocietyId();
       setUser(null);
+      broadcastSessionEvent("SESSION_LOGOUT");
       if (typeof window !== "undefined") {
         try {
           window.location.href = "/login";
@@ -102,10 +148,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: false,
+  requestOtp: async () => ({}),
+  verifyOtp: async () => {},
+  logout: async () => {},
+  refreshUser: async () => {},
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  return context || defaultAuthContext;
 };

@@ -6,20 +6,19 @@ class TokenStorage {
   private memoryAccessToken: string | null = null;
 
   getAccessToken(): string | null {
-    if (this.memoryAccessToken) {
-      return this.memoryAccessToken;
-    }
     if (typeof window !== "undefined") {
-      return sessionStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem(ACCESS_TOKEN_KEY);
+      const stored = localStorage.getItem(ACCESS_TOKEN_KEY) || sessionStorage.getItem(ACCESS_TOKEN_KEY);
+      this.memoryAccessToken = stored;
+      return stored;
     }
-    return null;
+    return this.memoryAccessToken;
   }
 
   setAccessToken(token: string): void {
     this.memoryAccessToken = token;
     if (typeof window !== "undefined") {
-      sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
       localStorage.setItem(ACCESS_TOKEN_KEY, token);
+      sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
     }
   }
 
@@ -39,9 +38,9 @@ class TokenStorage {
   clearTokens(): void {
     this.memoryAccessToken = null;
     if (typeof window !== "undefined") {
-      sessionStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
+      sessionStorage.removeItem(ACCESS_TOKEN_KEY);
     }
   }
 

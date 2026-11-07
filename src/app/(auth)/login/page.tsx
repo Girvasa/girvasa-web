@@ -22,7 +22,13 @@ import { useAuth } from "@/lib/auth/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { requestOtp, verifyOtp } = useAuth();
+  const { requestOtp, verifyOtp, isAuthenticated, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, isAuthenticated, router]);
 
   const [step, setStep] = useState<"PHONE" | "OTP">("PHONE");
   const [mobileNumber, setMobileNumber] = useState("");

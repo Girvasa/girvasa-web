@@ -33,6 +33,28 @@ import { endpoints } from "@/lib/api/endpoints";
 import { StaffResponse } from "@/types/operation";
 import { useTenant } from "@/lib/tenant/TenantContext";
 
+interface GateRosterItem {
+  gateId: string;
+  gateName: string;
+  guardName: string;
+  staffId: string;
+  shift: string;
+  status: "ON_DUTY" | "ON_BREAK" | "OFF_DUTY" | "ON_LEAVE" | "BUNKING_DETECTED";
+  activeDuration: string;
+  breakDuration: string;
+  clearedIngress: number;
+  handoverDone: boolean;
+  notes: string;
+  isVerified: boolean;
+  leaveType?: string;
+  telemetry?: {
+    latitude: number;
+    longitude: number;
+    distanceMeters: number;
+    speedKmh: number;
+  };
+}
+
 export default function StaffPage() {
   const { activeSocietyId } = useTenant();
   const [activeTab, setActiveTab] = useState<"directory" | "gate_attendance" | "payroll_timesheets">("directory");
@@ -54,14 +76,14 @@ export default function StaffPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Live Gate Roster State
-  const [gateRoster, setGateRoster] = useState([
+  const [gateRoster, setGateRoster] = useState<GateRosterItem[]>([
     {
       gateId: "GATE-01",
       gateName: "Main Gate 01 (Ingress / Egress)",
       guardName: "Rajesh Sharma",
       staffId: "#SEC-101",
       shift: "Day Shift (07:00 - 19:00)",
-      status: "ON_DUTY" as const,
+      status: "ON_DUTY",
       activeDuration: "05:40:12",
       breakDuration: "0m / 45m limit",
       clearedIngress: 24,
@@ -75,7 +97,7 @@ export default function StaffPage() {
       guardName: "Ram Singh",
       staffId: "#SEC-102",
       shift: "Day Shift (07:00 - 19:00)",
-      status: "ON_DUTY" as "ON_DUTY" | "ON_BREAK" | "OFF_DUTY" | "ON_LEAVE" | "BUNKING_DETECTED",
+      status: "ON_DUTY",
       activeDuration: "05:42:19",
       breakDuration: "14m / 45m limit",
       clearedIngress: 18,
@@ -96,7 +118,7 @@ export default function StaffPage() {
       guardName: "Suresh Patil",
       staffId: "#SEC-103",
       shift: "Night Shift (19:00 - 07:00)",
-      status: "OFF_DUTY" as const,
+      status: "OFF_DUTY",
       activeDuration: "00:00:00",
       breakDuration: "0m",
       clearedIngress: 0,
@@ -108,9 +130,9 @@ export default function StaffPage() {
 
   // Regularize Modal State
   const [isRegularizeModalOpen, setIsRegularizeModalOpen] = useState(false);
-  const [selectedGateForRegularize, setSelectedGateForRegularize] = useState<typeof gateRoster[0] | null>(null);
+  const [selectedGateForRegularize, setSelectedGateForRegularize] = useState<GateRosterItem | null>(null);
   const [regularizeReason, setRegularizeReason] = useState("");
-  const [regularizeStatus, setRegularizeStatus] = useState<"ON_DUTY" | "ON_BREAK" | "OFF_DUTY">("ON_DUTY");
+  const [regularizeStatus, setRegularizeStatus] = useState<GateRosterItem["status"]>("ON_DUTY");
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   // Accountant Payroll Posting State

@@ -31,6 +31,26 @@ import {
   RenewSubscriptionRequest,
 } from "@/types/subscription";
 import { PlatformWatchMetricsResponse } from "@/types/platform";
+import {
+  AppVersionConfig,
+  FeatureFlagItem,
+  SmsGatewayConfig,
+  BroadcastNotificationRequest,
+  PlatformUserItem,
+  DeletedUserItem,
+  MaintenanceConfig,
+  PaymentGatewayConfig,
+  SocietyBankAccountItem,
+  SubscriptionRateItem,
+  ApiKeyIntegrationItem,
+  ImpersonationSession,
+  SocietyLifecycleItem,
+  PendingApprovalItem,
+  UnreconciledTransactionItem,
+  BackgroundJobItem,
+} from "@/types/platformAdmin";
+
+
 
 export const endpoints = {
   // Auth
@@ -363,6 +383,78 @@ export const endpoints = {
   platform: {
     getWatchMetrics: () =>
       api.get<PlatformWatchMetricsResponse>("/platform/metrics", { skipAuth: false, skipTenant: true }),
+  },
+
+  // Platform Super Admin Master Administration & Overrides
+  platformAdmin: {
+    getAppVersions: () =>
+      api.get<AppVersionConfig>("/platform/admin/app-versions", { skipTenant: true }),
+    updateAppVersions: (data: Partial<AppVersionConfig>) =>
+      api.patch<AppVersionConfig>("/platform/admin/app-versions", data, { skipTenant: true }),
+    getFeatureFlags: () =>
+      api.get<FeatureFlagItem[]>("/platform/admin/feature-flags", { skipTenant: true }),
+    toggleFeatureFlag: (key: string, enabled: boolean) =>
+      api.patch<FeatureFlagItem>(`/platform/admin/feature-flags/${key}`, { enabled }, { skipTenant: true }),
+    getSmsConfig: () =>
+      api.get<SmsGatewayConfig>("/platform/admin/sms-gateway", { skipTenant: true }),
+    updateSmsConfig: (data: Partial<SmsGatewayConfig>) =>
+      api.patch<SmsGatewayConfig>("/platform/admin/sms-gateway", data, { skipTenant: true }),
+    broadcastNotification: (data: BroadcastNotificationRequest) =>
+      api.post<{ success: boolean; deliveredCount: number }>("/platform/admin/broadcast-notification", data, { skipTenant: true }),
+    getUsers: (params?: { search?: string; status?: string; role?: string }) =>
+      api.get<PlatformUserItem[]>("/platform/admin/users", { params, skipTenant: true }),
+    updateUserProfile: (id: string, data: any) =>
+      api.patch<PlatformUserItem>(`/platform/admin/users/${id}/update`, data, { skipTenant: true }),
+    revokeUserSessions: (id: string) =>
+      api.post<{ success: boolean; message: string }>(`/platform/admin/users/${id}/revoke-sessions`, {}, { skipTenant: true }),
+    getDeletedUsers: () =>
+      api.get<DeletedUserItem[]>("/platform/admin/users/deleted", { skipTenant: true }),
+    restoreDeletedUser: (id: string, reason?: string) =>
+      api.post<{ success: boolean; message: string }>(`/platform/admin/users/${id}/restore`, { reason }, { skipTenant: true }),
+    getMaintenanceConfig: () =>
+      api.get<MaintenanceConfig>("/platform/admin/maintenance", { skipTenant: true }),
+    updateMaintenanceConfig: (data: Partial<MaintenanceConfig>) =>
+      api.patch<MaintenanceConfig>("/platform/admin/maintenance", data, { skipTenant: true }),
+    getPaymentGatewayConfig: () =>
+      api.get<PaymentGatewayConfig>("/platform/admin/payment-gateway", { skipTenant: true }),
+    updatePaymentGatewayConfig: (data: Partial<PaymentGatewayConfig>) =>
+      api.patch<PaymentGatewayConfig>("/platform/admin/payment-gateway", data, { skipTenant: true }),
+    getBankAccounts: () =>
+      api.get<SocietyBankAccountItem[]>("/platform/admin/bank-accounts", { skipTenant: true }),
+    overrideBankAccountVerification: (societyId: string, status: string, reason?: string) =>
+      api.post<SocietyBankAccountItem>(`/platform/admin/bank-accounts/${societyId}/override`, { status, reason }, { skipTenant: true }),
+    getSubscriptionRates: () =>
+      api.get<SubscriptionRateItem[]>("/platform/admin/subscription-rates", { skipTenant: true }),
+    updateSubscriptionRate: (planCode: string, data: Partial<SubscriptionRateItem>) =>
+      api.patch<SubscriptionRateItem>(`/platform/admin/subscription-rates/${planCode}`, data, { skipTenant: true }),
+    getApiKeys: () =>
+      api.get<ApiKeyIntegrationItem[]>("/platform/admin/api-keys", { skipTenant: true }),
+    rotateApiKey: (keyName: string) =>
+      api.post<ApiKeyIntegrationItem>(`/platform/admin/api-keys/${keyName}/rotate`, {}, { skipTenant: true }),
+    getSocietiesLifecycle: () =>
+      api.get<SocietyLifecycleItem[]>("/platform/admin/societies/lifecycle", { skipTenant: true }),
+    updateSocietyStatus: (societyId: string, status: string, reason?: string) =>
+      api.patch<{ success: boolean }>(`/platform/admin/societies/${societyId}/status`, { status, reason }, { skipTenant: true }),
+    reassignSocietyAdmin: (societyId: string, newAdminUserId: string, reason?: string) =>
+      api.post<{ success: boolean }>(`/platform/admin/societies/${societyId}/reassign-admin`, { newAdminUserId, reason }, { skipTenant: true }),
+    getPendingApprovals: () =>
+      api.get<PendingApprovalItem[]>("/platform/admin/approvals", { skipTenant: true }),
+    approveRequest: (approvalId: string, comment?: string) =>
+      api.post<{ success: boolean }>(`/platform/admin/approvals/${approvalId}/approve`, { comment }, { skipTenant: true }),
+    rejectRequest: (approvalId: string, reason: string) =>
+      api.post<{ success: boolean }>(`/platform/admin/approvals/${approvalId}/reject`, { reason }, { skipTenant: true }),
+    getUnreconciledTransactions: () =>
+      api.get<UnreconciledTransactionItem[]>("/platform/admin/reconcile", { skipTenant: true }),
+    forceReconcileTransaction: (id: string, utr: string, note?: string) =>
+      api.post<{ success: boolean }>(`/platform/admin/reconcile/${id}/force`, { utr, note }, { skipTenant: true }),
+    getBackgroundJobs: () =>
+      api.get<BackgroundJobItem[]>("/platform/admin/jobs", { skipTenant: true }),
+    triggerBackgroundJob: (jobId: string) =>
+      api.post<{ success: boolean }>(`/platform/admin/jobs/${jobId}/trigger`, {}, { skipTenant: true }),
+    impersonateUser: (userId: string) =>
+      api.post<{ success: boolean; impersonationToken: string }>(`/platform/admin/impersonate/${userId}`, {}, { skipTenant: true }),
+    exitImpersonation: () =>
+      api.post<{ success: boolean }>("/platform/admin/impersonate/exit", {}, { skipTenant: true }),
   },
 
   // Society Join Requests (Resident Self-Onboarding & Committee Approval)

@@ -5,6 +5,7 @@ import { CurrentSocietyContext, UserSocietyMembership } from "@/types/tenant";
 import { endpoints } from "../api/endpoints";
 import { tokenStorage } from "../auth/tokenStorage";
 import { useAuth } from "../auth/AuthContext";
+import { broadcastSessionEvent, registerSessionSync } from "../auth/sessionSync";
 
 interface TenantContextType {
   societies: UserSocietyMembership[];
@@ -69,11 +70,22 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     refreshTenant();
-  }, [refreshTenant]);
+
+    const unbind = registerSessionSync({
+      onSocietySwitch: (newSocietyId) => {
+        if (newSocietyId && newSocietyId !== tokenStorage.getActiveSocietyId()) {
+          loadCurrentContext(newSocietyId);
+        }
+      },
+    });
+
+    return unbind;
+  }, [refreshTenant, loadCurrentContext]);
 
   const switchSociety = async (societyId: string) => {
     setIsLoadingTenant(true);
     await loadCurrentContext(societyId);
+    broadcastSessionEvent("SESSION_SOCIETY_SWITCH", { societyId });
     setIsLoadingTenant(false);
   };
 

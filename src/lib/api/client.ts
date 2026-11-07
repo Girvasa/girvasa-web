@@ -1,5 +1,6 @@
 import { ProblemDetail } from "@/types/api";
 import { tokenStorage } from "../auth/tokenStorage";
+import { getDevMockResponse } from "./devMockData";
 
 export class ApiError extends Error {
   status: number;
@@ -29,7 +30,7 @@ export interface RequestOptions extends RequestInit {
   skipTenant?: boolean;
 }
 
-export const DEV_TUNNEL_FALLBACK_URL = "https://r68trjbh-8080.usw3.devtunnels.ms/api/v1";
+export const DEV_TUNNEL_FALLBACK_URL = "https://girvasa-backend-dev.onrender.com/api/v1";
 export const DEFAULT_PRIMARY_URL = "http://localhost:8080/api/v1";
 
 function normalizeBaseUrl(raw?: string, defaultFallback: string = DEFAULT_PRIMARY_URL): string {
@@ -206,8 +207,29 @@ export class ApiClient {
       this.fallbackUrl !== this.primaryUrl &&
       !this.isFallbackActive();
 
+function createTimeoutSignal(ms: number): AbortSignal | undefined {
+  if (typeof AbortController === "undefined") return undefined;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    if (typeof (timer as any)?.unref === "function") {
+      (timer as any).unref();
+    }
+    return controller.signal;
+  } catch {
+    return undefined;
+  }
+}
+
     try {
-      response = await fetch(url, config);
+      const fetchConfig =
+        this.isFallbackActive() && !config.signal
+          ? { ...config, signal: createTimeoutSignal(3000) }
+          : config;
+      response = await fetch(url, fetchConfig);
+      if (!response) {
+        throw new Error("No response from primary API");
+      }
 
       // If primary returned a bad gateway / gateway timeout (502, 503, 504), fail over
       if (canFallback && (response.status === 502 || response.status === 503 || response.status === 504)) {
@@ -220,6 +242,9 @@ export class ApiClient {
           ? `${this.buildUrl(endpoint, this.fallbackUrl)}?${url.split("?")[1]}`
           : this.buildUrl(endpoint, this.fallbackUrl);
         response = await fetch(fallbackTargetUrl, config);
+        if (!response) {
+          throw new Error("No response from fallback API");
+        }
       }
     } catch (networkErr: any) {
       if (canFallback) {
@@ -233,15 +258,37 @@ export class ApiClient {
           : this.buildUrl(endpoint, this.fallbackUrl);
 
         try {
-          response = await fetch(fallbackTargetUrl, config);
+          const timeoutSignal = !config.signal ? createTimeoutSignal(3000) : config.signal;
+          response = await fetch(fallbackTargetUrl, { ...config, signal: timeoutSignal });
+          if (!response) {
+            throw new Error("No response from fallback API");
+          }
         } catch (fallbackErr: any) {
           console.error("API Fallback Network Error:", fallbackErr, "Target URL:", fallbackTargetUrl);
+          const devMock = getDevMockResponse<T>(endpoint, { ...options, ...customConfig });
+          if (devMock !== undefined) {
+            console.info(`[ApiClient] Both servers unreachable. Serving offline dev mock for: ${endpoint}`);
+            return devMock;
+          }
           throw new ApiError(0, "Network error: unable to reach both primary and fallback Girvasa API services.");
         }
       } else {
         console.error("API Network Error:", networkErr, "Target URL:", url);
+        const devMock = getDevMockResponse<T>(endpoint, { ...options, ...customConfig });
+        if (devMock !== undefined) {
+          console.info(`[ApiClient] Primary server unreachable. Serving offline dev mock for: ${endpoint}`);
+          return devMock;
+        }
         throw new ApiError(0, "Network error: unable to reach the Girvasa API service.");
       }
+    }
+
+    if (!response) {
+      const devMock = getDevMockResponse<T>(endpoint, { ...options, ...customConfig });
+      if (devMock !== undefined) {
+        return devMock;
+      }
+      throw new ApiError(0, "Network error: unable to reach the Girvasa API service.");
     }
 
     // Handle 401 Unauthorized with token refresh
@@ -332,10 +379,10 @@ export class ApiClient {
       }
     }
 
-    return this.parseResponse<T>(response);
+    return this.parseResponse<T>(response, endpoint, { ...options, ...customConfig });
   }
 
-  private async parseResponse<T>(response: Response): Promise<T> {
+  private async parseResponse<T>(response: Response, endpoint?: string, options?: any): Promise<T> {
     if (response.status === 204) {
       return {} as T;
     }
@@ -354,6 +401,14 @@ export class ApiClient {
     }
 
     if (!response.ok) {
+      if (response.status >= 502 && response.status <= 504 && endpoint) {
+        const devMock = getDevMockResponse<T>(endpoint, options);
+        if (devMock !== undefined) {
+          console.info(`[ApiClient] Gateway HTTP ${response.status}: serving offline dev mock for ${endpoint}`);
+          return devMock;
+        }
+      }
+
       if (payload && typeof payload === "object") {
         const detail =
           payload.detail ||

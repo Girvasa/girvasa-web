@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Settings,
   Activity,
+  ShieldAlert,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -77,6 +78,7 @@ const navGroups: NavGroup[] = [
   {
     category: "Platform & Developers",
     items: [
+      { name: "Super Admin Console", href: "/platform/admin", icon: ShieldAlert, moduleKey: "platform_admin" },
       { name: "Platform Watch", href: "/platform/watch", icon: Activity, moduleKey: "platform_watch" },
       { name: "Audit Trail", href: "/audit", icon: ShieldCheck, moduleKey: "audit" },
     ],
