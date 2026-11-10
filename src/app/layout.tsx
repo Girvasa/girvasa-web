@@ -18,8 +18,12 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Girvasa — Society Administration Portal",
-  description: "Enterprise multi-tenant society management and administration portal",
+  title: {
+    default: "Girvasa (Society OS) — Housing Society ERP & Gated Community OS",
+    template: "%s | Girvasa (Society OS)",
+  },
+  description:
+    "Automate maintenance billing, guard check-ins, double-entry accounting audits, and committee governance without paperwork or resident disputes. Built for Indian CHS and RWAs.",
 };
 
 export default function RootLayout({

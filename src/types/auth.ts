@@ -26,6 +26,7 @@ export interface AuthTokensResponse {
 
 export interface OtpRequestDto {
   mobileNumber: string;
+  channel?: "SMS" | "WHATSAPP";
 }
 
 export interface OtpResponseDto {

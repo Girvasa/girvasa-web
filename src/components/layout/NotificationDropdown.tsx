@@ -113,7 +113,10 @@ export const NotificationDropdown: React.FC = () => {
 
     // Deep link routing
     const refType = item.referenceType?.toUpperCase() || "";
-    if (refType.includes("BILL") || refType.includes("INVOICE")) {
+    const notifType = item.notificationType?.toUpperCase() || "";
+    if (refType.includes("JOIN_REQUEST") || notifType.includes("JOIN_REQUEST")) {
+      router.push("/residents?tab=requests");
+    } else if (refType.includes("BILL") || refType.includes("INVOICE")) {
       router.push("/billing");
     } else if (refType.includes("NOTICE")) {
       router.push("/notices");

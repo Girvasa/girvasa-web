@@ -5,10 +5,12 @@ import { User, LogOut, Settings, ShieldCheck, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useTenant } from "@/lib/tenant/TenantContext";
+import { usePermission } from "@/lib/rbac/usePermission";
 
 export const UserProfileMenu: React.FC = () => {
   const { user, logout } = useAuth();
   const { currentSociety } = useTenant();
+  const { canAccessModule } = usePermission();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -61,14 +63,16 @@ export const UserProfileMenu: React.FC = () => {
               <User className="w-4 h-4 text-slate-400" />
               <span>My Profile</span>
             </Link>
-            <Link
-              href="/settings"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center space-x-2.5 rounded-lg px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              <Settings className="w-4 h-4 text-slate-400" />
-              <span>Society Settings</span>
-            </Link>
+            {canAccessModule("settings") && (
+              <Link
+                href="/settings"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center space-x-2.5 rounded-lg px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <Settings className="w-4 h-4 text-slate-400" />
+                <span>Society Settings</span>
+              </Link>
+            )}
           </div>
           <div className="border-t border-slate-100 pt-1">
             <button
