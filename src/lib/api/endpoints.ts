@@ -63,11 +63,18 @@ export const endpoints = {
         {
           mobileNumber,
           otp: otpCode,
+          clientType: "WEB",
           ...(requestId ? { requestId } : {}),
         },
         { skipAuth: true, skipTenant: true }
       ),
-    logout: () => api.post<{ message: string }>("/auth/logout"),
+    logout: (refreshToken?: string) => {
+      const token = refreshToken || tokenStorage.getRefreshToken();
+      return api.post<{ message: string }>("/auth/logout", {
+        refreshToken: token || undefined,
+        clientType: "WEB",
+      });
+    },
     getCurrentUser: () => api.get<UserResponse>("/auth/me", { skipTenant: true }),
   },
 

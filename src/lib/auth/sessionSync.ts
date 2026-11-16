@@ -11,15 +11,81 @@ export type SessionSyncEventType =
   | "SESSION_LOGIN"
   | "SESSION_LOGOUT"
   | "SESSION_TOKEN_REFRESH"
-  | "SESSION_SOCIETY_SWITCH";
+  | "SESSION_SOCIETY_SWITCH"
+  | "TAB_CLAIM_PRIMARY"
+  | "TAB_RELEASE_PRIMARY";
 
 export interface SessionSyncMessage {
   type: SessionSyncEventType;
   payload?: any;
+  tabId?: string;
   timestamp: number;
 }
 
 const BROADCAST_CHANNEL_NAME = "girvasa_session_sync";
+const PRIMARY_TAB_STORAGE_KEY = "girvasa_primary_tab_id";
+
+/**
+ * Unique identifier for this specific browser tab/window.
+ * Persistent within the tab (survives reloads) but isolated between tabs.
+ */
+export function getTabId(): string {
+  if (typeof window === "undefined") return "server";
+  try {
+    let id = sessionStorage.getItem("girvasa_tab_id");
+    if (!id) {
+      id = "tab_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now();
+      sessionStorage.setItem("girvasa_tab_id", id);
+    }
+    return id;
+  } catch {
+    return "tab_default";
+  }
+}
+
+/**
+ * Claims primary/active status for this tab.
+ * Notifies all other open tabs on this origin that this tab is now primary.
+ */
+export function claimPrimaryTab(): void {
+  if (typeof window === "undefined") return;
+  const tabId = getTabId();
+  try {
+    localStorage.setItem(PRIMARY_TAB_STORAGE_KEY, tabId);
+  } catch {
+    // Ignore storage quota or access issues
+  }
+  broadcastSessionEvent("TAB_CLAIM_PRIMARY", { tabId });
+}
+
+/**
+ * Releases primary status when this tab is closed or navigated away.
+ */
+export function releasePrimaryTab(): void {
+  if (typeof window === "undefined") return;
+  const tabId = getTabId();
+  try {
+    if (localStorage.getItem(PRIMARY_TAB_STORAGE_KEY) === tabId) {
+      localStorage.removeItem(PRIMARY_TAB_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage issues
+  }
+  broadcastSessionEvent("TAB_RELEASE_PRIMARY", { tabId });
+}
+
+/**
+ * Returns true if this tab is the designated primary tab, or if no tab has claimed it yet.
+ */
+export function isPrimaryTab(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const currentPrimary = localStorage.getItem(PRIMARY_TAB_STORAGE_KEY);
+    return !currentPrimary || currentPrimary === getTabId();
+  } catch {
+    return true;
+  }
+}
 
 function getBroadcastChannel(): BroadcastChannel | null {
   if (typeof window !== "undefined" && "BroadcastChannel" in window) {
@@ -50,6 +116,7 @@ export function broadcastSessionEvent(type: SessionSyncEventType, payload?: any)
   const message: SessionSyncMessage = {
     type,
     payload,
+    tabId: getTabId(),
     timestamp: Date.now(),
   };
 
@@ -67,6 +134,8 @@ export interface SessionSyncListeners {
   onLogout?: () => void;
   onSocietySwitch?: (societyId: string) => void;
   onSyncCheck?: () => void;
+  onTabSuperseded?: (claimedByTabId: string) => void;
+  onTabRestored?: () => void;
 }
 
 /**
@@ -78,6 +147,7 @@ export function registerSessionSync(listeners: SessionSyncListeners): () => void
     return () => {};
   }
 
+  const currentTabId = getTabId();
   const channel = getChannel();
 
   // 1. Handle BroadcastChannel messages from other tabs
@@ -100,6 +170,17 @@ export function registerSessionSync(listeners: SessionSyncListeners): () => void
       case "SESSION_TOKEN_REFRESH":
         listeners.onSyncCheck?.();
         break;
+      case "TAB_CLAIM_PRIMARY":
+        if (data.tabId && data.tabId !== currentTabId) {
+          listeners.onTabSuperseded?.(data.tabId);
+        }
+        break;
+      case "TAB_RELEASE_PRIMARY":
+        if (data.tabId && data.tabId !== currentTabId) {
+          // If the primary tab was released, this tab can auto-restore or check
+          listeners.onTabRestored?.();
+        }
+        break;
       default:
         break;
     }
@@ -117,6 +198,12 @@ export function registerSessionSync(listeners: SessionSyncListeners): () => void
       if (e.newValue) {
         listeners.onSocietySwitch?.(e.newValue);
       }
+    } else if (e.key === PRIMARY_TAB_STORAGE_KEY) {
+      if (e.newValue && e.newValue !== currentTabId) {
+        listeners.onTabSuperseded?.(e.newValue);
+      } else if (!e.newValue) {
+        listeners.onTabRestored?.();
+      }
     }
   };
 
@@ -131,15 +218,21 @@ export function registerSessionSync(listeners: SessionSyncListeners): () => void
     listeners.onSyncCheck?.();
   };
 
+  const handleBeforeUnload = () => {
+    releasePrimaryTab();
+  };
+
   channel?.addEventListener("message", handleBroadcastMessage);
   window.addEventListener("storage", handleStorageChange);
   document.addEventListener("visibilitychange", handleVisibilityChange);
   window.addEventListener("focus", handleWindowFocus);
+  window.addEventListener("beforeunload", handleBeforeUnload);
 
   return () => {
     channel?.removeEventListener("message", handleBroadcastMessage);
     window.removeEventListener("storage", handleStorageChange);
     document.removeEventListener("visibilitychange", handleVisibilityChange);
     window.removeEventListener("focus", handleWindowFocus);
+    window.removeEventListener("beforeunload", handleBeforeUnload);
   };
 }

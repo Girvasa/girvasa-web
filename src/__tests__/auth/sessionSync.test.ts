@@ -2,11 +2,61 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   broadcastSessionEvent,
   registerSessionSync,
+  claimPrimaryTab,
+  releasePrimaryTab,
+  isPrimaryTab,
+  getTabId,
 } from "@/lib/auth/sessionSync";
 
 describe("Cross-Tab Session Synchronization Service", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  it("should claim primary tab and update localStorage", () => {
+    const tabId = getTabId();
+    expect(tabId).toBeTruthy();
+
+    claimPrimaryTab();
+    expect(isPrimaryTab()).toBe(true);
+    expect(localStorage.getItem("girvasa_primary_tab_id")).toBe(tabId);
+  });
+
+  it("should detect when another tab claims primary status", () => {
+    claimPrimaryTab();
+    expect(isPrimaryTab()).toBe(true);
+
+    // Another tab claims primary in localStorage
+    localStorage.setItem("girvasa_primary_tab_id", "tab_other_window_123");
+    expect(isPrimaryTab()).toBe(false);
+  });
+
+  it("should trigger onTabSuperseded when storage event indicates another tab claimed primary", () => {
+    const onTabSuperseded = vi.fn();
+    const onTabRestored = vi.fn();
+    const unbind = registerSessionSync({ onTabSuperseded, onTabRestored });
+
+    const storageEvent = new StorageEvent("storage", {
+      key: "girvasa_primary_tab_id",
+      newValue: "tab_other_window_999",
+      oldValue: getTabId(),
+    });
+    window.dispatchEvent(storageEvent);
+
+    expect(onTabSuperseded).toHaveBeenCalledWith("tab_other_window_999");
+    expect(onTabRestored).not.toHaveBeenCalled();
+
+    unbind();
+  });
+
+  it("should release primary tab on unload", () => {
+    claimPrimaryTab();
+    expect(localStorage.getItem("girvasa_primary_tab_id")).toBe(getTabId());
+
+    releasePrimaryTab();
+    expect(localStorage.getItem("girvasa_primary_tab_id")).toBeNull();
   });
 
   it("should trigger onLogin when storage event signals an active access token in another tab", () => {

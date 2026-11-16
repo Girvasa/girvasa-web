@@ -305,7 +305,7 @@ function createTimeoutSignal(ms: number): AbortSignal | undefined {
                 Accept: "application/json",
                 "X-Tunnel-Skip-Anti-Phishing-Page": "true",
               },
-              body: JSON.stringify({ refreshToken }),
+              body: JSON.stringify({ refreshToken, clientType: "WEB" }),
             });
 
             if (refreshRes.ok) {
