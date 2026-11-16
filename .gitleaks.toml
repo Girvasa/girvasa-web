@@ -11,3 +11,4 @@ fingerprints = [
 paths = [
   '''src/lib/api/devMockData\.ts'''
 ]
+
