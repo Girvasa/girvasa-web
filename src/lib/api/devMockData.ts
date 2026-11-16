@@ -637,7 +637,7 @@ export const DEV_MAINTENANCE_CONFIG: MaintenanceConfig = {
 
 export const DEV_PAYMENT_GATEWAY: PaymentGatewayConfig = {
   activeProvider: "RAZORPAY",
-  keyId: "rzp_live_8F1h92kLmPxQ",
+  keyId: "rzp_test_mock_gateway_key", // gitleaks:allow
   keySecretMasked: "sec_live_99A••••••••••••••••33bK",
   webhookSecretMasked: "whsec_live_••••••••••••••••91Qx",
   testMode: false,
@@ -817,7 +817,7 @@ export const DEV_PENDING_APPROVALS: PendingApprovalItem[] = [
     proposedByAdminId: "usr-superadmin-002",
     proposedByAdminName: "Devendra Patil (Co-Admin)",
     proposedAt: "2026-11-02T14:30:00Z",
-    payload: { provider: "CASHFREE", keyId: "CF_LIVE_9981248" },
+    payload: { provider: "CASHFREE", keyId: "CF_TEST_MOCK_GATEWAY_KEY" }, // gitleaks:allow
     status: "PENDING",
   },
   {

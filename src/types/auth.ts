@@ -42,8 +42,10 @@ export interface OtpVerifyRequestDto {
   mobileNumber: string;
   otp: string;
   otpCode?: string;
+  clientType?: "WEB" | "MOBILE";
 }
 
 export interface TokenRefreshRequestDto {
   refreshToken: string;
+  clientType?: "WEB" | "MOBILE";
 }

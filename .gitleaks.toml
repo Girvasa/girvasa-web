@@ -1,0 +1,13 @@
+# Gitleaks configuration for Girvasa Web
+[allowlist]
+description = "Allowlist historical mock test key commit in devMockData.ts"
+commits = [
+  "04c2d5b22f62b21efbb8dd10bda84be19c65b400"
+]
+fingerprints = [
+  "04c2d5b22f62b21efbb8dd10bda84be19c65b400:src/lib/api/devMockData.ts:generic-api-key:640",
+  "04c2d5b22f62b21efbb8dd10bda84be19c65b400:src/lib/api/devMockData.ts:generic-api-key:820"
+]
+paths = [
+  '''src/lib/api/devMockData\.ts'''
+]
