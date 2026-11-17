@@ -124,6 +124,16 @@ export default function SuperAdminConsolePage() {
 
   // 5. Society Lifecycle Controls
   const [societies, setSocieties] = useState<SocietyLifecycleItem[]>([]);
+  const [selectedSocietyForEdit, setSelectedSocietyForEdit] = useState<SocietyLifecycleItem | null>(null);
+  const [editSocietyForm, setEditSocietyForm] = useState({
+    name: "",
+    legalName: "",
+    registrationNumber: "",
+    addressLine1: "",
+    city: "",
+    state: "",
+    pincode: "",
+  });
   const [reassignModalOpen, setReassignModalOpen] = useState(false);
   const [selectedSocietyForReassign, setSelectedSocietyForReassign] = useState<SocietyLifecycleItem | null>(null);
   const [newAdminUserId, setNewAdminUserId] = useState("");
@@ -296,16 +306,38 @@ export default function SuperAdminConsolePage() {
   };
 
   // 2b. Edit Society Details
-  const handleEditSociety = async (soc: SocietyLifecycleItem) => {
-    const newName = prompt(`Enter new name for society "${soc.name}" (${soc.code}):`, soc.name);
-    if (!newName || newName.trim() === "" || newName === soc.name) return;
+  const handleOpenEditSociety = (soc: SocietyLifecycleItem) => {
+    setSelectedSocietyForEdit(soc);
+    setEditSocietyForm({
+      name: soc.name || "",
+      legalName: soc.name || "",
+      registrationNumber: "",
+      addressLine1: "",
+      city: "",
+      state: "",
+      pincode: "",
+    });
+  };
+
+  const handleSaveEditSociety = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSocietyForEdit) return;
 
     try {
-      await endpoints.tenant.updateSociety(soc.id, { name: newName.trim() });
+      await endpoints.platformAdmin.updateSociety(selectedSocietyForEdit.id, {
+        name: editSocietyForm.name.trim(),
+        legalName: editSocietyForm.legalName.trim() || undefined,
+        registrationNumber: editSocietyForm.registrationNumber.trim() || undefined,
+        addressLine1: editSocietyForm.addressLine1.trim() || undefined,
+        city: editSocietyForm.city.trim() || undefined,
+        state: editSocietyForm.state.trim() || undefined,
+        pincode: editSocietyForm.pincode.trim() || undefined,
+      });
       setSocieties((prev) =>
-        prev.map((s) => (s.id === soc.id ? { ...s, name: newName.trim() } : s))
+        prev.map((s) => (s.id === selectedSocietyForEdit.id ? { ...s, name: editSocietyForm.name.trim() } : s))
       );
-      showToast(`Society name updated to "${newName.trim()}"!`);
+      showToast(`Society "${editSocietyForm.name.trim()}" updated successfully!`);
+      setSelectedSocietyForEdit(null);
     } catch {
       showToast("Failed to update society details", "error");
     }
@@ -890,7 +922,7 @@ export default function SuperAdminConsolePage() {
                     </td>
                     <td className="px-4 py-3 text-right space-x-2">
                       <button
-                        onClick={() => handleEditSociety(soc)}
+                        onClick={() => handleOpenEditSociety(soc)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-[11px] font-semibold transition"
                         title="Edit Society Name & Details"
                       >
@@ -2473,6 +2505,117 @@ export default function SuperAdminConsolePage() {
                   className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 shadow-sm disabled:opacity-50"
                 >
                   {isBroadcasting ? "Sending..." : "Dispatch Broadcast Now"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Edit Society Details */}
+      {selectedSocietyForEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-emerald-600" />
+                Modify Society: {selectedSocietyForEdit.name} ({selectedSocietyForEdit.code})
+              </h3>
+              <button
+                onClick={() => setSelectedSocietyForEdit(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditSociety} className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Society Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editSocietyForm.name}
+                  onChange={(e) => setEditSocietyForm({ ...editSocietyForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Legal Registered Name</label>
+                  <input
+                    type="text"
+                    value={editSocietyForm.legalName}
+                    onChange={(e) => setEditSocietyForm({ ...editSocietyForm, legalName: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Registration Number</label>
+                  <input
+                    type="text"
+                    value={editSocietyForm.registrationNumber}
+                    onChange={(e) => setEditSocietyForm({ ...editSocietyForm, registrationNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Address Line</label>
+                <input
+                  type="text"
+                  value={editSocietyForm.addressLine1}
+                  onChange={(e) => setEditSocietyForm({ ...editSocietyForm, addressLine1: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  placeholder="Street / Area address"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">City</label>
+                  <input
+                    type="text"
+                    value={editSocietyForm.city}
+                    onChange={(e) => setEditSocietyForm({ ...editSocietyForm, city: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">State</label>
+                  <input
+                    type="text"
+                    value={editSocietyForm.state}
+                    onChange={(e) => setEditSocietyForm({ ...editSocietyForm, state: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">PIN Code</label>
+                  <input
+                    type="text"
+                    value={editSocietyForm.pincode}
+                    onChange={(e) => setEditSocietyForm({ ...editSocietyForm, pincode: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSocietyForEdit(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 shadow-sm"
+                >
+                  Save Society Changes
                 </button>
               </div>
             </form>
