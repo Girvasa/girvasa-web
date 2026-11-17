@@ -191,21 +191,21 @@ export default function SuperAdminConsolePage() {
       setIsLoading(true);
       try {
         const [
-          vers,
-          flags,
-          sms,
-          users,
-          deleted,
-          socs,
-          apprs,
-          unrec,
-          jobs,
-          maint,
-          pg,
-          banks,
-          rates,
-          keys,
-        ] = await Promise.all([
+          versRes,
+          flagsRes,
+          smsRes,
+          usersRes,
+          deletedRes,
+          socsRes,
+          apprsRes,
+          unrecRes,
+          jobsRes,
+          maintRes,
+          pgRes,
+          banksRes,
+          ratesRes,
+          keysRes,
+        ] = await Promise.allSettled([
           endpoints.platformAdmin.getAppVersions(),
           endpoints.platformAdmin.getFeatureFlags(),
           endpoints.platformAdmin.getSmsConfig(),
@@ -222,31 +222,33 @@ export default function SuperAdminConsolePage() {
           endpoints.platformAdmin.getApiKeys(),
         ]);
 
-        setAppVersions(vers);
-        setFeatureFlags(flags);
-        setSmsConfig(sms);
-        setUsersList(users);
-        setDeletedUsers(deleted);
-        setSocieties(socs);
-        setPendingApprovals(apprs);
-        setUnreconciledTxns(unrec);
-        setBackgroundJobs(jobs);
-        setMaintenance(maint);
-        setMaintenanceForm({
-          isMaintenanceMode: maint.isMaintenanceMode,
-          scheduledStart: maint.scheduledStart || "",
-          scheduledEnd: maint.scheduledEnd || "",
-          title: maint.title || "",
-          bannerMessage: maint.bannerMessage || "",
-          allowAdminBypass: maint.allowAdminBypass,
-        });
-        setPaymentConfig(pg);
-        setBankAccounts(banks);
-        setSubscriptionRates(rates);
-        setApiKeys(keys);
+        if (versRes.status === "fulfilled" && versRes.value) setAppVersions(versRes.value);
+        if (flagsRes.status === "fulfilled" && flagsRes.value) setFeatureFlags(flagsRes.value);
+        if (smsRes.status === "fulfilled" && smsRes.value) setSmsConfig(smsRes.value);
+        if (usersRes.status === "fulfilled" && usersRes.value) setUsersList(usersRes.value);
+        if (deletedRes.status === "fulfilled" && deletedRes.value) setDeletedUsers(deletedRes.value);
+        if (socsRes.status === "fulfilled" && socsRes.value) setSocieties(socsRes.value);
+        if (apprsRes.status === "fulfilled" && apprsRes.value) setPendingApprovals(apprsRes.value);
+        if (unrecRes.status === "fulfilled" && unrecRes.value) setUnreconciledTxns(unrecRes.value);
+        if (jobsRes.status === "fulfilled" && jobsRes.value) setBackgroundJobs(jobsRes.value);
+        if (maintRes.status === "fulfilled" && maintRes.value) {
+          const maint = maintRes.value;
+          setMaintenance(maint);
+          setMaintenanceForm({
+            isMaintenanceMode: maint.isMaintenanceMode,
+            scheduledStart: maint.scheduledStart || "",
+            scheduledEnd: maint.scheduledEnd || "",
+            title: maint.title || "",
+            bannerMessage: maint.bannerMessage || "",
+            allowAdminBypass: maint.allowAdminBypass,
+          });
+        }
+        if (pgRes.status === "fulfilled" && pgRes.value) setPaymentConfig(pgRes.value);
+        if (banksRes.status === "fulfilled" && banksRes.value) setBankAccounts(banksRes.value);
+        if (ratesRes.status === "fulfilled" && ratesRes.value) setSubscriptionRates(ratesRes.value);
+        if (keysRes.status === "fulfilled" && keysRes.value) setApiKeys(keysRes.value);
       } catch (err: any) {
         console.error("Failed to load platform admin settings:", err);
-        showToast("Error loading some platform settings", "error");
       } finally {
         setIsLoading(false);
       }
@@ -844,26 +846,51 @@ export default function SuperAdminConsolePage() {
               </p>
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
                 const name = prompt("Enter legal name of new society to provision:");
-                if (!name) return;
-                const city = prompt("Enter city (e.g. Mumbai):") || "Mumbai";
-                const newSoc: SocietyLifecycleItem = {
-                  id: `soc-${Date.now()}`,
-                  name,
-                  code: `SOC-${Math.floor(100 + Math.random() * 900)}`,
-                  city,
-                  state: "Maharashtra",
-                  totalUnits: 50,
-                  status: "ACTIVE",
-                  planCode: "FREE_TRIAL",
-                  primaryAdminUserId: "usr-superadmin-001",
-                  primaryAdminName: "Platform Super Admin",
-                  primaryAdminMobile: "+919876543210",
-                  createdAt: new Date().toISOString(),
-                };
-                setSocieties((prev) => [newSoc, ...prev]);
-                showToast(`Society "${name}" provisioned successfully with 14-day trial!`);
+                if (!name || !name.trim()) return;
+                const city = prompt("Enter city (e.g. Pune, Mumbai, Bengaluru):") || "Mumbai";
+                const state = prompt("Enter state (e.g. Maharashtra, Karnataka):") || "Maharashtra";
+                const pincode = prompt("Enter PIN code (e.g. 400001):") || "400001";
+
+                try {
+                  const socCode = `SOC-${Math.floor(100 + Math.random() * 900)}`;
+                  const res = await endpoints.tenant.createSociety({
+                    name: name.trim(),
+                    code: socCode,
+                    legalName: name.trim(),
+                    city: city.trim(),
+                    state: state.trim(),
+                    countryCode: "IN",
+                    pincode: pincode.trim(),
+                  });
+                  showToast(`Society "${name.trim()}" provisioned successfully in database!`);
+                  const freshList = await endpoints.platformAdmin.getSocietiesLifecycle();
+                  if (freshList && freshList.length > 0) {
+                    setSocieties(freshList);
+                  } else {
+                    setSocieties((prev) => [
+                      {
+                        id: res?.id || `soc-${Date.now()}`,
+                        name: name.trim(),
+                        code: res?.code || `SOC-${Math.floor(100 + Math.random() * 900)}`,
+                        city,
+                        state,
+                        totalUnits: 0,
+                        status: "ACTIVE",
+                        planCode: "GROWTH_300",
+                        primaryAdminUserId: "usr-superadmin",
+                        primaryAdminName: "Platform Super Admin",
+                        primaryAdminMobile: "+919876545000",
+                        createdAt: new Date().toISOString(),
+                      },
+                      ...prev,
+                    ]);
+                  }
+                } catch (err) {
+                  console.error("Provisioning society failed:", err);
+                  showToast("Failed to provision society in database", "error");
+                }
               }}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 shadow-sm transition"
             >
@@ -885,7 +912,31 @@ export default function SuperAdminConsolePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {societies.map((soc) => (
+                {societies.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <Building2 className="w-10 h-10 text-slate-300" />
+                        <div className="space-y-1">
+                          <p className="font-bold text-slate-800 text-sm">No Housing Societies Registered Yet</p>
+                          <p className="text-xs text-slate-500 max-w-md mx-auto">
+                            The database does not currently have any registered societies. You can register a brand new society via Onboarding, or provision one directly above.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 pt-2">
+                          <a
+                            href="/onboarding"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-sm transition"
+                          >
+                            <Building2 className="w-3.5 h-3.5" />
+                            <span>Go to Society Registration</span>
+                          </a>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  societies.map((soc) => (
                   <tr key={soc.id} className="hover:bg-slate-50/60 transition">
                     <td className="px-4 py-3 font-bold text-slate-900">{soc.name}</td>
                     <td className="px-3 py-3 text-slate-600">
@@ -965,7 +1016,7 @@ export default function SuperAdminConsolePage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
