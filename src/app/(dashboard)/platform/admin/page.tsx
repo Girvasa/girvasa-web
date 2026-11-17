@@ -295,6 +295,38 @@ export default function SuperAdminConsolePage() {
     }
   };
 
+  // 2b. Edit Society Details
+  const handleEditSociety = async (soc: SocietyLifecycleItem) => {
+    const newName = prompt(`Enter new name for society "${soc.name}" (${soc.code}):`, soc.name);
+    if (!newName || newName.trim() === "" || newName === soc.name) return;
+
+    try {
+      await endpoints.tenant.updateSociety(soc.id, { name: newName.trim() });
+      setSocieties((prev) =>
+        prev.map((s) => (s.id === soc.id ? { ...s, name: newName.trim() } : s))
+      );
+      showToast(`Society name updated to "${newName.trim()}"!`);
+    } catch {
+      showToast("Failed to update society details", "error");
+    }
+  };
+
+  // 2c. Delete / Deactivate Society
+  const handleDeleteSociety = async (soc: SocietyLifecycleItem) => {
+    const confirmed = confirm(
+      `CAUTION: Are you sure you want to delete / deactivate society "${soc.name}" (${soc.code})?\n\nThis will soft-delete the society tenant and revoke all member access.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await endpoints.platformAdmin.deleteSociety(soc.id);
+      setSocieties((prev) => prev.filter((s) => s.id !== soc.id));
+      showToast(`Society "${soc.name}" was deactivated and deleted successfully.`);
+    } catch {
+      showToast("Failed to delete society", "error");
+    }
+  };
+
   // 3. Society Admin Reassignment
   const handleReassignAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -858,6 +890,15 @@ export default function SuperAdminConsolePage() {
                     </td>
                     <td className="px-4 py-3 text-right space-x-2">
                       <button
+                        onClick={() => handleEditSociety(soc)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-[11px] font-semibold transition"
+                        title="Edit Society Name & Details"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
                         onClick={() => {
                           setSelectedSocietyForReassign(soc);
                           setReassignModalOpen(true);
@@ -873,13 +914,22 @@ export default function SuperAdminConsolePage() {
                         onClick={() => handleToggleSocietyStatus(soc)}
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold transition ${
                           soc.status === "ACTIVE"
-                            ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                            ? "bg-amber-50 text-amber-700 hover:bg-amber-100"
                             : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                         }`}
                         title={soc.status === "ACTIVE" ? "Suspend tenant access" : "Reactivate tenant"}
                       >
                         {soc.status === "ACTIVE" ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
                         <span>{soc.status === "ACTIVE" ? "Freeze / Suspend" : "Unfreeze"}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteSociety(soc)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-rose-50 text-rose-700 hover:bg-rose-100 text-[11px] font-semibold transition"
+                        title="Deactivate and Delete Society"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Delete</span>
                       </button>
                     </td>
                   </tr>

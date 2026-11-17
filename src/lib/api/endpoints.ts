@@ -93,6 +93,10 @@ export const endpoints = {
       countryCode?: string;
       pincode?: string;
     }) => api.post<any>("/societies", data, { skipTenant: true }),
+    updateSociety: (societyId: string, data: any) =>
+      api.patch<any>(`/societies/${societyId}`, data),
+    deleteSociety: (societyId: string) =>
+      api.delete<any>(`/societies/${societyId}`),
   },
 
   // Executive Dashboard & Reporting
@@ -444,6 +448,8 @@ export const endpoints = {
       api.get<SocietyLifecycleItem[]>("/platform/admin/societies/lifecycle", { skipTenant: true }),
     updateSocietyStatus: (societyId: string, status: string, reason?: string) =>
       api.patch<{ success: boolean }>(`/platform/admin/societies/${societyId}/status`, { status, reason }, { skipTenant: true }),
+    deleteSociety: (societyId: string) =>
+      api.delete<{ success: boolean; message: string }>(`/platform/admin/societies/${societyId}`, { skipTenant: true }),
     reassignSocietyAdmin: (societyId: string, newAdminUserId: string, reason?: string) =>
       api.post<{ success: boolean }>(`/platform/admin/societies/${societyId}/reassign-admin`, { newAdminUserId, reason }, { skipTenant: true }),
     getPendingApprovals: () =>
