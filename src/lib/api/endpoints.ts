@@ -94,9 +94,9 @@ export const endpoints = {
       pincode?: string;
     }) => api.post<any>("/societies", data, { skipTenant: true }),
     updateSociety: (societyId: string, data: any) =>
-      api.patch<any>(`/societies/${societyId}`, data),
+      api.patch<any>(`/societies/${societyId}`, data, { skipTenant: true }),
     deleteSociety: (societyId: string) =>
-      api.delete<any>(`/societies/${societyId}`),
+      api.delete<any>(`/societies/${societyId}`, { skipTenant: true }),
   },
 
   // Executive Dashboard & Reporting
@@ -446,6 +446,8 @@ export const endpoints = {
       api.post<ApiKeyIntegrationItem>(`/platform/admin/api-keys/${keyName}/rotate`, {}, { skipTenant: true }),
     getSocietiesLifecycle: () =>
       api.get<SocietyLifecycleItem[]>("/platform/admin/societies/lifecycle", { skipTenant: true }),
+    updateSociety: (societyId: string, data: any) =>
+      api.patch<any>(`/societies/${societyId}`, data, { skipTenant: true }),
     updateSocietyStatus: (societyId: string, status: string, reason?: string) =>
       api.patch<{ success: boolean }>(`/platform/admin/societies/${societyId}/status`, { status, reason }, { skipTenant: true }),
     deleteSociety: (societyId: string) =>

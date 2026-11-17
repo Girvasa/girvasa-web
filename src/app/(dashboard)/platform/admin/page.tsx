@@ -124,6 +124,16 @@ export default function SuperAdminConsolePage() {
 
   // 5. Society Lifecycle Controls
   const [societies, setSocieties] = useState<SocietyLifecycleItem[]>([]);
+  const [selectedSocietyForEdit, setSelectedSocietyForEdit] = useState<SocietyLifecycleItem | null>(null);
+  const [editSocietyForm, setEditSocietyForm] = useState({
+    name: "",
+    legalName: "",
+    registrationNumber: "",
+    addressLine1: "",
+    city: "",
+    state: "",
+    pincode: "",
+  });
   const [reassignModalOpen, setReassignModalOpen] = useState(false);
   const [selectedSocietyForReassign, setSelectedSocietyForReassign] = useState<SocietyLifecycleItem | null>(null);
   const [newAdminUserId, setNewAdminUserId] = useState("");
@@ -181,21 +191,21 @@ export default function SuperAdminConsolePage() {
       setIsLoading(true);
       try {
         const [
-          vers,
-          flags,
-          sms,
-          users,
-          deleted,
-          socs,
-          apprs,
-          unrec,
-          jobs,
-          maint,
-          pg,
-          banks,
-          rates,
-          keys,
-        ] = await Promise.all([
+          versRes,
+          flagsRes,
+          smsRes,
+          usersRes,
+          deletedRes,
+          socsRes,
+          apprsRes,
+          unrecRes,
+          jobsRes,
+          maintRes,
+          pgRes,
+          banksRes,
+          ratesRes,
+          keysRes,
+        ] = await Promise.allSettled([
           endpoints.platformAdmin.getAppVersions(),
           endpoints.platformAdmin.getFeatureFlags(),
           endpoints.platformAdmin.getSmsConfig(),
@@ -212,31 +222,33 @@ export default function SuperAdminConsolePage() {
           endpoints.platformAdmin.getApiKeys(),
         ]);
 
-        setAppVersions(vers);
-        setFeatureFlags(flags);
-        setSmsConfig(sms);
-        setUsersList(users);
-        setDeletedUsers(deleted);
-        setSocieties(socs);
-        setPendingApprovals(apprs);
-        setUnreconciledTxns(unrec);
-        setBackgroundJobs(jobs);
-        setMaintenance(maint);
-        setMaintenanceForm({
-          isMaintenanceMode: maint.isMaintenanceMode,
-          scheduledStart: maint.scheduledStart || "",
-          scheduledEnd: maint.scheduledEnd || "",
-          title: maint.title || "",
-          bannerMessage: maint.bannerMessage || "",
-          allowAdminBypass: maint.allowAdminBypass,
-        });
-        setPaymentConfig(pg);
-        setBankAccounts(banks);
-        setSubscriptionRates(rates);
-        setApiKeys(keys);
+        if (versRes.status === "fulfilled" && versRes.value) setAppVersions(versRes.value);
+        if (flagsRes.status === "fulfilled" && flagsRes.value) setFeatureFlags(flagsRes.value);
+        if (smsRes.status === "fulfilled" && smsRes.value) setSmsConfig(smsRes.value);
+        if (usersRes.status === "fulfilled" && usersRes.value) setUsersList(usersRes.value);
+        if (deletedRes.status === "fulfilled" && deletedRes.value) setDeletedUsers(deletedRes.value);
+        if (socsRes.status === "fulfilled" && socsRes.value) setSocieties(socsRes.value);
+        if (apprsRes.status === "fulfilled" && apprsRes.value) setPendingApprovals(apprsRes.value);
+        if (unrecRes.status === "fulfilled" && unrecRes.value) setUnreconciledTxns(unrecRes.value);
+        if (jobsRes.status === "fulfilled" && jobsRes.value) setBackgroundJobs(jobsRes.value);
+        if (maintRes.status === "fulfilled" && maintRes.value) {
+          const maint = maintRes.value;
+          setMaintenance(maint);
+          setMaintenanceForm({
+            isMaintenanceMode: maint.isMaintenanceMode,
+            scheduledStart: maint.scheduledStart || "",
+            scheduledEnd: maint.scheduledEnd || "",
+            title: maint.title || "",
+            bannerMessage: maint.bannerMessage || "",
+            allowAdminBypass: maint.allowAdminBypass,
+          });
+        }
+        if (pgRes.status === "fulfilled" && pgRes.value) setPaymentConfig(pgRes.value);
+        if (banksRes.status === "fulfilled" && banksRes.value) setBankAccounts(banksRes.value);
+        if (ratesRes.status === "fulfilled" && ratesRes.value) setSubscriptionRates(ratesRes.value);
+        if (keysRes.status === "fulfilled" && keysRes.value) setApiKeys(keysRes.value);
       } catch (err: any) {
         console.error("Failed to load platform admin settings:", err);
-        showToast("Error loading some platform settings", "error");
       } finally {
         setIsLoading(false);
       }
@@ -296,16 +308,38 @@ export default function SuperAdminConsolePage() {
   };
 
   // 2b. Edit Society Details
-  const handleEditSociety = async (soc: SocietyLifecycleItem) => {
-    const newName = prompt(`Enter new name for society "${soc.name}" (${soc.code}):`, soc.name);
-    if (!newName || newName.trim() === "" || newName === soc.name) return;
+  const handleOpenEditSociety = (soc: SocietyLifecycleItem) => {
+    setSelectedSocietyForEdit(soc);
+    setEditSocietyForm({
+      name: soc.name || "",
+      legalName: soc.name || "",
+      registrationNumber: "",
+      addressLine1: "",
+      city: "",
+      state: "",
+      pincode: "",
+    });
+  };
+
+  const handleSaveEditSociety = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSocietyForEdit) return;
 
     try {
-      await endpoints.tenant.updateSociety(soc.id, { name: newName.trim() });
+      await endpoints.platformAdmin.updateSociety(selectedSocietyForEdit.id, {
+        name: editSocietyForm.name.trim(),
+        legalName: editSocietyForm.legalName.trim() || undefined,
+        registrationNumber: editSocietyForm.registrationNumber.trim() || undefined,
+        addressLine1: editSocietyForm.addressLine1.trim() || undefined,
+        city: editSocietyForm.city.trim() || undefined,
+        state: editSocietyForm.state.trim() || undefined,
+        pincode: editSocietyForm.pincode.trim() || undefined,
+      });
       setSocieties((prev) =>
-        prev.map((s) => (s.id === soc.id ? { ...s, name: newName.trim() } : s))
+        prev.map((s) => (s.id === selectedSocietyForEdit.id ? { ...s, name: editSocietyForm.name.trim() } : s))
       );
-      showToast(`Society name updated to "${newName.trim()}"!`);
+      showToast(`Society "${editSocietyForm.name.trim()}" updated successfully!`);
+      setSelectedSocietyForEdit(null);
     } catch {
       showToast("Failed to update society details", "error");
     }
@@ -812,26 +846,51 @@ export default function SuperAdminConsolePage() {
               </p>
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
                 const name = prompt("Enter legal name of new society to provision:");
-                if (!name) return;
-                const city = prompt("Enter city (e.g. Mumbai):") || "Mumbai";
-                const newSoc: SocietyLifecycleItem = {
-                  id: `soc-${Date.now()}`,
-                  name,
-                  code: `SOC-${Math.floor(100 + Math.random() * 900)}`,
-                  city,
-                  state: "Maharashtra",
-                  totalUnits: 50,
-                  status: "ACTIVE",
-                  planCode: "FREE_TRIAL",
-                  primaryAdminUserId: "usr-superadmin-001",
-                  primaryAdminName: "Platform Super Admin",
-                  primaryAdminMobile: "+919876543210",
-                  createdAt: new Date().toISOString(),
-                };
-                setSocieties((prev) => [newSoc, ...prev]);
-                showToast(`Society "${name}" provisioned successfully with 14-day trial!`);
+                if (!name || !name.trim()) return;
+                const city = prompt("Enter city (e.g. Pune, Mumbai, Bengaluru):") || "Mumbai";
+                const state = prompt("Enter state (e.g. Maharashtra, Karnataka):") || "Maharashtra";
+                const pincode = prompt("Enter PIN code (e.g. 400001):") || "400001";
+
+                try {
+                  const socCode = `SOC-${Math.floor(100 + Math.random() * 900)}`;
+                  const res = await endpoints.tenant.createSociety({
+                    name: name.trim(),
+                    code: socCode,
+                    legalName: name.trim(),
+                    city: city.trim(),
+                    state: state.trim(),
+                    countryCode: "IN",
+                    pincode: pincode.trim(),
+                  });
+                  showToast(`Society "${name.trim()}" provisioned successfully in database!`);
+                  const freshList = await endpoints.platformAdmin.getSocietiesLifecycle();
+                  if (freshList && freshList.length > 0) {
+                    setSocieties(freshList);
+                  } else {
+                    setSocieties((prev) => [
+                      {
+                        id: res?.id || `soc-${Date.now()}`,
+                        name: name.trim(),
+                        code: res?.code || `SOC-${Math.floor(100 + Math.random() * 900)}`,
+                        city,
+                        state,
+                        totalUnits: 0,
+                        status: "ACTIVE",
+                        planCode: "GROWTH_300",
+                        primaryAdminUserId: "usr-superadmin",
+                        primaryAdminName: "Platform Super Admin",
+                        primaryAdminMobile: "+919876545000",
+                        createdAt: new Date().toISOString(),
+                      },
+                      ...prev,
+                    ]);
+                  }
+                } catch (err) {
+                  console.error("Provisioning society failed:", err);
+                  showToast("Failed to provision society in database", "error");
+                }
               }}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 shadow-sm transition"
             >
@@ -853,7 +912,31 @@ export default function SuperAdminConsolePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {societies.map((soc) => (
+                {societies.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <Building2 className="w-10 h-10 text-slate-300" />
+                        <div className="space-y-1">
+                          <p className="font-bold text-slate-800 text-sm">No Housing Societies Registered Yet</p>
+                          <p className="text-xs text-slate-500 max-w-md mx-auto">
+                            The database does not currently have any registered societies. You can register a brand new society via Onboarding, or provision one directly above.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 pt-2">
+                          <a
+                            href="/onboarding"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-sm transition"
+                          >
+                            <Building2 className="w-3.5 h-3.5" />
+                            <span>Go to Society Registration</span>
+                          </a>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  societies.map((soc) => (
                   <tr key={soc.id} className="hover:bg-slate-50/60 transition">
                     <td className="px-4 py-3 font-bold text-slate-900">{soc.name}</td>
                     <td className="px-3 py-3 text-slate-600">
@@ -890,7 +973,7 @@ export default function SuperAdminConsolePage() {
                     </td>
                     <td className="px-4 py-3 text-right space-x-2">
                       <button
-                        onClick={() => handleEditSociety(soc)}
+                        onClick={() => handleOpenEditSociety(soc)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-[11px] font-semibold transition"
                         title="Edit Society Name & Details"
                       >
@@ -933,7 +1016,7 @@ export default function SuperAdminConsolePage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
@@ -2473,6 +2556,117 @@ export default function SuperAdminConsolePage() {
                   className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 shadow-sm disabled:opacity-50"
                 >
                   {isBroadcasting ? "Sending..." : "Dispatch Broadcast Now"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Edit Society Details */}
+      {selectedSocietyForEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-emerald-600" />
+                Modify Society: {selectedSocietyForEdit.name} ({selectedSocietyForEdit.code})
+              </h3>
+              <button
+                onClick={() => setSelectedSocietyForEdit(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditSociety} className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Society Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editSocietyForm.name}
+                  onChange={(e) => setEditSocietyForm({ ...editSocietyForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Legal Registered Name</label>
+                  <input
+                    type="text"
+                    value={editSocietyForm.legalName}
+                    onChange={(e) => setEditSocietyForm({ ...editSocietyForm, legalName: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Registration Number</label>
+                  <input
+                    type="text"
+                    value={editSocietyForm.registrationNumber}
+                    onChange={(e) => setEditSocietyForm({ ...editSocietyForm, registrationNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Address Line</label>
+                <input
+                  type="text"
+                  value={editSocietyForm.addressLine1}
+                  onChange={(e) => setEditSocietyForm({ ...editSocietyForm, addressLine1: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  placeholder="Street / Area address"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">City</label>
+                  <input
+                    type="text"
+                    value={editSocietyForm.city}
+                    onChange={(e) => setEditSocietyForm({ ...editSocietyForm, city: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">State</label>
+                  <input
+                    type="text"
+                    value={editSocietyForm.state}
+                    onChange={(e) => setEditSocietyForm({ ...editSocietyForm, state: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">PIN Code</label>
+                  <input
+                    type="text"
+                    value={editSocietyForm.pincode}
+                    onChange={(e) => setEditSocietyForm({ ...editSocietyForm, pincode: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSocietyForEdit(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 shadow-sm"
+                >
+                  Save Society Changes
                 </button>
               </div>
             </form>
