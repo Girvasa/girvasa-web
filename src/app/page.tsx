@@ -177,7 +177,7 @@ export default function HomePage() {
 {/*  Feature Checklist  */}
 <ul className="space-y-space-sm font-body-sm text-body-sm text-on-surface mb-space-lg"><li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">Gate Security with 4 Guard Tablet Logins</span></li><li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">Automated Maintenance WhatsApp Links &amp; UPI QR</span></li><li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">Resident Directory &amp; Vehicle Registry</span></li><li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">Basic Maintenance Ticket Helpdesk</span></li><li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">Model Bye-law 166 Interest Calculation</span></li><li className="flex items-center gap-2 text-on-surface-variant/60"><span className="material-symbols-outlined text-[18px]">remove</span><span className="">Section 99 Digital AGM Secret E-Voting</span></li></ul>
 </div>
-<a className="w-full py-2.5 rounded-lg bg-surface-container-lowest text-primary font-label-md text-label-md font-bold text-center shadow-sm hover:bg-surface-container transition-colors" href="/demo">
+<a className="w-full py-2.5 rounded-lg bg-surface-container-lowest text-primary font-label-md text-label-md font-bold text-center shadow-sm hover:bg-surface-container transition-colors" href="/register">
             Start 15-Day Free Trial
           </a>
 </div>
@@ -238,7 +238,7 @@ export default function HomePage() {
 </li>
 </ul>
 </div>
-<a className="w-full py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-bold text-center shadow-md hover:bg-primary-container transition-colors" href="/demo">
+<a className="w-full py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-bold text-center shadow-md hover:bg-primary-container transition-colors" href="/register">
             Start 15-Day Free Trial
           </a>
 </div>
@@ -270,7 +270,7 @@ export default function HomePage() {
 {/*  Feature Checklist  */}
 <ul className="space-y-space-sm font-body-sm text-body-sm text-on-surface mb-space-lg"><li className="flex items-center gap-2 font-medium"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">Everything in Growth included</span></li><li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">Multi-Gate ANPR &amp; FASTag Hardware Sync</span></li><li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">Section 99 Certified Digital AGM Platform</span></li><li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">Bespoke Multi-Wing Accounting Chart &amp; Audit Pack</span></li><li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">Dedicated Chartered Accountant Liaison</span></li><li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px] text-secondary">check</span><span className="">On-Premise Managing Committee Training</span></li></ul>
 </div>
-<a className="w-full py-2.5 rounded-lg bg-surface-container-lowest text-primary font-label-md text-label-md font-bold text-center shadow-sm hover:bg-surface-container transition-colors" href="/demo">
+<a className="w-full py-2.5 rounded-lg bg-surface-container-lowest text-primary font-label-md text-label-md font-bold text-center shadow-sm hover:bg-surface-container transition-colors" href="/register">
             Start 15-Day Free Trial
           </a>
 </div>

@@ -187,7 +187,7 @@ export default function PricingPage() {
                   <div>
                     <Link 
                       className="w-full flex items-center justify-center py-2.5 rounded-lg bg-surface-container-high text-primary hover:bg-surface-container font-label-md text-label-md font-semibold transition-colors" 
-                      href="/demo"
+                      href="/register"
                     >
                       Start 15-Day Free Trial
                     </Link>
@@ -257,7 +257,7 @@ export default function PricingPage() {
                   <div>
                     <Link 
                       className="w-full flex items-center justify-center py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md font-semibold transition-colors shadow-sm" 
-                      href="/demo"
+                      href="/register"
                     >
                       Start 15-Day Free Trial
                     </Link>
@@ -669,13 +669,13 @@ export default function PricingPage() {
               <div className="flex flex-col sm:flex-row items-center gap-space-md justify-center">
                 <Link 
                   className="w-full sm:w-auto px-space-xl py-3 rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-bold hover:bg-secondary-fixed transition-colors shadow-sm" 
-                  href="/demo"
+                  href="/register"
                 >
                   Start 15-Day Free Trial
                 </Link>
                 <Link 
                   className="w-full sm:w-auto px-space-xl py-3 rounded-lg bg-surface-container-lowest/10 text-on-primary hover:bg-surface-container-lowest/20 font-label-md text-label-md font-semibold transition-colors" 
-                  href="/demo"
+                  href="/contact"
                 >
                   Schedule a Walkthrough
                 </Link>
