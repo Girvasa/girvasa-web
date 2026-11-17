@@ -99,6 +99,8 @@ export const endpoints = {
   dashboard: {
     getExecutiveSummary: () =>
       api.get<ExecutiveDashboardResponse>("/reports/analytics/dashboard"),
+    getAdminOverview: () =>
+      api.get<any>("/dashboard/admin-overview"),
   },
   reports: {
     getAccountingSummary: (params?: any) =>
