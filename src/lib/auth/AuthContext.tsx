@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { UserResponse, OtpResponseDto } from "@/types/auth";
 import { endpoints } from "../api/endpoints";
 import { tokenStorage } from "./tokenStorage";
@@ -26,12 +26,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isTabSuperseded, setIsTabSuperseded] = useState<boolean>(false);
   const [lastRequestId, setLastRequestId] = useState<string | null>(null);
 
+  // Keep an active reference to `user` so cross-tab session listeners don't require `user` in dependency arrays
+  const userRef = useRef<UserResponse | null>(user);
+  userRef.current = user;
+
+  // Deduplicate in-flight profile queries to prevent parallel request spam
+  const inFlightRefreshRef = useRef<Promise<void> | null>(null);
+
   const claimCurrentTab = useCallback(() => {
     claimPrimaryTab();
     setIsTabSuperseded(false);
   }, []);
 
-  const refreshUser = useCallback(async () => {
+  /**
+   * Passive profile refresh to synchronize authenticated user state.
+   * Isolated from login/credentials verification; guards against concurrent execution
+   * and terminates session gracefully if user is banned (SUSPENDED / DEACTIVATED).
+   */
+  const refreshUser = useCallback(async (): Promise<void> => {
     const token = tokenStorage.getAccessToken();
     if (!token) {
       setUser(null);
@@ -39,34 +51,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    try {
-      const userData = await endpoints.auth.getCurrentUser();
-      if (tokenStorage.getAccessToken()) {
-        setUser(userData);
-      } else {
-        setUser(null);
-      }
-    } catch {
-      tokenStorage.clearTokens();
-      setUser(null);
-    } finally {
-      setIsLoading(false);
+    // Reuse existing in-flight request if one is already pending
+    if (inFlightRefreshRef.current) {
+      return inFlightRefreshRef.current;
     }
+
+    const refreshPromise = (async () => {
+      try {
+        const userData = await endpoints.auth.getCurrentUser();
+
+        // Ensure token wasn't cleared while awaiting response
+        if (!tokenStorage.getAccessToken()) {
+          setUser(null);
+          return;
+        }
+
+        // Handle banned / suspended / deactivated accounts immediately
+        if (userData.status === "SUSPENDED" || userData.status === "DEACTIVATED") {
+          tokenStorage.clearTokens();
+          tokenStorage.clearActiveSocietyId();
+          setUser(null);
+          if (typeof window !== "undefined") {
+            try {
+              window.location.href = "/login?error=account_suspended";
+            } catch {
+              // jsdom navigation fallback
+            }
+          }
+          return;
+        }
+
+        setUser(userData);
+      } catch (err: any) {
+        // If 401 Unauthorized or 403 Forbidden (banned or invalid token), wipe session
+        if (err?.status === 401 || err?.status === 403) {
+          tokenStorage.clearTokens();
+          tokenStorage.clearActiveSocietyId();
+          setUser(null);
+        } else if (!tokenStorage.getAccessToken()) {
+          setUser(null);
+        }
+      } finally {
+        setIsLoading(false);
+        inFlightRefreshRef.current = null;
+      }
+    })();
+
+    inFlightRefreshRef.current = refreshPromise;
+    return refreshPromise;
   }, []);
 
   useEffect(() => {
-    refreshUser();
-
+    // Only attempt session restoration on mount if access token exists
     if (tokenStorage.getAccessToken()) {
+      refreshUser();
       if (!isPrimaryTab()) {
         setIsTabSuperseded(true);
       } else {
         claimPrimaryTab();
       }
+    } else {
+      setIsLoading(false);
     }
 
     const unbind = registerSessionSync({
       onLogin: () => {
+        // Received login event from another tab: synchronize session
         refreshUser();
       },
       onLogout: () => {
@@ -94,10 +144,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       },
       onSyncCheck: () => {
+        // Check session consistency across background tabs without adding `user` to effect dependencies
         const token = tokenStorage.getAccessToken();
-        if (token && !user) {
+        if (token && !userRef.current) {
           refreshUser();
-        } else if (!token && user) {
+        } else if (!token && userRef.current) {
           setUser(null);
         }
       },
@@ -112,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return unbind;
-  }, [refreshUser, user]);
+  }, [refreshUser]);
 
   const requestOtp = async (mobileNumber: string, channel: "SMS" | "WHATSAPP" = "SMS"): Promise<OtpResponseDto> => {
     const res = await endpoints.auth.requestOtp(mobileNumber, channel);
@@ -123,9 +174,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return res;
   };
 
+  /**
+   * Explicit isolated login handler.
+   * Authenticates OTP challenge, verifies account status, seeds credentials, and sets primary tab.
+   */
   const verifyOtp = async (mobileNumber: string, otpCode: string, requestId?: string): Promise<void> => {
     const effectiveRequestId = requestId || lastRequestId || undefined;
     const tokens = await endpoints.auth.verifyOtp(mobileNumber, otpCode, effectiveRequestId);
+
+    // Reject banned / suspended accounts before persisting tokens
+    if (tokens.user && (tokens.user.status === "SUSPENDED" || tokens.user.status === "DEACTIVATED")) {
+      tokenStorage.clearTokens();
+      tokenStorage.clearActiveSocietyId();
+      setUser(null);
+      throw new Error(`Your account is ${tokens.user.status.toLowerCase()}. Please contact society management.`);
+    }
+
     if (tokens.accessToken) {
       tokenStorage.setAccessToken(tokens.accessToken);
     }
@@ -134,6 +198,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     claimPrimaryTab();
     setIsTabSuperseded(false);
+
+    // Populate user profile for the newly established session
     await refreshUser();
     broadcastSessionEvent("SESSION_LOGIN");
   };
