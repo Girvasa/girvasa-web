@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   Building2,
   Layers,
@@ -47,31 +47,42 @@ export default function BuildingsPage() {
   const [bDesc, setBDesc] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const prevSocietyIdRef = useRef<string | null>(null);
+
   const fetchData = useCallback(async () => {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
-    setBuildings([]);
-    setUnits([]);
-    setSelectedBuilding(null);
-    setSelectedBuildingId(null);
-    setWings([]);
+
+    // Only wipe state on tenant change to prevent screen blinking during re-fetch
+    if (prevSocietyIdRef.current !== activeSocietyId) {
+      prevSocietyIdRef.current = activeSocietyId;
+      setBuildings([]);
+      setUnits([]);
+      setSelectedBuilding(null);
+      setSelectedBuildingId(null);
+      setWings([]);
+    }
+
     try {
       const [buildingsData, unitsData] = await Promise.all([
         endpoints.structure.getBuildings(),
         endpoints.structure.getUnits().catch(() => []),
       ]);
-      setBuildings(buildingsData || []);
-      setUnits(unitsData || []);
-      if (buildingsData && buildingsData.length > 0 && !selectedBuildingId) {
-        setSelectedBuildingId(buildingsData[0].id);
-      }
+      const bList = buildingsData || [];
+      const uList = unitsData || [];
+      setBuildings(bList);
+      setUnits(uList);
+      setSelectedBuildingId((prev) => {
+        if (prev && bList.some((b) => b.id === prev)) return prev;
+        return bList[0]?.id || null;
+      });
     } catch (err: any) {
       setError(err?.detail || err?.message || "Unable to load society buildings and spatial inventory.");
     } finally {
       setIsLoading(false);
     }
-  }, [activeSocietyId, selectedBuildingId]);
+  }, [activeSocietyId]);
 
   useEffect(() => {
     fetchData();
@@ -276,8 +287,14 @@ export default function BuildingsPage() {
             <div className="flex flex-col">
               <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Assessable Area</span>
               <span className="text-2xl font-bold text-[#070235] mt-1">
-                {totalAssessableSqFt.toLocaleString("en-IN")}{" "}
-                <span className="text-xs text-slate-400 font-normal">sq.ft</span>
+                {totalAssessableSqFt > 0 ? (
+                  <>
+                    {totalAssessableSqFt.toLocaleString("en-IN")}{" "}
+                    <span className="text-xs text-slate-400 font-normal">sq.ft</span>
+                  </>
+                ) : (
+                  <span className="text-base font-bold text-slate-500">Pending Assessment</span>
+                )}
               </span>
             </div>
             <div className="p-2 rounded-lg bg-indigo-50 text-indigo-700">
@@ -285,7 +302,11 @@ export default function BuildingsPage() {
             </div>
           </div>
           <div className="flex items-center justify-between text-xs text-slate-500 pt-3 mt-1 border-t border-slate-100">
-            <span>Formula: Base Carpet + Common Loading</span>
+            <span>
+              {totalAssessableSqFt > 0
+                ? "Formula: Base Carpet + Common Loading"
+                : "Sq. ft. will display once admin completes unit setup"}
+            </span>
           </div>
         </div>
 
@@ -388,7 +409,9 @@ export default function BuildingsPage() {
                             </span>
                           </div>
                           <span className={`text-[10px] ${isOccupied ? "text-indigo-200" : "text-slate-500"}`}>
-                            {u.squareFeet || 1000} sq.ft • {u.status}
+                            {(u.areaSqft ?? u.squareFeet) && (u.areaSqft ?? u.squareFeet)! > 0
+                              ? `${u.areaSqft ?? u.squareFeet} sq.ft • ${u.status}`
+                              : `Area pending • ${u.status}`}
                           </span>
                         </div>
                       );
