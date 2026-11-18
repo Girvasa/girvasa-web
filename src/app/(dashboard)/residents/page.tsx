@@ -10,6 +10,8 @@ import {
   Upload,
   Phone,
   ShieldCheck,
+  Shield,
+  RefreshCw,
   Building,
   Car,
   FileCheck,
@@ -90,6 +92,7 @@ interface ResidentProfile {
   agreementReg: string;
   electricityCa: string;
   nominees: string;
+  roles?: string[];
 }
 
 export default function ResidentsPage() {
@@ -104,6 +107,10 @@ export default function ResidentsPage() {
   const [isDossierModalOpen, setIsDossierModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [isUpdatingRoles, setIsUpdatingRoles] = useState(false);
+  const [roleUpdateError, setRoleUpdateError] = useState<string | null>(null);
 
   // Tab switcher and Join Request State
   const searchParams = useSearchParams();
@@ -147,6 +154,23 @@ export default function ResidentsPage() {
             const occType = (m.occupancies?.[0]?.occupancyType as any) || (m.roles?.some((r: any) => (typeof r === "string" ? r : r.code) === "TENANT") ? "TENANT" : "OWNER");
             const isOwner = occType === "OWNER";
             const initials = name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase() || "SR";
+            const extractedRoles: string[] = (m.roles || []).map((r: any) =>
+              (typeof r === "string" ? r : r.code || "").toUpperCase()
+            );
+            const isAccountant = extractedRoles.includes("ACCOUNTANT");
+            const isCommittee = extractedRoles.includes("COMMITTEE_MEMBER");
+            const isSocietyAdmin = extractedRoles.includes("SOCIETY_ADMIN");
+            const isFacilityManager = extractedRoles.includes("FACILITY_MANAGER");
+
+            const committeeTitle = isSocietyAdmin
+              ? "Society Admin"
+              : isAccountant
+              ? "Accountant (Treasurer)"
+              : isCommittee
+              ? "Committee Member"
+              : isFacilityManager
+              ? "Facility Manager"
+              : undefined;
 
             return {
               id: m.id,
@@ -159,6 +183,7 @@ export default function ResidentsPage() {
               occupancyType: occType,
               occupancyBadge: isOwner ? "Owner Residing" : "Tenant",
               occupancySub: `Joined: ${m.joinedAt ? formatDate(m.joinedAt) : "Active Member"}`,
+              committeeRole: committeeTitle,
               phone: m.user?.mobileNumber || m.mobileNumber || "N/A",
               email: m.user?.email || m.email || "—",
               iceContact: "—",
@@ -176,6 +201,7 @@ export default function ResidentsPage() {
               agreementReg: "—",
               electricityCa: "—",
               nominees: isOwner ? "On File" : "N/A",
+              roles: extractedRoles,
             };
           });
           setCensus(mapped);
@@ -285,6 +311,79 @@ export default function ResidentsPage() {
 
   const selectedResident =
     census.find((r) => r.id === selectedResidentId) || census[0] || null;
+
+  const AVAILABLE_ROLES = [
+    {
+      code: "ACCOUNTANT",
+      title: "Society Accountant (Treasurer)",
+      badge: "Finance & Accounts",
+      badgeColor: "bg-purple-100 text-purple-800 border-purple-200",
+      description: "Grants access to Maintenance Billing, Invoices, Payment tracking, offline receipt logging, and Financial Reports.",
+    },
+    {
+      code: "COMMITTEE_MEMBER",
+      title: "Managing Committee Member",
+      badge: "Governance",
+      badgeColor: "bg-blue-100 text-blue-800 border-blue-200",
+      description: "Grants access to Society Circulars, Complaints resolution, Tenant Police verification review, and Emergency Broadcasts.",
+    },
+    {
+      code: "SOCIETY_ADMIN",
+      title: "Society Administrator (President / Secretary)",
+      badge: "Full Admin",
+      badgeColor: "bg-rose-100 text-rose-800 border-rose-200",
+      description: "Full administrative access to Society Settings, Member Onboarding, Wing/Unit configuration, and Role Assignments.",
+    },
+    {
+      code: "FACILITY_MANAGER",
+      title: "Facility / Estate Manager",
+      badge: "Operations",
+      badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      description: "Operational management of Amenities reservation, Parking slot allotments, Visitor gate logs, and Staff management.",
+    },
+  ];
+
+  const openRoleModal = (resident: ResidentProfile) => {
+    setSelectedResidentId(resident.id);
+    const initialRoles = resident.roles && resident.roles.length > 0 ? [...resident.roles] : [];
+    const baseRole = resident.occupancyType === "TENANT" ? "TENANT" : "OWNER";
+    if (!initialRoles.includes(baseRole) && !initialRoles.includes("RESIDENT")) {
+      initialRoles.push(baseRole);
+    }
+    setSelectedRoles(initialRoles);
+    setRoleUpdateError(null);
+    setIsRoleModalOpen(true);
+  };
+
+  const toggleRoleSelection = (roleCode: string) => {
+    setSelectedRoles((prev) => {
+      if (prev.includes(roleCode)) {
+        return prev.filter((r) => r !== roleCode);
+      } else {
+        return [...prev, roleCode];
+      }
+    });
+  };
+
+  const handleSaveRoles = async () => {
+    if (!selectedResident) return;
+    setIsUpdatingRoles(true);
+    setRoleUpdateError(null);
+    try {
+      const baseRole = selectedResident.occupancyType === "TENANT" ? "TENANT" : "OWNER";
+      const finalRoleSet = Array.from(new Set([baseRole, ...selectedRoles]));
+
+      await endpoints.members.updateMember(selectedResident.id, {
+        roleCodes: finalRoleSet,
+      });
+      setIsRoleModalOpen(false);
+      await fetchLiveMembers();
+    } catch (err: any) {
+      setRoleUpdateError(err?.detail || err?.message || "Failed to update member roles.");
+    } finally {
+      setIsUpdatingRoles(false);
+    }
+  };
 
   const handleOnboardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -847,10 +946,24 @@ export default function ResidentsPage() {
                             {r.initials}
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-bold text-slate-900 text-sm truncate">{r.name}</span>
                               {r.occupancyType === "OWNER" && (
                                 <CheckCircle2 className="w-3.5 h-3.5 text-[#006a61]" />
+                              )}
+                              {r.committeeRole && (
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold tracking-tight inline-flex items-center gap-1 border ${
+                                    r.committeeRole.includes("Accountant")
+                                      ? "bg-purple-100 text-purple-800 border-purple-200"
+                                      : r.committeeRole.includes("Admin")
+                                      ? "bg-rose-100 text-rose-800 border-rose-200"
+                                      : "bg-blue-100 text-blue-800 border-blue-200"
+                                  }`}
+                                >
+                                  <Shield className="w-2.5 h-2.5" />
+                                  {r.committeeRole}
+                                </span>
                               )}
                             </div>
                             <div className="flex items-center gap-1 text-slate-500 text-[11px]">
@@ -951,6 +1064,17 @@ export default function ResidentsPage() {
                         <div className="flex items-center justify-center gap-1">
                           <button
                             type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openRoleModal(r);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-purple-100 text-purple-700 transition-colors"
+                            title="Assign Roles / Designation (Accountant, Committee Member, etc.)"
+                          >
+                            <Shield className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => {
                               setSelectedResidentId(r.id);
                               setIsDossierModalOpen(true);
@@ -1008,12 +1132,26 @@ export default function ResidentsPage() {
                 {selectedResident.initials}
               </div>
               <div className="flex flex-col">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-bold text-slate-900 text-base">{selectedResident.name}</h3>
                   <span className="px-2 py-0.5 rounded-lg bg-[#86f2e4]/30 text-[#006f66] font-bold text-xs">
                     {selectedResident.unit}
                   </span>
                 </div>
+                {selectedResident.committeeRole && (
+                  <span
+                    className={`mt-1 px-2 py-0.5 rounded-md text-[11px] font-bold inline-flex items-center gap-1 w-fit border ${
+                      selectedResident.committeeRole.includes("Accountant")
+                        ? "bg-purple-100 text-purple-800 border-purple-200"
+                        : selectedResident.committeeRole.includes("Admin")
+                        ? "bg-rose-100 text-rose-800 border-rose-200"
+                        : "bg-blue-100 text-blue-800 border-blue-200"
+                    }`}
+                  >
+                    <Shield className="w-3 h-3" />
+                    {selectedResident.committeeRole}
+                  </span>
+                )}
                 <span className="text-slate-400 text-xs mt-0.5">
                   Unit Allotment Date: {selectedResident.allotmentDate}
                 </span>
@@ -1029,6 +1167,34 @@ export default function ResidentsPage() {
                 <Printer className="w-4 h-4" />
               </button>
             </div>
+          </div>
+
+          {/* Role & Committee Designation Card */}
+          <div className="p-3.5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/80 rounded-2xl flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-xs">Society Designation</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    {selectedResident.committeeRole || "Standard Member (No Executive Role)"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => openRoleModal(selectedResident)}
+                className="px-2.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] transition-colors flex items-center gap-1 shadow-xs"
+              >
+                <Shield className="w-3 h-3" />
+                Manage Roles
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              In residential societies, flat owners are appointed as Accountant (Treasurer), Committee Members, or President. Assign designations to grant access to the Finance suite or Admin tools.
+            </p>
           </div>
 
           {/* Member Profile Dossier */}
@@ -1281,7 +1447,18 @@ export default function ResidentsPage() {
               <span className="font-mono font-bold text-[#070235]">#{selectedResident.id?.substring(0, 8)}</span>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDossierModalOpen(false);
+                  openRoleModal(selectedResident);
+                }}
+                className="px-3 py-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                Manage Designation
+              </button>
               <button
                 type="button"
                 onClick={() => setIsDossierModalOpen(false)}
@@ -1349,6 +1526,137 @@ export default function ResidentsPage() {
               >
                 {actionLoadingId === rejectTargetReq.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Confirm Rejection
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 9. Manage Society Roles & Designation Modal */}
+      <Modal
+        isOpen={isRoleModalOpen && !!selectedResident}
+        onClose={() => {
+          if (!isUpdatingRoles) {
+            setIsRoleModalOpen(false);
+            setRoleUpdateError(null);
+          }
+        }}
+        title="Assign Society Designation & Executive Roles"
+        description="Assign executive committee designations (e.g. Accountant / Treasurer, Committee Member, Admin) to flat owners or residents to grant authorized portal permissions."
+        maxWidth="lg"
+      >
+        {selectedResident && (
+          <div className="space-y-4 pt-1 text-xs">
+            {/* Member Summary Header */}
+            <div className="flex items-center gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+              <div className="w-11 h-11 rounded-xl bg-[#070235] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                {selectedResident.initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-bold text-slate-900 text-sm">{selectedResident.name}</h4>
+                  <span className="px-2 py-0.5 rounded-md bg-[#86f2e4]/30 text-[#006f66] font-bold text-xs">
+                    Flat {selectedResident.unit}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 font-semibold text-[11px]">
+                    {selectedResident.occupancyBadge}
+                  </span>
+                </div>
+                <div className="text-slate-500 text-[11px] mt-0.5 flex items-center gap-2">
+                  <span>Contact: {selectedResident.phone}</span>
+                  <span>•</span>
+                  <span>Wing: {selectedResident.wing}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Base Occupancy Notice */}
+            <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <div className="text-blue-900 text-[11px] leading-relaxed">
+                <span className="font-bold">Base Occupancy ({selectedResident.occupancyType === "TENANT" ? "Tenant" : "Flat Owner"}):</span>{" "}
+                Always preserved. Adding executive committee designations grants administrative and financial access without affecting their residential unit allotment or share certificate.
+              </div>
+            </div>
+
+            {/* Error Banner */}
+            {roleUpdateError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-rose-700 text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{roleUpdateError}</span>
+              </div>
+            )}
+
+            {/* Executive Role Cards */}
+            <div className="space-y-2.5">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                Select Administrative &amp; Committee Roles
+              </label>
+
+              {AVAILABLE_ROLES.map((role) => {
+                const isChecked = selectedRoles.includes(role.code);
+                return (
+                  <label
+                    key={role.code}
+                    className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
+                      isChecked
+                        ? "bg-purple-50/60 border-purple-300 ring-1 ring-purple-400"
+                        : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      disabled={isUpdatingRoles}
+                      onChange={() => toggleRoleSelection(role.code)}
+                      className="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300 cursor-pointer"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-slate-900 text-xs">{role.title}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${role.badgeColor}`}>
+                          {role.badge}
+                        </span>
+                      </div>
+                      <p className="text-slate-500 text-[11px] mt-1 leading-normal">
+                        {role.description}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                disabled={isUpdatingRoles}
+                onClick={() => {
+                  setIsRoleModalOpen(false);
+                  setRoleUpdateError(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isUpdatingRoles}
+                onClick={handleSaveRoles}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#070235] hover:bg-[#070235]/90 text-white font-bold text-xs shadow-sm transition-colors disabled:opacity-50"
+              >
+                {isUpdatingRoles ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Updating Roles &amp; Permissions...</span>
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Save Designation Changes</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
