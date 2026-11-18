@@ -6,10 +6,14 @@ export interface BuildingResponse {
   societyId: string;
   name: string;
   code: string;
-  totalFloors: number;
-  totalUnits: number;
+  totalFloors?: number;
+  numberOfFloors?: number;
+  totalUnits?: number;
   description?: string;
+  displayOrder?: number;
+  status?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface WingResponse {
@@ -17,7 +21,7 @@ export interface WingResponse {
   buildingId: string;
   name: string;
   code: string;
-  totalFloors: number;
+  totalFloors?: number;
 }
 
 export interface UnitResponse {
@@ -25,13 +29,17 @@ export interface UnitResponse {
   societyId: string;
   buildingId: string;
   buildingName?: string;
+  buildingCode?: string;
   wingId?: string;
   wingName?: string;
   unitNumber: string;
   floorNumber: number;
+  floorLabel?: string;
   unitType: UnitType;
   status: UnitStatus;
   squareFeet?: number;
+  areaSqft?: number;
   configuration?: string;
   createdAt: string;
+  updatedAt?: string;
 }

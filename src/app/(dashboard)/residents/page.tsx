@@ -120,9 +120,9 @@ export default function ResidentsPage() {
     name: "",
     phone: "",
     email: "",
-    flat: "A-402",
+    flat: "",
     occupancyType: "OWNER",
-    familyCount: 3,
+    familyCount: 1,
   });
 
   const [census, setCensus] = useState<ResidentProfile[]>([]);
@@ -139,7 +139,7 @@ export default function ResidentsPage() {
         const mapped: ResidentProfile[] = data.map((m) => {
           const name = m.user?.fullName || m.fullName || "Society Resident";
           const unitNo = m.occupancies?.[0]?.unitNumber || m.unitNumber || "Unassigned";
-          const wing = m.occupancies?.[0]?.buildingName || m.buildingName || (unitNo.startsWith("A") ? "Wing A" : unitNo.startsWith("B") ? "Wing B" : "Main Wing");
+          const wing = m.occupancies?.[0]?.buildingName || m.buildingName || "—";
           const occType = (m.occupancies?.[0]?.occupancyType as any) || (m.roles?.some((r: any) => (typeof r === "string" ? r : r.code) === "TENANT") ? "TENANT" : "OWNER");
           const isOwner = occType === "OWNER";
           const initials = name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase() || "SR";
@@ -150,28 +150,28 @@ export default function ResidentsPage() {
             name,
             unit: unitNo,
             wing,
-            bhk: "2BHK",
-            sqft: 1020,
+            bhk: (m.occupancies?.[0] as any)?.configuration || "—",
+            sqft: (m.occupancies?.[0] as any)?.areaSqft || 0,
             occupancyType: occType,
             occupancyBadge: isOwner ? "Owner Residing" : "Tenant",
             occupancySub: `Joined: ${m.joinedAt ? formatDate(m.joinedAt) : "Active Member"}`,
             phone: m.user?.mobileNumber || m.mobileNumber || "N/A",
-            email: m.user?.email || m.email || "resident@society.in",
-            iceContact: "+91 98200 99999",
-            familyCount: 3,
-            vehiclesCount: "1 Vehicle",
-            vehicleDetails: "RFID Pass Registered",
+            email: m.user?.email || m.email || "—",
+            iceContact: "—",
+            familyCount: 0,
+            vehiclesCount: "None",
+            vehicleDetails: "No pass registered",
             kycStatus: m.status === "ACTIVE" ? "VERIFIED" : "PENDING",
             kycBadge: m.status === "ACTIVE" ? "Fully Verified" : "Verification Pending",
-            shareCertNo: isOwner ? `SC-${m.id.substring(0, 5).toUpperCase()}` : undefined,
+            shareCertNo: isOwner && m.id ? `SC-${m.id.substring(0, 5).toUpperCase()}` : undefined,
             duesStatus: "NIL",
             duesAmount: 0,
             duesSub: "Nil Dues Clean",
-            allotmentDate: m.joinedAt ? formatDate(m.joinedAt) : "Aug 2021",
-            votingStatus: isOwner ? "Active Voter (AGM 2026)" : "Non-Voting (Tenant)",
-            agreementReg: "Indexed / BBR-09410",
-            electricityCa: "MSEDCL Consumer On File",
-            nominees: isOwner ? "Nomination Form Filed" : "N/A",
+            allotmentDate: m.joinedAt ? formatDate(m.joinedAt) : "—",
+            votingStatus: isOwner ? "Active Member" : "Non-Voting (Tenant)",
+            agreementReg: "—",
+            electricityCa: "—",
+            nominees: isOwner ? "On File" : "N/A",
           };
         });
         setCensus(mapped);
