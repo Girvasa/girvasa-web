@@ -94,8 +94,8 @@ export default function BuildingsPage() {
       await endpoints.structure.createBuilding({
         name: bName.trim(),
         code: bCode.trim().toUpperCase(),
-        totalFloors: parseInt(bFloors, 10) || 1,
-        totalUnits: parseInt(bUnits, 10) || 1,
+        numberOfFloors: parseInt(bFloors, 10) || 1,
+        displayOrder: 0,
         description: bDesc.trim(),
       });
       await fetchData();
@@ -117,11 +117,11 @@ export default function BuildingsPage() {
   );
 
   // Dynamic Metrics Computation
-  const totalSocietyUnits = units.length > 0 ? units.length : buildings.reduce((sum, b) => sum + (b.totalUnits || 0), 0);
+  const totalSocietyUnits = units.length;
   const occupiedUnits = units.filter((u) => u.status === "OCCUPIED").length;
   const vacantUnits = units.filter((u) => u.status === "VACANT").length;
   const occupancyRate = totalSocietyUnits > 0 ? ((occupiedUnits / totalSocietyUnits) * 100).toFixed(1) : "0.0";
-  const totalAssessableSqFt = units.reduce((sum, u) => sum + (u.squareFeet || 1000), 0);
+  const totalAssessableSqFt = units.reduce((sum, u) => sum + (u.areaSqft ?? u.squareFeet ?? 0), 0);
 
   // Active Building Units for Spatial Visualizer
   const activeBuildingUnits = units.filter(
@@ -153,19 +153,19 @@ export default function BuildingsPage() {
     },
     {
       header: "Total Floors",
-      accessor: (b) => <span className="text-slate-700 font-medium">{b.totalFloors} floors</span>,
+      accessor: (b) => <span className="text-slate-700 font-medium">{(b.numberOfFloors ?? b.totalFloors ?? "—")} floors</span>,
     },
     {
       header: "Total Units",
       accessor: (b) => (
         <span className="font-bold text-[#070235]">
-          {units.filter((u) => u.buildingId === b.id).length || b.totalUnits || 0} units
+          {units.filter((u) => u.buildingId === b.id).length} units
         </span>
       ),
     },
     {
       header: "Status",
-      accessor: () => <Badge variant="success">Structural OC Cleared</Badge>,
+      accessor: (b) => <Badge variant={b.status === "ACTIVE" || !b.status ? "success" : "neutral"}>{b.status || "ACTIVE"}</Badge>,
     },
     {
       header: "Actions",

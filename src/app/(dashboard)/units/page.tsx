@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import {
   Search,
   Eye,
@@ -13,6 +14,7 @@ import {
   Check,
   AlertCircle,
   RefreshCw,
+  Home,
 } from "lucide-react";
 import { Table, Column } from "@/components/common/Table";
 import { Modal } from "@/components/common/Modal";
@@ -337,8 +339,8 @@ export default function UnitsPage() {
       header: "Building & Wing",
       accessor: (u) => (
         <div>
-          <span className="font-semibold text-slate-800 text-xs block">{u.buildingName || "Main Building"}</span>
-          <span className="text-[11px] text-[#006a61] font-medium">{u.wingName ? `Wing ${u.wingName}` : "Single Tower"}</span>
+          <span className="font-semibold text-slate-800 text-xs block">{u.buildingName || "—"}</span>
+          <span className="text-[11px] text-[#006a61] font-medium">{u.wingName ? `Wing ${u.wingName}` : (u.buildingCode || "—")}</span>
         </div>
       ),
     },
@@ -350,7 +352,7 @@ export default function UnitsPage() {
       header: "Classification",
       accessor: (u) => (
         <span className="px-2 py-0.5 rounded bg-slate-100 text-xs text-slate-700 font-semibold uppercase">
-          {u.configuration || u.unitType || "Residential"}
+          {u.configuration || u.unitType || "—"}
         </span>
       ),
     },
@@ -359,7 +361,7 @@ export default function UnitsPage() {
       accessor: (u) => (
         <div className="flex flex-col">
           <span className="text-xs font-bold text-slate-900">
-            {u.squareFeet ? `${u.squareFeet} sq.ft` : "—"}
+            {(u.areaSqft ?? u.squareFeet) ? `${u.areaSqft ?? u.squareFeet} sq.ft` : "—"}
           </span>
         </div>
       ),
@@ -388,7 +390,7 @@ export default function UnitsPage() {
     const rows = units
       .map(
         (u) =>
-          `"${u.unitNumber}","${u.buildingName || ""}","${u.floorNumber || ""}","${u.unitType || ""}","${u.squareFeet || ""}","${u.status}"`
+          `"${u.unitNumber}","${u.buildingName || ""}","${u.floorNumber ?? ""}","${u.unitType || ""}","${u.areaSqft ?? u.squareFeet ?? ""}","${u.status}"`
       )
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
@@ -492,6 +494,25 @@ export default function UnitsPage() {
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {error ? (
           <ErrorState message={error} onRetry={fetchUnits} />
+        ) : buildings.length === 0 && !isLoading ? (
+          <div className="p-8 text-center bg-white rounded-xl">
+            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+              <Building className="w-6 h-6 text-slate-500" />
+            </div>
+            <h3 className="text-base font-bold text-[#070235]">No Buildings or Wings Configured</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              Flats and apartments belong to a building or wing (e.g., Tower A, Wing B). Register your first building or wing to start adding units.
+            </p>
+            <div className="mt-4">
+              <Link
+                href="/buildings"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#070235] text-white text-xs font-semibold hover:bg-[#1e1b4b] transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Building / Wing</span>
+              </Link>
+            </div>
+          </div>
         ) : (
           <Table
             columns={columns}
@@ -502,51 +523,6 @@ export default function UnitsPage() {
           />
         )}
       </div>
-
-      {/* Unit details modal */}
-      <Modal
-        isOpen={!!selectedUnit}
-        onClose={() => setSelectedUnit(null)}
-        title={`Flat Dossier • Unit ${selectedUnit?.unitNumber}`}
-        description={`${selectedUnit?.buildingName || "Building"} • Floor ${selectedUnit?.floorNumber}`}
-        maxWidth="lg"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-              <span className="text-slate-400 block mb-1">Occupancy Status</span>
-              {selectedUnit && getStatusBadge(selectedUnit.status)}
-            </div>
-            <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-              <span className="text-slate-400 block mb-1">Unit Classification</span>
-              <span className="font-semibold text-slate-800 uppercase">
-                {selectedUnit?.configuration || selectedUnit?.unitType || "Residential"}
-              </span>
-            </div>
-            <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-              <span className="text-slate-400 block mb-1">Built-Up Assessable Area</span>
-              <span className="font-semibold text-slate-800">
-                {selectedUnit?.squareFeet ? `${selectedUnit.squareFeet} sq.ft` : "Not assessed"}
-              </span>
-            </div>
-            <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-              <span className="text-slate-400 block mb-1">Building Wing</span>
-              <span className="font-mono font-bold text-[#070235]">
-                {selectedUnit?.wingName ? `Wing ${selectedUnit.wingName}` : "Single Tower"}
-              </span>
-            </div>
-          </div>
-
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs">
-            <span className="text-[10px] uppercase font-bold text-slate-500 block mb-1">
-              MCS Statutory Formula Base
-            </span>
-            <p className="text-slate-600 text-[11px]">
-              Service charges allocated equally. Sinking fund calculated at 0.25% p.a. of construction cost. Repair fund calculated at 0.75% p.a.
-            </p>
-          </div>
-        </div>
-      </Modal>
 
       {/* Add Unit Modal */}
       <Modal
@@ -562,21 +538,38 @@ export default function UnitsPage() {
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Target Building</label>
-            <select
-              value={newUnitData.buildingId}
-              onChange={(e) => setNewUnitData({ ...newUnitData, buildingId: e.target.value })}
-              required
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#070235]"
-            >
-              {buildings.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {buildings.length === 0 ? (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-2">
+              <p className="font-semibold">No buildings or wings found in this society.</p>
+              <p className="text-amber-800">
+                You must add at least one building or wing before creating individual flats.
+              </p>
+              <div>
+                <Link
+                  href="/buildings"
+                  className="inline-flex items-center text-xs font-bold text-[#070235] underline hover:text-[#006a61]"
+                >
+                  Go to Buildings &amp; Wings &rarr;
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Target Building</label>
+              <select
+                value={newUnitData.buildingId}
+                onChange={(e) => setNewUnitData({ ...newUnitData, buildingId: e.target.value })}
+                required
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#070235]"
+              >
+                {buildings.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -639,6 +632,7 @@ export default function UnitsPage() {
             <Button
               variant="primary"
               type="submit"
+              disabled={buildings.length === 0 || isSubmitting}
               isLoading={isSubmitting}
               className="bg-[#070235] text-white"
             >
@@ -678,21 +672,38 @@ export default function UnitsPage() {
           )}
 
           {/* Building Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Target Building</label>
-            <select
-              value={importBuildingId}
-              onChange={(e) => setImportBuildingId(e.target.value)}
-              disabled={isImporting}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#070235]"
-            >
-              {buildings.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {buildings.length === 0 ? (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-2">
+              <p className="font-semibold">No buildings or wings found in this society.</p>
+              <p className="text-amber-800">
+                Please register at least one building or wing before importing flats.
+              </p>
+              <div>
+                <Link
+                  href="/buildings"
+                  className="inline-flex items-center text-xs font-bold text-[#070235] underline hover:text-[#006a61]"
+                >
+                  Go to Buildings &amp; Wings &rarr;
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Target Building</label>
+              <select
+                value={importBuildingId}
+                onChange={(e) => setImportBuildingId(e.target.value)}
+                disabled={isImporting}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#070235]"
+              >
+                {buildings.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Step 1: Template Download */}
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -864,7 +875,7 @@ export default function UnitsPage() {
             <Button
               variant="primary"
               type="button"
-              disabled={isImporting || parsedRows.filter((r) => r.isValid).length === 0}
+              disabled={buildings.length === 0 || isImporting || parsedRows.filter((r) => r.isValid).length === 0}
               onClick={handleExecuteBulkImport}
               isLoading={isImporting}
               className="bg-[#006a61] hover:bg-[#00524b] text-white"
@@ -883,7 +894,7 @@ export default function UnitsPage() {
           isOpen={!!selectedUnit}
           onClose={() => setSelectedUnit(null)}
           title={`Flat Dossier — Unit ${selectedUnit.unitNumber}`}
-          description={`Comprehensive structural and occupancy records for Unit ${selectedUnit.unitNumber}.`}
+          description={`Structural and spatial records for Unit ${selectedUnit.unitNumber}.`}
           maxWidth="lg"
         >
           <div className="space-y-4 pt-1 text-xs">
@@ -895,18 +906,18 @@ export default function UnitsPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">
-                    {selectedUnit.buildingName || "Main Tower"} • Floor {selectedUnit.floorNumber}
+                    {selectedUnit.buildingName || "Building"} • Floor {selectedUnit.floorNumber}
                   </h3>
                   <span className="text-slate-500 text-xs">
                     {selectedUnit.wingName ? `Wing: ${selectedUnit.wingName} • ` : ""}
-                    Configuration: {selectedUnit.configuration || "2BHK"}
+                    Configuration: {selectedUnit.configuration || selectedUnit.unitType || "—"}
                   </span>
                 </div>
               </div>
               <div className="text-right">
                 {getStatusBadge(selectedUnit.status)}
                 <span className="text-[11px] text-slate-400 block mt-1">
-                  Assessable: {selectedUnit.squareFeet || 1000} sq.ft
+                  Assessable: {(selectedUnit.areaSqft ?? selectedUnit.squareFeet) ? `${selectedUnit.areaSqft ?? selectedUnit.squareFeet} sq.ft` : "Not assessed"}
                 </span>
               </div>
             </div>
@@ -923,19 +934,21 @@ export default function UnitsPage() {
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                 <span className="text-[10px] text-slate-400 uppercase font-bold block">Carpet / Built-up</span>
-                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{selectedUnit.squareFeet || 1000} sq.ft</span>
+                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">
+                  {(selectedUnit.areaSqft ?? selectedUnit.squareFeet) ? `${selectedUnit.areaSqft ?? selectedUnit.squareFeet} sq.ft` : "Not assessed"}
+                </span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                 <span className="text-[10px] text-slate-400 uppercase font-bold block">Building Tower</span>
-                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{selectedUnit.buildingName || "Society Tower"}</span>
+                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{selectedUnit.buildingName || "—"}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Subdivision Wing</span>
-                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{selectedUnit.wingName || "Single Tower"}</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Subdivision / Wing</span>
+                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{selectedUnit.wingName || selectedUnit.buildingCode || "—"}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Statutory Registration</span>
-                <span className="font-semibold text-[#006a61] text-xs mt-0.5 block">Form I Compliant</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Unit Reference ID</span>
+                <span className="font-mono font-semibold text-[#006a61] text-xs mt-0.5 block">#{selectedUnit.id?.substring(0, 8)}</span>
               </div>
             </div>
 
