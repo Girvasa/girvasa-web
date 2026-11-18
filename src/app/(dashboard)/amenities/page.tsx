@@ -48,27 +48,58 @@ export default function AmenitiesPage() {
     setAmenities([]);
     setBookings([]);
     setSelectedBooking(null);
-    try {
-      const [amenitiesData, bookingsData] = await Promise.all([
-        endpoints.amenities.getAmenities(),
-        endpoints.amenities.getBookings(),
-      ]);
-      const extractArray = (res: any) => {
-        if (Array.isArray(res)) return res;
-        if (res && Array.isArray(res.content)) return res.content;
-        return [];
-      };
-      const fetchedAmenities = extractArray(amenitiesData);
-      const fetchedBookings = extractArray(bookingsData);
-      setAmenities(fetchedAmenities);
-      setBookings(fetchedBookings);
-      if (fetchedBookings.length > 0 && !selectedBooking) {
-        setSelectedBooking(fetchedBookings[0]);
+    let attempt = 0;
+    while (attempt < 2) {
+      try {
+        const [amenitiesRes, bookingsRes] = await Promise.allSettled([
+          endpoints.amenities.getAmenities(),
+          endpoints.amenities.getBookings(),
+        ]);
+
+        const extractArray = (res: any) => {
+          if (Array.isArray(res)) return res;
+          if (res && Array.isArray(res.content)) return res.content;
+          if (res && Array.isArray(res.data)) return res.data;
+          return [];
+        };
+
+        let fetchedAmenities: AmenityResponse[] = [];
+        let fetchedBookings: AmenityBookingResponse[] = [];
+        let fatalError: any = null;
+
+        if (amenitiesRes.status === "fulfilled") {
+          fetchedAmenities = extractArray(amenitiesRes.value);
+        } else {
+          fatalError = amenitiesRes.reason;
+        }
+
+        if (bookingsRes.status === "fulfilled") {
+          fetchedBookings = extractArray(bookingsRes.value);
+        } else if (!fatalError) {
+          console.warn("Could not load bookings:", bookingsRes.reason);
+        }
+
+        if (fatalError && fetchedAmenities.length === 0) {
+          throw fatalError;
+        }
+
+        setAmenities(fetchedAmenities);
+        setBookings(fetchedBookings);
+        if (fetchedBookings.length > 0) {
+          setSelectedBooking(fetchedBookings[0]);
+        }
+        setError(null);
+        break;
+      } catch (err: any) {
+        attempt++;
+        if (attempt >= 2) {
+          setError(err?.detail || err?.message || "Unable to load amenities data from server.");
+        } else {
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      setError(err?.detail || err?.message || "Unable to load amenities data from server.");
-    } finally {
-      setIsLoading(false);
     }
   }, [activeSocietyId]);
 
