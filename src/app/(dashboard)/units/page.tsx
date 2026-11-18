@@ -845,11 +845,10 @@ export default function UnitsPage() {
                         <td className="py-1.5 px-2.5 text-slate-600">Floor {row.floorNumber}</td>
                         <td className="py-1.5 px-2.5">
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                              row.configuration === "3BHK"
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${row.configuration === "3BHK"
                                 ? "bg-teal-100 text-[#006a61]"
                                 : "bg-slate-100 text-slate-700"
-                            }`}
+                              }`}
                           >
                             {row.configuration}
                           </span>

@@ -359,11 +359,10 @@ export default function BuildingsPage() {
                   key={b.id}
                   type="button"
                   onClick={() => setSelectedBuildingId(b.id)}
-                  className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    selectedBuildingId === b.id
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${selectedBuildingId === b.id
                       ? "bg-white text-[#070235] shadow-sm"
                       : "text-slate-600 hover:text-slate-900"
-                  }`}
+                    }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${selectedBuildingId === b.id ? "bg-[#006a61]" : "bg-slate-400"}`}></span>
                   <span>{b.name} ({b.code})</span>
@@ -406,11 +405,10 @@ export default function BuildingsPage() {
                       return (
                         <div
                           key={u.id}
-                          className={`p-2 rounded flex flex-col cursor-pointer transition-all ${
-                            isOccupied
+                          className={`p-2 rounded flex flex-col cursor-pointer transition-all ${isOccupied
                               ? "bg-[#070235] text-white hover:opacity-90"
                               : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-bold">{u.unitNumber}</span>
