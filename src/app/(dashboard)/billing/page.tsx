@@ -68,8 +68,8 @@ export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [channelFilter, setChannelFilter] = useState("all");
 
-  const [selectedRowIds, setSelectedRowIds] = useState<string[]>(["b-2"]); // Pre-select overdue unit A-304
-  const [activeStep, setActiveStep] = useState(3); // Step 3: Verification & Preview
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const [activeStep, setActiveStep] = useState(3);
   const [selectedBill, setSelectedBill] = useState<LedgerRow | null>(null);
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [isCollectModalOpen, setIsCollectModalOpen] = useState(false);
@@ -83,6 +83,7 @@ export default function BillingPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setLedger([]);
     try {
       const data = await endpoints.billing.getBills();
       if (data && Array.isArray(data)) {
@@ -186,24 +187,8 @@ export default function BillingPage() {
       });
       await fetchLiveBills();
       alert(`Payment of ₹${collectAmount} recorded successfully on server!`);
-    } catch {
-      setLedger((prev) =>
-        prev.map((r) =>
-          r.id === selectedBill.id
-            ? {
-                ...r,
-                status: "PAID",
-                statusBadge: "PAID",
-                arrears: 0,
-                interest: 0,
-                isOverdue: false,
-                channelRef: "Manual Counter Receipt",
-                receiptNumber: `#REC-${Math.floor(100 + Math.random() * 900)}`,
-              }
-            : r
-        )
-      );
-      alert(`Payment of ₹${collectAmount} recorded for ${selectedBill.unit}!`);
+    } catch (err: any) {
+      alert(`Failed to record payment: ${err?.detail || err?.message || "Payment submission failed."}`);
     } finally {
       setIsCollectModalOpen(false);
     }

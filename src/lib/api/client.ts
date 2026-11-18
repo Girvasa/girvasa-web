@@ -265,28 +265,34 @@ function createTimeoutSignal(ms: number): AbortSignal | undefined {
           }
         } catch (fallbackErr: any) {
           console.error("API Fallback Network Error:", fallbackErr, "Target URL:", fallbackTargetUrl);
-          const devMock = getDevMockResponse<T>(endpoint, { ...options, ...customConfig });
-          if (devMock !== undefined) {
-            console.info(`[ApiClient] Both servers unreachable. Serving offline dev mock for: ${endpoint}`);
-            return devMock;
+          if (process.env.NODE_ENV === "test" || process.env.NEXT_PUBLIC_ENABLE_DEV_MOCKS === "true") {
+            const devMock = getDevMockResponse<T>(endpoint, { ...options, ...customConfig });
+            if (devMock !== undefined) {
+              console.info(`[ApiClient] Both servers unreachable. Serving offline dev mock for: ${endpoint}`);
+              return devMock;
+            }
           }
           throw new ApiError(0, "Network error: unable to reach both primary and fallback Girvasa API services.");
         }
       } else {
         console.error("API Network Error:", networkErr, "Target URL:", url);
-        const devMock = getDevMockResponse<T>(endpoint, { ...options, ...customConfig });
-        if (devMock !== undefined) {
-          console.info(`[ApiClient] Primary server unreachable. Serving offline dev mock for: ${endpoint}`);
-          return devMock;
+        if (process.env.NODE_ENV === "test" || process.env.NEXT_PUBLIC_ENABLE_DEV_MOCKS === "true") {
+          const devMock = getDevMockResponse<T>(endpoint, { ...options, ...customConfig });
+          if (devMock !== undefined) {
+            console.info(`[ApiClient] Primary server unreachable. Serving offline dev mock for: ${endpoint}`);
+            return devMock;
+          }
         }
         throw new ApiError(0, "Network error: unable to reach the Girvasa API service.");
       }
     }
 
     if (!response) {
-      const devMock = getDevMockResponse<T>(endpoint, { ...options, ...customConfig });
-      if (devMock !== undefined) {
-        return devMock;
+      if (process.env.NODE_ENV === "test" || process.env.NEXT_PUBLIC_ENABLE_DEV_MOCKS === "true") {
+        const devMock = getDevMockResponse<T>(endpoint, { ...options, ...customConfig });
+        if (devMock !== undefined) {
+          return devMock;
+        }
       }
       throw new ApiError(0, "Network error: unable to reach the Girvasa API service.");
     }

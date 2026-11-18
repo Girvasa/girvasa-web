@@ -45,6 +45,9 @@ export default function AmenitiesPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setAmenities([]);
+    setBookings([]);
+    setSelectedBooking(null);
     try {
       const [amenitiesData, bookingsData] = await Promise.all([
         endpoints.amenities.getAmenities(),

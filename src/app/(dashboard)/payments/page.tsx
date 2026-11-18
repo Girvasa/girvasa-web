@@ -100,6 +100,9 @@ export default function PaymentsPage() {
     }
     setIsLoading(true);
     setError(null);
+    setPayments([]);
+    setVouchers([]);
+    setSelectedVoucher(null);
     try {
       const data = await endpoints.payments.getPayments();
       setPayments(data || []);

@@ -56,6 +56,7 @@ export default function NoticesPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setNotices([]);
     try {
       const data = await endpoints.notices.getNotices();
       if (Array.isArray(data)) {

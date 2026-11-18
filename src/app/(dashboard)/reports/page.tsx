@@ -45,6 +45,9 @@ export default function ReportsPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setData(null);
+    setSummary(null);
+    setCategories([]);
     try {
       const [dashRes, summaryRes, catRes] = await Promise.all([
         endpoints.dashboard.getExecutiveSummary().catch(() => null),

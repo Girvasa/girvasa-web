@@ -75,6 +75,8 @@ export default function UnitsPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setUnits([]);
+    setBuildings([]);
     try {
       const [unitsData, buildingsData] = await Promise.all([
         endpoints.structure.getUnits({

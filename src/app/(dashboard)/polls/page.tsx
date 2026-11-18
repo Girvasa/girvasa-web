@@ -45,6 +45,8 @@ export default function PollsPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setPolls([]);
+    setSelectedPoll(null);
     try {
       const data = await endpoints.polls.getPolls().catch(() => []);
       const rawPolls = Array.isArray(data) ? data : [];

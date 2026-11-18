@@ -110,6 +110,9 @@ export default function StaffPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setStaff([]);
+    setGateRoster([]);
+    setSelectedStaff(null);
     try {
       const [staffData, catData] = await Promise.all([
         endpoints.staff.getStaff().catch(() => []),

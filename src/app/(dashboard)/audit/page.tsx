@@ -181,6 +181,8 @@ export default function AuditPage() {
     if (!activeSocietyId || !canAccessAudit) return;
     setIsLoading(true);
     setError(null);
+    setLogs([]);
+    setSelectedLog(null);
 
     try {
       const dateParams = getDateRangeParams();
@@ -256,6 +258,8 @@ export default function AuditPage() {
     const runFetch = async () => {
       setIsLoading(true);
       setError(null);
+      setLogs([]);
+      setSelectedLog(null);
 
       try {
         const dateParams = getDateRangeParams();

@@ -76,6 +76,8 @@ export default function VisitorsPage() {
     }
     setIsLoading(true);
     setError(null);
+    setRecords([]);
+    setSelectedVisitor(null);
     try {
       const data = await endpoints.visitors.getVisits();
       if (data && Array.isArray(data) && data.length > 0) {

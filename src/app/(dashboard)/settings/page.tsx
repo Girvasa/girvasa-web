@@ -119,12 +119,12 @@ export default function SettingsPage() {
           setChargeHeadId(res.id || res.data.id);
         }
       }
-    } catch {
-      // Local graceful fallback
-    } finally {
-      setIsSaving(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
+    } catch (err: any) {
+      alert(`Failed to save settings: ${err?.detail || err?.message || "Server update failed."}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 

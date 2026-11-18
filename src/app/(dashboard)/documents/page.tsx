@@ -141,6 +141,8 @@ export default function DocumentsPage() {
     }
     setIsLoading(true);
     setError(null);
+    setDocuments([]);
+    setSelectedDocument(null);
     try {
       const data = await endpoints.documents.getDocuments({
         search: search || undefined,
@@ -189,35 +191,29 @@ export default function DocumentsPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
-  const handleUploadSubmit = (e: React.FormEvent) => {
+  const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadTitle.trim()) {
       alert("Please enter a document title");
       return;
     }
 
-    const newDoc: VaultDocument = {
-      id: `doc-${Date.now()}`,
-      title: uploadTitle.trim().endsWith(".pdf") ? uploadTitle.trim() : `${uploadTitle.trim()}.pdf`,
-      category: uploadCategory,
-      statutoryTag: uploadStatutoryTag || "MCS Compliant",
-      format: "PDF",
-      fileSizeBytes: selectedFile ? selectedFile.size : 2.4 * 1024 * 1024,
-      uploadedByName: "Hon. Secretary",
-      createdAt: new Date().toISOString(),
-      accessScope: uploadAccess,
-      sha256Hash: Array.from(crypto.getRandomValues(new Uint8Array(32)))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join(""),
-      legalClassification: "Section 79 Statutory Vault Record",
-    };
-
-    setDocuments([newDoc, ...documents]);
-    setSelectedDocument(newDoc);
-    setIsUploadModalOpen(false);
-    setUploadTitle("");
-    setSelectedFile(null);
-    alert(`Document "${newDoc.title}" securely uploaded and hashed into Vault!`);
+    try {
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("title", uploadTitle.trim());
+        formData.append("category", uploadCategory);
+        await endpoints.documents.uploadDocument(formData);
+      }
+      await fetchDocuments();
+      setIsUploadModalOpen(false);
+      setUploadTitle("");
+      setSelectedFile(null);
+      alert(`Document "${uploadTitle.trim()}" securely uploaded to Vault!`);
+    } catch (err: any) {
+      alert(`Upload failed: ${err?.detail || err?.message || "Failed to upload document."}`);
+    }
   };
 
   const filteredDocs = documents.filter((doc) => {

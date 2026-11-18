@@ -46,6 +46,8 @@ export default function VendorsPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setVendors([]);
+    setSelectedVendor(null);
     try {
       const data = await endpoints.vendors.getVendors().catch(() => []);
       const vendorList = Array.isArray(data) ? data : [];

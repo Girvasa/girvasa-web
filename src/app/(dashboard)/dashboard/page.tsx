@@ -57,6 +57,14 @@ export default function DashboardPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setDashboardData(null);
+    setAccountingSummary(null);
+    setBills([]);
+    setVisits([]);
+    setComplaints([]);
+    setUnits([]);
+    setMembers([]);
+    setOnboardingProgress(null);
     try {
       const results = await Promise.allSettled([
         endpoints.dashboard.getExecutiveSummary(),

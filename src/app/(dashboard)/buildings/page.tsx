@@ -51,6 +51,11 @@ export default function BuildingsPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setBuildings([]);
+    setUnits([]);
+    setSelectedBuilding(null);
+    setSelectedBuildingId(null);
+    setWings([]);
     try {
       const [buildingsData, unitsData] = await Promise.all([
         endpoints.structure.getBuildings(),

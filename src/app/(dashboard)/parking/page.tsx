@@ -41,6 +41,8 @@ export default function ParkingPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setAreas([]);
+    setSlots([]);
     try {
       const [areasData, slotsData] = await Promise.all([
         endpoints.parking.getAreas().catch(() => []),

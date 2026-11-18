@@ -52,6 +52,8 @@ export default function EventsAndResolutionsPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setEvents([]);
+    setPolls([]);
     try {
       const [eventsData, pollsData] = await Promise.all([
         endpoints.events.getEvents().catch(() => []),

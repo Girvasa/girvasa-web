@@ -67,6 +67,7 @@ export default function ComplaintsPage() {
     }
     setIsLoading(true);
     setError(null);
+    setComplaints([]);
     try {
       const data = await endpoints.complaints.getComplaints();
       if (data && Array.isArray(data)) {
@@ -140,31 +141,10 @@ export default function ComplaintsPage() {
       await fetchComplaints();
       alert("New complaint logged & added to triage pipeline!");
     } catch (err: any) {
-      console.warn("Failed to create complaint on server, saving locally:", err);
-      const newEntry: EnrichedComplaint = {
-        id: `c-${Date.now()}`,
-        societyId: activeSocietyId || "soc-1",
-        ticketNumber: `TKT-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-        title: newForm.title,
-        description: newForm.description,
-        status: "SUBMITTED",
-        priority: newForm.priority,
-        categoryName: newForm.categoryName,
-        unitNumber: newForm.unitNumber,
-        reportedByUserId: "admin-1",
-        reportedByName: "Admin Helpdesk",
-        assignedToName: "Unassigned",
-        assignedVendor: "Pending Vendor Assignment",
-        slaRemaining: "4h SLA timer initiated",
-        isBreached: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setComplaints((prev) => [newEntry, ...prev]);
-      alert("New complaint logged!");
+      alert(`Failed to log complaint: ${err?.detail || err?.message || "Server rejected request."}`);
     } finally {
       setIsCreateOpen(false);
-      setNewForm({ title: "", description: "", priority: "MEDIUM", categoryName: "Plumbing", unitNumber: "A-101" });
+      setNewForm({ title: "", description: "", priority: "MEDIUM", categoryName: "General", unitNumber: "" });
     }
   };
 
