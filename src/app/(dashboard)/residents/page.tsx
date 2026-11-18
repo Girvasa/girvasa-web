@@ -134,73 +134,91 @@ export default function ResidentsPage() {
     setIsLoading(true);
     setError(null);
     setCensus([]);
-    try {
-      const data = await endpoints.members.getMembers();
-      if (data && Array.isArray(data)) {
-        const mapped: ResidentProfile[] = data.map((m) => {
-          const name = m.user?.fullName || m.fullName || "Society Resident";
-          const unitNo = m.occupancies?.[0]?.unitNumber || m.unitNumber || "Unassigned";
-          const wing = m.occupancies?.[0]?.buildingName || m.buildingName || "—";
-          const occType = (m.occupancies?.[0]?.occupancyType as any) || (m.roles?.some((r: any) => (typeof r === "string" ? r : r.code) === "TENANT") ? "TENANT" : "OWNER");
-          const isOwner = occType === "OWNER";
-          const initials = name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase() || "SR";
+    let attempt = 0;
+    while (attempt < 2) {
+      try {
+        const data = await endpoints.members.getMembers();
+        const rawList = Array.isArray(data) ? data : (data as any)?.data || [];
+        if (rawList && rawList.length > 0) {
+          const mapped: ResidentProfile[] = rawList.map((m: any) => {
+            const name = m.user?.fullName || m.fullName || "Society Resident";
+            const unitNo = m.occupancies?.[0]?.unitNumber || m.unitNumber || "Unassigned";
+            const wing = m.occupancies?.[0]?.buildingName || m.buildingName || "—";
+            const occType = (m.occupancies?.[0]?.occupancyType as any) || (m.roles?.some((r: any) => (typeof r === "string" ? r : r.code) === "TENANT") ? "TENANT" : "OWNER");
+            const isOwner = occType === "OWNER";
+            const initials = name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase() || "SR";
 
-          return {
-            id: m.id,
-            initials,
-            name,
-            unit: unitNo,
-            wing,
-            bhk: (m.occupancies?.[0] as any)?.configuration || "—",
-            sqft: (m.occupancies?.[0] as any)?.areaSqft || 0,
-            occupancyType: occType,
-            occupancyBadge: isOwner ? "Owner Residing" : "Tenant",
-            occupancySub: `Joined: ${m.joinedAt ? formatDate(m.joinedAt) : "Active Member"}`,
-            phone: m.user?.mobileNumber || m.mobileNumber || "N/A",
-            email: m.user?.email || m.email || "—",
-            iceContact: "—",
-            familyCount: 0,
-            vehiclesCount: "None",
-            vehicleDetails: "No pass registered",
-            kycStatus: m.status === "ACTIVE" ? "VERIFIED" : "PENDING",
-            kycBadge: m.status === "ACTIVE" ? "Fully Verified" : "Verification Pending",
-            shareCertNo: isOwner && m.id ? `SC-${m.id.substring(0, 5).toUpperCase()}` : undefined,
-            duesStatus: "NIL",
-            duesAmount: 0,
-            duesSub: "Nil Dues Clean",
-            allotmentDate: m.joinedAt ? formatDate(m.joinedAt) : "—",
-            votingStatus: isOwner ? "Active Member" : "Non-Voting (Tenant)",
-            agreementReg: "—",
-            electricityCa: "—",
-            nominees: isOwner ? "On File" : "N/A",
-          };
-        });
-        setCensus(mapped);
-        if (mapped.length > 0) {
+            return {
+              id: m.id,
+              initials,
+              name,
+              unit: unitNo,
+              wing,
+              bhk: (m.occupancies?.[0] as any)?.configuration || "—",
+              sqft: (m.occupancies?.[0] as any)?.areaSqft || 0,
+              occupancyType: occType,
+              occupancyBadge: isOwner ? "Owner Residing" : "Tenant",
+              occupancySub: `Joined: ${m.joinedAt ? formatDate(m.joinedAt) : "Active Member"}`,
+              phone: m.user?.mobileNumber || m.mobileNumber || "N/A",
+              email: m.user?.email || m.email || "—",
+              iceContact: "—",
+              familyCount: 0,
+              vehiclesCount: "None",
+              vehicleDetails: "No pass registered",
+              kycStatus: m.status === "ACTIVE" ? "VERIFIED" : "PENDING",
+              kycBadge: m.status === "ACTIVE" ? "Fully Verified" : "Verification Pending",
+              shareCertNo: isOwner && m.id ? `SC-${m.id.substring(0, 5).toUpperCase()}` : undefined,
+              duesStatus: "NIL",
+              duesAmount: 0,
+              duesSub: "Nil Dues Clean",
+              allotmentDate: m.joinedAt ? formatDate(m.joinedAt) : "—",
+              votingStatus: isOwner ? "Active Member" : "Non-Voting (Tenant)",
+              agreementReg: "—",
+              electricityCa: "—",
+              nominees: isOwner ? "On File" : "N/A",
+            };
+          });
+          setCensus(mapped);
           setSelectedResidentId((prev) => (mapped.some((x) => x.id === prev) ? prev : mapped[0].id));
+        } else {
+          setCensus([]);
         }
-      } else {
-        setCensus([]);
+        setError(null);
+        break;
+      } catch (err: any) {
+        attempt++;
+        if (attempt >= 2) {
+          setError(err?.detail || err?.message || "Failed to load live society members.");
+          setCensus([]);
+        } else {
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to load live society members.");
-      setCensus([]);
-    } finally {
-      setIsLoading(false);
     }
   }, [activeSocietyId]);
 
   const fetchJoinRequests = useCallback(async () => {
     if (!activeSocietyId) return;
     setIsLoadingRequests(true);
-    try {
-      const res: any = await endpoints.joinRequests.getJoinRequests({ status: "PENDING" });
-      const list = Array.isArray(res) ? res : res?.data || res?.content || [];
-      setJoinRequests(list);
-    } catch {
-      // Non-blocking
-    } finally {
-      setIsLoadingRequests(false);
+    let attempt = 0;
+    while (attempt < 2) {
+      try {
+        const res: any = await endpoints.joinRequests.getJoinRequests({ status: "PENDING" });
+        const list = Array.isArray(res) ? res : res?.data || res?.content || [];
+        setJoinRequests(list);
+        break;
+      } catch {
+        attempt++;
+        if (attempt >= 2) {
+          setJoinRequests([]);
+        } else {
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      } finally {
+        setIsLoadingRequests(false);
+      }
     }
   }, [activeSocietyId]);
 
