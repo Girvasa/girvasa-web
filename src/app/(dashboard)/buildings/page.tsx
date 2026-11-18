@@ -64,23 +64,33 @@ export default function BuildingsPage() {
       setWings([]);
     }
 
-    try {
-      const [buildingsData, unitsData] = await Promise.all([
-        endpoints.structure.getBuildings(),
-        endpoints.structure.getUnits().catch(() => []),
-      ]);
-      const bList = buildingsData || [];
-      const uList = unitsData || [];
-      setBuildings(bList);
-      setUnits(uList);
-      setSelectedBuildingId((prev) => {
-        if (prev && bList.some((b) => b.id === prev)) return prev;
-        return bList[0]?.id || null;
-      });
-    } catch (err: any) {
-      setError(err?.detail || err?.message || "Unable to load society buildings and spatial inventory.");
-    } finally {
-      setIsLoading(false);
+    let attempt = 0;
+    while (attempt < 2) {
+      try {
+        const [buildingsData, unitsData] = await Promise.all([
+          endpoints.structure.getBuildings(),
+          endpoints.structure.getUnits().catch(() => []),
+        ]);
+        const bList = buildingsData || [];
+        const uList = unitsData || [];
+        setBuildings(bList);
+        setUnits(uList);
+        setSelectedBuildingId((prev) => {
+          if (prev && bList.some((b) => b.id === prev)) return prev;
+          return bList[0]?.id || null;
+        });
+        setError(null);
+        break;
+      } catch (err: any) {
+        attempt++;
+        if (attempt >= 2) {
+          setError(err?.detail || err?.message || "Unable to load society buildings and spatial inventory.");
+        } else {
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
   }, [activeSocietyId]);
 

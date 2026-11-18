@@ -95,30 +95,40 @@ export default function UnitsPage() {
       setSearch("");
     }
 
-    try {
-      const [unitsData, buildingsData] = await Promise.all([
-        endpoints.structure.getUnits({
-          buildingId: selectedBuildingId || undefined,
-          status: (selectedStatus === "ACTIVE" || selectedStatus === "INACTIVE") ? selectedStatus : undefined,
-          search: search || undefined,
-        }),
-        endpoints.structure.getBuildings(),
-      ]);
-      const rawUnits = unitsData || [];
-      const filteredUnits = selectedStatus && selectedStatus !== "ACTIVE" && selectedStatus !== "INACTIVE"
-        ? rawUnits.filter((u) => u.status === selectedStatus)
-        : rawUnits;
-      setUnits(filteredUnits);
-      const bList = buildingsData || [];
-      setBuildings(bList);
-      if (bList.length > 0) {
-        setNewUnitData((prev) => (prev.buildingId ? prev : { ...prev, buildingId: bList[0].id }));
-        setImportBuildingId((prev) => (prev ? prev : bList[0].id));
+    let attempt = 0;
+    while (attempt < 2) {
+      try {
+        const [unitsData, buildingsData] = await Promise.all([
+          endpoints.structure.getUnits({
+            buildingId: selectedBuildingId || undefined,
+            status: (selectedStatus === "ACTIVE" || selectedStatus === "INACTIVE") ? selectedStatus : undefined,
+            search: search || undefined,
+          }),
+          endpoints.structure.getBuildings(),
+        ]);
+        const rawUnits = unitsData || [];
+        const filteredUnits = selectedStatus && selectedStatus !== "ACTIVE" && selectedStatus !== "INACTIVE"
+          ? rawUnits.filter((u) => u.status === selectedStatus)
+          : rawUnits;
+        setUnits(filteredUnits);
+        const bList = buildingsData || [];
+        setBuildings(bList);
+        if (bList.length > 0) {
+          setNewUnitData((prev) => (prev.buildingId ? prev : { ...prev, buildingId: bList[0].id }));
+          setImportBuildingId((prev) => (prev ? prev : bList[0].id));
+        }
+        setError(null);
+        break;
+      } catch (err: any) {
+        attempt++;
+        if (attempt >= 2) {
+          setError(err?.detail || err?.message || "Unable to load society units.");
+        } else {
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      setError(err?.detail || err?.message || "Unable to load society units.");
-    } finally {
-      setIsLoading(false);
     }
   }, [activeSocietyId, selectedBuildingId, selectedStatus, search]);
 
