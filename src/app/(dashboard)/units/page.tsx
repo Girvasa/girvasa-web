@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -34,6 +34,8 @@ export default function UnitsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const prevSocietyIdRef = useRef<string | null>(null);
+
   const [search, setSearch] = useState("");
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
@@ -61,48 +63,64 @@ export default function UnitsPage() {
   const [bulkImportError, setBulkImportError] = useState<string | null>(null);
   const [bulkImportSuccess, setBulkImportSuccess] = useState<string | null>(null);
 
-  // Form state for creating unit
-  const [newUnitData, setNewUnitData] = useState({
+  // Form state for creating unit - sqft starts empty until admin completes assessment
+  const [newUnitData, setNewUnitData] = useState<{
+    buildingId: string;
+    unitNumber: string;
+    floorNumber: number;
+    unitType: string;
+    configuration: string;
+    areaSqft: number | "";
+  }>({
     buildingId: "",
     unitNumber: "",
     floorNumber: 1,
     unitType: "RESIDENTIAL",
     configuration: "2BHK",
-    areaSqft: 950,
+    areaSqft: "",
   });
 
   const fetchUnits = useCallback(async () => {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
-    setUnits([]);
-    setBuildings([]);
+
+    // Only wipe data on true society tenant switch to prevent UI flickering on filter changes
+    if (prevSocietyIdRef.current !== activeSocietyId) {
+      prevSocietyIdRef.current = activeSocietyId;
+      setUnits([]);
+      setBuildings([]);
+      setSelectedBuildingId("");
+      setSelectedStatus("");
+      setSearch("");
+    }
+
     try {
       const [unitsData, buildingsData] = await Promise.all([
         endpoints.structure.getUnits({
           buildingId: selectedBuildingId || undefined,
-          status: selectedStatus || undefined,
+          status: (selectedStatus === "ACTIVE" || selectedStatus === "INACTIVE") ? selectedStatus : undefined,
           search: search || undefined,
         }),
         endpoints.structure.getBuildings(),
       ]);
-      setUnits(unitsData || []);
+      const rawUnits = unitsData || [];
+      const filteredUnits = selectedStatus && selectedStatus !== "ACTIVE" && selectedStatus !== "INACTIVE"
+        ? rawUnits.filter((u) => u.status === selectedStatus)
+        : rawUnits;
+      setUnits(filteredUnits);
       const bList = buildingsData || [];
       setBuildings(bList);
       if (bList.length > 0) {
-        if (!newUnitData.buildingId) {
-          setNewUnitData((prev) => ({ ...prev, buildingId: bList[0].id }));
-        }
-        if (!importBuildingId) {
-          setImportBuildingId(bList[0].id);
-        }
+        setNewUnitData((prev) => (prev.buildingId ? prev : { ...prev, buildingId: bList[0].id }));
+        setImportBuildingId((prev) => (prev ? prev : bList[0].id));
       }
     } catch (err: any) {
-      setError(err?.detail || "Unable to load society units.");
+      setError(err?.detail || err?.message || "Unable to load society units.");
     } finally {
       setIsLoading(false);
     }
-  }, [activeSocietyId, selectedBuildingId, selectedStatus, search, newUnitData.buildingId, importBuildingId]);
+  }, [activeSocietyId, selectedBuildingId, selectedStatus, search]);
 
   useEffect(() => {
     fetchUnits();
@@ -295,7 +313,7 @@ export default function UnitsPage() {
         floorNumber: Number(newUnitData.floorNumber),
         unitType: newUnitData.unitType,
         configuration: newUnitData.configuration,
-        areaSqft: Number(newUnitData.areaSqft),
+        areaSqft: newUnitData.areaSqft !== "" && Number(newUnitData.areaSqft) > 0 ? Number(newUnitData.areaSqft) : undefined,
       });
       setIsAddUnitModalOpen(false);
       setNewUnitData({
@@ -304,7 +322,7 @@ export default function UnitsPage() {
         floorNumber: 1,
         unitType: "RESIDENTIAL",
         configuration: "2BHK",
-        areaSqft: 950,
+        areaSqft: "",
       });
       fetchUnits();
     } catch (err: any) {
@@ -360,13 +378,18 @@ export default function UnitsPage() {
     },
     {
       header: "Assessable Area",
-      accessor: (u) => (
-        <div className="flex flex-col">
-          <span className="text-xs font-bold text-slate-900">
-            {(u.areaSqft ?? u.squareFeet) ? `${u.areaSqft ?? u.squareFeet} sq.ft` : "—"}
-          </span>
-        </div>
-      ),
+      accessor: (u) => {
+        const area = u.areaSqft ?? u.squareFeet;
+        return (
+          <div className="flex flex-col">
+            {area && Number(area) > 0 ? (
+              <span className="text-xs font-bold text-slate-900">{area} sq.ft</span>
+            ) : (
+              <span className="text-xs font-medium text-amber-600">Pending assessment</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: "Status",
@@ -481,8 +504,10 @@ export default function UnitsPage() {
             <Select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              placeholder="All Occupancy Statuses"
+              placeholder="All Statuses"
               options={[
+                { label: "Active", value: "ACTIVE" },
+                { label: "Inactive", value: "INACTIVE" },
                 { label: "Occupied", value: "OCCUPIED" },
                 { label: "Vacant", value: "VACANT" },
                 { label: "Under Maintenance", value: "UNDER_MAINTENANCE" },
@@ -618,10 +643,14 @@ export default function UnitsPage() {
               <label className="block text-xs font-semibold text-slate-700 mb-1">Built-Up Area (sq.ft)</label>
               <input
                 type="number"
-                required
                 value={newUnitData.areaSqft}
-                onChange={(e) => setNewUnitData({ ...newUnitData, areaSqft: Number(e.target.value) })}
-                placeholder="e.g. 950"
+                onChange={(e) =>
+                  setNewUnitData({
+                    ...newUnitData,
+                    areaSqft: e.target.value === "" ? "" : Number(e.target.value),
+                  })
+                }
+                placeholder="e.g. 950 (Sq. ft. assessed by society)"
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#070235]"
               />
             </div>
