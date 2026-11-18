@@ -72,6 +72,7 @@ const navGroups: NavGroup[] = [
       { name: "Documents", href: "/documents", icon: FileText, moduleKey: "documents" },
       { name: "Staff", href: "/staff", icon: UserCog, moduleKey: "staff" },
       { name: "Vendors", href: "/vendors", icon: Briefcase, moduleKey: "vendors" },
+      { name: "Audit Trail", href: "/audit", icon: ShieldCheck, moduleKey: "audit" },
       { name: "Society Settings", href: "/settings", icon: Settings, moduleKey: "settings" },
     ],
   },
@@ -80,7 +81,6 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Super Admin Console", href: "/platform/admin", icon: ShieldAlert, moduleKey: "platform_admin" },
       { name: "Platform Watch", href: "/platform/watch", icon: Activity, moduleKey: "platform_watch" },
-      { name: "Audit Trail", href: "/audit", icon: ShieldCheck, moduleKey: "audit" },
     ],
   },
 ];
