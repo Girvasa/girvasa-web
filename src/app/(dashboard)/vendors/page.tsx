@@ -42,51 +42,25 @@ export default function VendorsPage() {
   const [contractStatus, setContractStatus] = useState("ACTIVE");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const FALLBACK_VENDORS: VendorResponse[] = [
-    {
-      id: "ven-demo-1",
-      societyId: activeSocietyId || "soc-1",
-      businessName: "Otis Elevator Co. India Ltd",
-      contactPerson: "Kishore Bhatt",
-      phone: "+91 98200 44556",
-      category: "ELEVATOR_AMC",
-      contractStatus: "ACTIVE",
-    },
-    {
-      id: "ven-demo-2",
-      societyId: activeSocietyId || "soc-1",
-      businessName: "Kirloskar Power Systems Ltd",
-      contactPerson: "Sanjay Patil",
-      phone: "+91 98201 66778",
-      category: "DIESEL_GENERATOR",
-      contractStatus: "ACTIVE",
-    },
-    {
-      id: "ven-demo-3",
-      societyId: activeSocietyId || "soc-1",
-      businessName: "AquaPure Water Solutions LLP",
-      contactPerson: "Rohan Sawant",
-      phone: "+91 98202 88990",
-      category: "STP_PLANT",
-      contractStatus: "ACTIVE",
-    },
-  ];
-
   const fetchVendorsData = useCallback(async () => {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setVendors([]);
+    setSelectedVendor(null);
     try {
       const data = await endpoints.vendors.getVendors().catch(() => []);
-      const vendorList = Array.isArray(data) && data.length > 0 ? data : FALLBACK_VENDORS;
+      const vendorList = Array.isArray(data) ? data : [];
       setVendors(vendorList);
-      if (vendorList.length > 0 && !selectedVendor) {
+      if (vendorList.length > 0) {
         setSelectedVendor(vendorList[0]);
+      } else {
+        setSelectedVendor(null);
       }
     } catch (err: any) {
       console.error("Failed to load vendors:", err);
-      setVendors(FALLBACK_VENDORS);
-      if (!selectedVendor) setSelectedVendor(FALLBACK_VENDORS[0]);
+      setVendors([]);
+      setSelectedVendor(null);
     } finally {
       setIsLoading(false);
     }

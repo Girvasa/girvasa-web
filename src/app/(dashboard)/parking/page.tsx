@@ -37,43 +37,12 @@ export default function ParkingPage() {
   const [isSyncingBarrier, setIsSyncingBarrier] = useState(false);
   const [barrierSyncedCount, setBarrierSyncedCount] = useState<number | null>(null);
 
-  const FALLBACK_PARKING_SLOTS: ParkingSlotResponse[] = [
-    {
-      id: "slot-demo-1",
-      parkingAreaId: "area-1",
-      parkingAreaName: "Basement 1 (Covered)",
-      slotNumber: "B1-P01",
-      slotType: "4-Wheeler",
-      unitId: "u-101",
-      unitNumber: "A-101",
-      isOccupied: true,
-    },
-    {
-      id: "slot-demo-2",
-      parkingAreaId: "area-1",
-      parkingAreaName: "Basement 1 (Covered)",
-      slotNumber: "B1-P02",
-      slotType: "4-Wheeler (EV Station)",
-      unitId: "u-102",
-      unitNumber: "A-102",
-      isOccupied: true,
-    },
-    {
-      id: "slot-demo-3",
-      parkingAreaId: "area-2",
-      parkingAreaName: "Podium Level 1",
-      slotNumber: "POD-05",
-      slotType: "2-Wheeler",
-      unitId: undefined,
-      unitNumber: undefined,
-      isOccupied: false,
-    },
-  ];
-
   const fetchData = useCallback(async () => {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setAreas([]);
+    setSlots([]);
     try {
       const [areasData, slotsData] = await Promise.all([
         endpoints.parking.getAreas().catch(() => []),
@@ -87,10 +56,10 @@ export default function ParkingPage() {
       const rawAreas = extractArray(areasData);
       const rawSlots = extractArray(slotsData);
       setAreas(rawAreas);
-      setSlots(rawSlots.length > 0 ? rawSlots : FALLBACK_PARKING_SLOTS);
+      setSlots(rawSlots);
     } catch (err: any) {
       console.error("Failed to load parking:", err);
-      setSlots(FALLBACK_PARKING_SLOTS);
+      setSlots([]);
     } finally {
       setIsLoading(false);
     }

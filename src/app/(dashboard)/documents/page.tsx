@@ -134,48 +134,6 @@ export default function DocumentsPage() {
   const [uploadAccess, setUploadAccess] = useState<"COMMITTEE_2FA" | "PUBLIC_SOCIETY" | "RESTRICTED">("COMMITTEE_2FA");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const FALLBACK_DOCUMENTS: VaultDocument[] = [
-    {
-      id: "doc-demo-1",
-      title: "MCS Act 1960 — Form I & J Statutory Member Register.pdf",
-      category: "STATUTORY",
-      statutoryTag: "MCS Form I & J",
-      format: "PDF",
-      fileSizeBytes: 2450000,
-      uploadedByName: "Hon. Secretary",
-      createdAt: "2026-03-31T10:00:00Z",
-      accessScope: "COMMITTEE_2FA",
-      sha256Hash: "8f3b92c694a107ef4e5c83d6a132bf527dc9860b7762a4d32a0cf17de84be410",
-      legalClassification: "Section 79 Statutory Vault Record",
-    },
-    {
-      id: "doc-demo-2",
-      title: "Annual General Body Meeting (AGM 2025) Approved Minutes.pdf",
-      category: "MINUTES",
-      statutoryTag: "AGM Res. #14",
-      format: "PDF",
-      fileSizeBytes: 1820000,
-      uploadedByName: "Managing Committee",
-      createdAt: "2025-09-28T14:30:00Z",
-      accessScope: "PUBLIC_SOCIETY",
-      sha256Hash: "d41d8cd98f00b204e9800998ecf8427e9401b9f7a554a99d4539ef8f0b7c7b01",
-      legalClassification: "General Body Resolution Archive",
-    },
-    {
-      id: "doc-demo-3",
-      title: "CIDCO & Municipal Sanctioned Layout Blueprints.pdf",
-      category: "BLUEPRINTS",
-      statutoryTag: "CIDCO Approved",
-      format: "PDF",
-      fileSizeBytes: 8900000,
-      uploadedByName: "Society Architect",
-      createdAt: "2024-01-15T09:15:00Z",
-      accessScope: "RESTRICTED",
-      sha256Hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      legalClassification: "Architectural Structural Blueprints",
-    },
-  ];
-
   const fetchDocuments = useCallback(async () => {
     if (!activeSocietyId) {
       setIsLoading(false);
@@ -183,6 +141,8 @@ export default function DocumentsPage() {
     }
     setIsLoading(true);
     setError(null);
+    setDocuments([]);
+    setSelectedDocument(null);
     try {
       const data = await endpoints.documents.getDocuments({
         search: search || undefined,
@@ -207,13 +167,13 @@ export default function DocumentsPage() {
         setDocuments(mapped);
         setSelectedDocument(mapped.length > 0 ? mapped[0] : null);
       } else {
-        setDocuments(FALLBACK_DOCUMENTS);
-        setSelectedDocument(FALLBACK_DOCUMENTS[0]);
+        setDocuments([]);
+        setSelectedDocument(null);
       }
     } catch (err: any) {
       console.error("Failed to fetch documents:", err);
-      setDocuments(FALLBACK_DOCUMENTS);
-      setSelectedDocument(FALLBACK_DOCUMENTS[0]);
+      setDocuments([]);
+      setSelectedDocument(null);
     } finally {
       setIsLoading(false);
     }
@@ -231,35 +191,29 @@ export default function DocumentsPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
-  const handleUploadSubmit = (e: React.FormEvent) => {
+  const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadTitle.trim()) {
       alert("Please enter a document title");
       return;
     }
 
-    const newDoc: VaultDocument = {
-      id: `doc-${Date.now()}`,
-      title: uploadTitle.trim().endsWith(".pdf") ? uploadTitle.trim() : `${uploadTitle.trim()}.pdf`,
-      category: uploadCategory,
-      statutoryTag: uploadStatutoryTag || "MCS Compliant",
-      format: "PDF",
-      fileSizeBytes: selectedFile ? selectedFile.size : 2.4 * 1024 * 1024,
-      uploadedByName: "Hon. Secretary",
-      createdAt: new Date().toISOString(),
-      accessScope: uploadAccess,
-      sha256Hash: Array.from(crypto.getRandomValues(new Uint8Array(32)))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join(""),
-      legalClassification: "Section 79 Statutory Vault Record",
-    };
-
-    setDocuments([newDoc, ...documents]);
-    setSelectedDocument(newDoc);
-    setIsUploadModalOpen(false);
-    setUploadTitle("");
-    setSelectedFile(null);
-    alert(`Document "${newDoc.title}" securely uploaded and hashed into Vault!`);
+    try {
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("title", uploadTitle.trim());
+        formData.append("category", uploadCategory);
+        await endpoints.documents.uploadDocument(formData);
+      }
+      await fetchDocuments();
+      setIsUploadModalOpen(false);
+      setUploadTitle("");
+      setSelectedFile(null);
+      alert(`Document "${uploadTitle.trim()}" securely uploaded to Vault!`);
+    } catch (err: any) {
+      alert(`Upload failed: ${err?.detail || err?.message || "Failed to upload document."}`);
+    }
   };
 
   const filteredDocs = documents.filter((doc) => {

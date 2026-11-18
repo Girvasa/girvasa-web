@@ -68,8 +68,8 @@ export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [channelFilter, setChannelFilter] = useState("all");
 
-  const [selectedRowIds, setSelectedRowIds] = useState<string[]>(["b-2"]); // Pre-select overdue unit A-304
-  const [activeStep, setActiveStep] = useState(3); // Step 3: Verification & Preview
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const [activeStep, setActiveStep] = useState(3);
   const [selectedBill, setSelectedBill] = useState<LedgerRow | null>(null);
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [isCollectModalOpen, setIsCollectModalOpen] = useState(false);
@@ -83,6 +83,7 @@ export default function BillingPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setLedger([]);
     try {
       const data = await endpoints.billing.getBills();
       if (data && Array.isArray(data)) {
@@ -115,51 +116,7 @@ export default function BillingPage() {
             isOverdue,
           };
         });
-        if (mapped.length > 0) {
-          setLedger(mapped);
-        } else {
-          setLedger([
-            {
-              id: "b-1",
-              unit: "A-101",
-              member: "Aarav Sharma",
-              occupancy: "Tower A - Gulmohar • Allotted",
-              maint: 3500,
-              sinking: 750,
-              repair: 750,
-              parking: 350,
-              noc: 0,
-              arrears: 0,
-              netPayable: 5350,
-              dueDate: "15 Nov 2026",
-              payDateSubtitle: "Paid & Reconciled",
-              status: "PAID",
-              statusBadge: "PAID",
-              channelRef: "BILL-2026-001",
-              receiptNumber: "#REC-001",
-            },
-            {
-              id: "b-2",
-              unit: "A-304",
-              member: "Rajesh Singhania",
-              occupancy: "Tower A - Gulmohar • Allotted",
-              maint: 4200,
-              sinking: 900,
-              repair: 900,
-              parking: 350,
-              noc: 0,
-              arrears: 12500,
-              interest: 375,
-              netPayable: 18925,
-              dueDate: "15 Nov 2026",
-              payDateSubtitle: "Overdue Cutoff",
-              status: "OVERDUE",
-              statusBadge: "OVERDUE",
-              channelRef: "BILL-2026-042",
-              isOverdue: true,
-            },
-          ]);
-        }
+        setLedger(mapped);
       } else {
         setLedger([]);
       }
@@ -230,24 +187,8 @@ export default function BillingPage() {
       });
       await fetchLiveBills();
       alert(`Payment of ₹${collectAmount} recorded successfully on server!`);
-    } catch {
-      setLedger((prev) =>
-        prev.map((r) =>
-          r.id === selectedBill.id
-            ? {
-                ...r,
-                status: "PAID",
-                statusBadge: "PAID",
-                arrears: 0,
-                interest: 0,
-                isOverdue: false,
-                channelRef: "Manual Counter Receipt",
-                receiptNumber: `#REC-${Math.floor(100 + Math.random() * 900)}`,
-              }
-            : r
-        )
-      );
-      alert(`Payment of ₹${collectAmount} recorded for ${selectedBill.unit}!`);
+    } catch (err: any) {
+      alert(`Failed to record payment: ${err?.detail || err?.message || "Payment submission failed."}`);
     } finally {
       setIsCollectModalOpen(false);
     }

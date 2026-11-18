@@ -76,57 +76,7 @@ export default function StaffPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Live Gate Roster State
-  const [gateRoster, setGateRoster] = useState<GateRosterItem[]>([
-    {
-      gateId: "GATE-01",
-      gateName: "Main Gate 01 (Ingress / Egress)",
-      guardName: "Rajesh Sharma",
-      staffId: "#SEC-101",
-      shift: "Day Shift (07:00 - 19:00)",
-      status: "ON_DUTY",
-      activeDuration: "05:40:12",
-      breakDuration: "0m / 45m limit",
-      clearedIngress: 24,
-      handoverDone: true,
-      notes: "Visitor boom barrier operational; Intercom line active.",
-      isVerified: true,
-    },
-    {
-      gateId: "GATE-02",
-      gateName: "Service Gate 02 (Delivery & Commercial)",
-      guardName: "Ram Singh",
-      staffId: "#SEC-102",
-      shift: "Day Shift (07:00 - 19:00)",
-      status: "ON_DUTY",
-      activeDuration: "05:42:19",
-      breakDuration: "14m / 45m limit",
-      clearedIngress: 18,
-      handoverDone: true,
-      notes: "Service vendor logs verified; Delivery OTP bypass active.",
-      isVerified: true,
-      leaveType: "Casual Leave",
-      telemetry: {
-        latitude: 18.521850,
-        longitude: 73.857920,
-        distanceMeters: 142,
-        speedKmh: 4.8,
-      },
-    },
-    {
-      gateId: "GATE-03",
-      gateName: "Clubhouse & Rear Emergency Gate",
-      guardName: "Suresh Patil",
-      staffId: "#SEC-103",
-      shift: "Night Shift (19:00 - 07:00)",
-      status: "OFF_DUTY",
-      activeDuration: "00:00:00",
-      breakDuration: "0m",
-      clearedIngress: 0,
-      handoverDone: false,
-      notes: "Shift handover scheduled at 19:00 PM; Perimeter locked.",
-      isVerified: false,
-    },
-  ]);
+  const [gateRoster, setGateRoster] = useState<GateRosterItem[]>([]);
 
   // Regularize Modal State
   const [isRegularizeModalOpen, setIsRegularizeModalOpen] = useState(false);
@@ -140,103 +90,46 @@ export default function StaffPage() {
   const [isPostingPayroll, setIsPostingPayroll] = useState(false);
   const [payrollPostedSuccess, setPayrollPostedSuccess] = useState(false);
 
-  const [payrollRecords] = useState([
-    {
-      staffId: "SEC-101",
-      name: "Rajesh Sharma",
-      agency: "SIS Security Services Ltd.",
-      assignedGate: "Gate 1 (Main Ingress)",
-      scheduledShifts: 28,
-      deliveredShifts: 28,
-      activeHours: 224.0,
-      overtimeHours: 12.0,
-      breakDeductions: 0.0,
-      basePay: 18000,
-      overtimePay: 2300,
-      netPayable: 20300,
-      status: "VERIFIED" as const,
-    },
-    {
-      staffId: "SEC-102",
-      name: "Ram Singh",
-      agency: "SIS Security Services Ltd.",
-      assignedGate: "Gate 2 (Service Gate)",
-      scheduledShifts: 28,
-      deliveredShifts: 26,
-      activeHours: 208.5,
-      overtimeHours: 16.0,
-      breakDeductions: 0.0,
-      basePay: 18000,
-      overtimePay: 2700,
-      netPayable: 20700,
-      status: "VERIFIED" as const,
-    },
-    {
-      staffId: "SEC-103",
-      name: "Suresh Patil",
-      agency: "SIS Security Services Ltd.",
-      assignedGate: "Clubhouse / Rear Gate",
-      scheduledShifts: 28,
-      deliveredShifts: 24,
-      activeHours: 192.0,
-      overtimeHours: 4.0,
-      breakDeductions: 0.0,
-      basePay: 18000,
-      overtimePay: 1900,
-      netPayable: 19900,
-      status: "VERIFIED" as const,
-    },
-  ]);
-
-  const FALLBACK_STAFF: StaffResponse[] = [
-    {
-      id: "st-demo-1",
-      societyId: activeSocietyId || "soc-1",
-      fullName: "Ramesh Pawar",
-      phone: "+91 98201 12345",
-      category: "Security Guard",
-      isActive: true,
-      assignedArea: "Main Gate 1 & Perimeter",
-    },
-    {
-      id: "st-demo-2",
-      societyId: activeSocietyId || "soc-1",
-      fullName: "Mahesh Jadhav",
-      phone: "+91 98202 23456",
-      category: "Electrician",
-      isActive: true,
-      assignedArea: "Tower A & DG Backup",
-    },
-    {
-      id: "st-demo-3",
-      societyId: activeSocietyId || "soc-1",
-      fullName: "Sunita Kamble",
-      phone: "+91 98203 34567",
-      category: "Housekeeping",
-      isActive: true,
-      assignedArea: "Clubhouse & Lobby",
-    },
-  ];
+  const [payrollRecords] = useState<{
+    staffId: string;
+    name: string;
+    agency: string;
+    assignedGate: string;
+    scheduledShifts: number;
+    deliveredShifts: number;
+    activeHours: number;
+    overtimeHours: number;
+    breakDeductions: number;
+    basePay: number;
+    overtimePay: number;
+    netPayable: number;
+    status: "VERIFIED" | "PENDING";
+  }[]>([]);
 
   const fetchStaffData = useCallback(async () => {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setStaff([]);
+    setGateRoster([]);
+    setSelectedStaff(null);
     try {
       const [staffData, catData] = await Promise.all([
         endpoints.staff.getStaff().catch(() => []),
         endpoints.staff.getCategories().catch(() => []),
       ]);
-      const rawList = Array.isArray(staffData) && staffData.length > 0 ? staffData : FALLBACK_STAFF;
+      const rawList = Array.isArray(staffData) ? staffData : [];
       setStaff(rawList);
       setCategories(Array.isArray(catData) ? catData : []);
-      if (rawList.length > 0 && !selectedStaff) {
+      if (rawList.length > 0) {
         setSelectedStaff(rawList[0]);
+      } else {
+        setSelectedStaff(null);
       }
     } catch (err: any) {
       console.error("Failed to load staff:", err);
-      setStaff(FALLBACK_STAFF);
-      if (!selectedStaff) setSelectedStaff(FALLBACK_STAFF[0]);
+      setStaff([]);
+      setSelectedStaff(null);
     } finally {
       setIsLoading(false);
     }
@@ -754,7 +647,8 @@ export default function StaffPage() {
                     Active Gates Covered
                   </span>
                   <div className="text-2xl text-[#006a61] font-bold mt-1 tracking-tight">
-                    2 / 2 <span className="text-xs text-slate-400 font-normal">Gates Online</span>
+                    {gateRoster.filter((g) => g.status === "ON_DUTY").length} / {gateRoster.length}{" "}
+                    <span className="text-xs text-slate-400 font-normal">Gates Online</span>
                   </div>
                 </div>
                 <div className="w-9 h-9 rounded-lg bg-teal-50 flex items-center justify-center text-[#006a61]">
@@ -762,7 +656,7 @@ export default function StaffPage() {
                 </div>
               </div>
               <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
-                <span>100% Shift Coverage Maintained</span>
+                <span>{gateRoster.length > 0 ? "Shift Coverage Maintained" : "No Active Shift Roster"}</span>
               </div>
             </div>
 
@@ -774,7 +668,8 @@ export default function StaffPage() {
                     Ingress Cleared Today
                   </span>
                   <div className="text-2xl text-[#070235] font-bold mt-1 tracking-tight">
-                    42 <span className="text-xs text-slate-400 font-normal">Entries Approved</span>
+                    {gateRoster.reduce((sum, g) => sum + (g.clearedIngress || 0), 0)}{" "}
+                    <span className="text-xs text-slate-400 font-normal">Entries Approved</span>
                   </div>
                 </div>
                 <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center text-[#070235]">
@@ -794,7 +689,8 @@ export default function StaffPage() {
                     Break Compliance
                   </span>
                   <div className="text-2xl text-amber-600 font-bold mt-1 tracking-tight">
-                    0 <span className="text-xs text-slate-400 font-normal">Overstay Violations</span>
+                    {gateRoster.filter((g) => g.status === "BUNKING_DETECTED").length}{" "}
+                    <span className="text-xs text-slate-400 font-normal">Overstay Violations</span>
                   </div>
                 </div>
                 <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
@@ -814,7 +710,7 @@ export default function StaffPage() {
                     Security Agency
                   </span>
                   <div className="text-sm font-bold text-[#070235] mt-1.5 truncate">
-                    SIS Security Services Ltd.
+                    {gateRoster.length > 0 ? "Contract Security Agency" : "No Agency Contract Assigned"}
                   </div>
                 </div>
                 <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-[#070235]">
@@ -822,14 +718,21 @@ export default function StaffPage() {
                 </div>
               </div>
               <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
-                <span>Monthly Contract #SEC-2024</span>
+                <span>{gateRoster.length > 0 ? "Monthly Contract Active" : "Unassigned"}</span>
               </div>
             </div>
           </div>
 
           {/* Live Gate Operations Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {gateRoster.map((gate) => {
+            {gateRoster.length === 0 ? (
+              <div className="col-span-full py-12 text-center bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center">
+                <ShieldCheck className="w-8 h-8 text-slate-300 mb-2" />
+                <span className="text-sm font-semibold text-slate-700">No Security Gates Configured</span>
+                <span className="text-xs text-slate-400 mt-0.5">Enrolled security personnel and assigned gate shifts will appear here.</span>
+              </div>
+            ) : (
+              gateRoster.map((gate) => {
               const isOnDuty = gate.status === "ON_DUTY";
               const isOnBreak = gate.status === "ON_BREAK";
               const isBunking = gate.status === "BUNKING_DETECTED";
@@ -1030,7 +933,7 @@ export default function StaffPage() {
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
       )}
@@ -1067,162 +970,187 @@ export default function StaffPage() {
           </div>
 
           {/* Financial KPI Bento */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-[#070235]"></div>
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                  Total Contracted Shifts
-                </span>
-                <div className="text-2xl text-[#070235] font-bold mt-1 tracking-tight">
-                  84 <span className="text-xs text-slate-400 font-normal">Shifts Scheduled</span>
+          {(() => {
+            const totalContractedShifts = payrollRecords.reduce((sum, p) => sum + p.scheduledShifts, 0);
+            const totalDeliveredShifts = payrollRecords.reduce((sum, p) => sum + p.deliveredShifts, 0);
+            const totalActiveHours = payrollRecords.reduce((sum, p) => sum + p.activeHours, 0);
+            const totalOtHours = payrollRecords.reduce((sum, p) => sum + p.overtimeHours, 0);
+            const totalBaseWage = payrollRecords.reduce((sum, p) => sum + p.basePay, 0);
+            const totalOtPay = payrollRecords.reduce((sum, p) => sum + p.overtimePay, 0);
+            const totalPayoutDue = payrollRecords.reduce((sum, p) => sum + p.netPayable, 0);
+            const fulfillmentPct = totalContractedShifts > 0 ? ((totalDeliveredShifts / totalContractedShifts) * 100).toFixed(1) : "0.0";
+
+            return (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-[#070235]"></div>
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                        Total Contracted Shifts
+                      </span>
+                      <div className="text-2xl text-[#070235] font-bold mt-1 tracking-tight">
+                        {totalContractedShifts} <span className="text-xs text-slate-400 font-normal">Shifts Scheduled</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
+                      <span>{payrollRecords.length} Guard Posts Configured</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-[#006a61]"></div>
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                        Delivered Shifts (SLA)
+                      </span>
+                      <div className="text-2xl text-[#006a61] font-bold mt-1 tracking-tight">
+                        {totalDeliveredShifts} <span className="text-xs text-slate-400 font-normal">({fulfillmentPct}% Fulfillment)</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
+                      <span>Verified by Gate Biometrics &amp; App</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-400"></div>
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                        Total Active Hours
+                      </span>
+                      <div className="text-2xl text-[#070235] font-bold mt-1 tracking-tight">
+                        {totalActiveHours.toFixed(1)} <span className="text-xs text-slate-400 font-normal">hrs (+{totalOtHours.toFixed(1)} OT)</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
+                      <span>Stopwatch Validated Shift Logs</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500"></div>
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                        Net Agency Payout Due
+                      </span>
+                      <div className="text-2xl text-emerald-700 font-bold mt-1 tracking-tight">
+                        ₹{totalPayoutDue.toLocaleString("en-IN")}
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
+                      <span>Account Head: 4101-SEC</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
-                <span>3 Posts &times; 28 Calendar Days</span>
-              </div>
-            </div>
 
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-[#006a61]"></div>
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                  Delivered Shifts (SLA)
-                </span>
-                <div className="text-2xl text-[#006a61] font-bold mt-1 tracking-tight">
-                  78 <span className="text-xs text-slate-400 font-normal">(92.8% Fulfillment)</span>
+                {/* Detailed Timesheet Table */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[#070235]" />
+                      <h4 className="font-bold text-[#070235] text-sm">Security Guard Attendance &amp; Wage Allocation</h4>
+                    </div>
+                    <span className="text-xs text-slate-500 font-mono">Ledger Code: 4101-SEC</span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold border-b border-slate-100">
+                        <tr>
+                          <th className="px-4 py-3">Guard Name &amp; ID</th>
+                          <th className="px-4 py-3">Assigned Gate</th>
+                          <th className="px-4 py-3 text-center">Shifts (Delivered / Sched.)</th>
+                          <th className="px-4 py-3 text-right">Active Hours</th>
+                          <th className="px-4 py-3 text-right">OT Hours</th>
+                          <th className="px-4 py-3 text-right">Base Wage</th>
+                          <th className="px-4 py-3 text-right">OT Pay</th>
+                          <th className="px-4 py-3 text-right">Net Payable</th>
+                          <th className="px-4 py-3 text-center">Verification Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {payrollRecords.length === 0 ? (
+                          <tr>
+                            <td colSpan={9} className="py-12 text-center text-slate-400 text-xs">
+                              No payroll records or attendance timesheets recorded for this billing cycle.
+                            </td>
+                          </tr>
+                        ) : (
+                          payrollRecords.map((r) => (
+                            <tr key={r.staffId} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="font-bold text-[#070235]">{r.name}</div>
+                                <div className="text-[11px] text-slate-400 font-mono">#{r.staffId} • {r.agency}</div>
+                              </td>
+                              <td className="px-4 py-3 text-slate-700 font-medium">
+                                {r.assignedGate}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <span className="font-semibold text-slate-800">{r.deliveredShifts}</span>
+                                <span className="text-slate-400"> / {r.scheduledShifts}</span>
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono font-semibold text-slate-800">
+                                {r.activeHours.toFixed(1)} hrs
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono text-emerald-700 font-semibold">
+                                +{r.overtimeHours.toFixed(1)} hrs
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono text-slate-700">
+                                ₹{r.basePay.toLocaleString("en-IN")}
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono text-emerald-700 font-semibold">
+                                ₹{r.overtimePay.toLocaleString("en-IN")}
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 text-sm">
+                                ₹{r.netPayable.toLocaleString("en-IN")}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-50 text-[#006a61] border border-teal-200">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Verified
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                      {payrollRecords.length > 0 && (
+                        <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-900">
+                          <tr>
+                            <td colSpan={2} className="px-4 py-3 text-xs uppercase tracking-wider">
+                              Total Vendor Reconciliation
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {totalDeliveredShifts} / {totalContractedShifts} Shifts
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono">
+                              {totalActiveHours.toFixed(1)} hrs
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono text-emerald-700">
+                              +{totalOtHours.toFixed(1)} hrs
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono">
+                              ₹{totalBaseWage.toLocaleString("en-IN")}
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono text-emerald-700">
+                              ₹{totalOtPay.toLocaleString("en-IN")}
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono text-sm text-[#070235]">
+                              ₹{totalPayoutDue.toLocaleString("en-IN")}
+                            </td>
+                            <td className="px-4 py-3 text-center text-[11px] text-[#006a61]">
+                              Ready for Payout
+                            </td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
+                  </div>
                 </div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
-                <span>Verified by Gate Biometrics &amp; App</span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-400"></div>
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                  Total Active Hours
-                </span>
-                <div className="text-2xl text-[#070235] font-bold mt-1 tracking-tight">
-                  624.5 <span className="text-xs text-slate-400 font-normal">hrs (+32 OT)</span>
-                </div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
-                <span>Stopwatch Validated Shift Logs</span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500"></div>
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                  Net Agency Payout Due
-                </span>
-                <div className="text-2xl text-emerald-700 font-bold mt-1 tracking-tight">
-                  ₹60,900.00
-                </div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
-                <span>Account Head: 4101-SEC</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Detailed Timesheet Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#070235]" />
-                <h4 className="font-bold text-[#070235] text-sm">Security Guard Attendance &amp; Wage Allocation</h4>
-              </div>
-              <span className="text-xs text-slate-500 font-mono">Ledger Code: 4101-SEC</span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold border-b border-slate-100">
-                  <tr>
-                    <th className="px-4 py-3">Guard Name &amp; ID</th>
-                    <th className="px-4 py-3">Assigned Gate</th>
-                    <th className="px-4 py-3 text-center">Shifts (Delivered / Sched.)</th>
-                    <th className="px-4 py-3 text-right">Active Hours</th>
-                    <th className="px-4 py-3 text-right">OT Hours</th>
-                    <th className="px-4 py-3 text-right">Base Wage</th>
-                    <th className="px-4 py-3 text-right">OT Pay</th>
-                    <th className="px-4 py-3 text-right">Net Payable</th>
-                    <th className="px-4 py-3 text-center">Verification Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {payrollRecords.map((r) => (
-                    <tr key={r.staffId} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="font-bold text-[#070235]">{r.name}</div>
-                        <div className="text-[11px] text-slate-400 font-mono">#{r.staffId} • {r.agency}</div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-700 font-medium">
-                        {r.assignedGate}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="font-semibold text-slate-800">{r.deliveredShifts}</span>
-                        <span className="text-slate-400"> / {r.scheduledShifts}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold text-slate-800">
-                        {r.activeHours.toFixed(1)} hrs
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-emerald-700 font-semibold">
-                        +{r.overtimeHours.toFixed(1)} hrs
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-slate-700">
-                        ₹{r.basePay.toLocaleString("en-IN")}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-emerald-700 font-semibold">
-                        ₹{r.overtimePay.toLocaleString("en-IN")}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 text-sm">
-                        ₹{r.netPayable.toLocaleString("en-IN")}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-50 text-[#006a61] border border-teal-200">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Verified
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-900">
-                  <tr>
-                    <td colSpan={2} className="px-4 py-3 text-xs uppercase tracking-wider">
-                      Total Vendor Reconciliation
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      78 / 84 Shifts
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono">
-                      624.5 hrs
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-emerald-700">
-                      +32.0 hrs
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono">
-                      ₹54,000
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-emerald-700">
-                      ₹6,900
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-sm text-[#070235]">
-                      ₹60,900.00
-                    </td>
-                    <td className="px-4 py-3 text-center text-[11px] text-[#006a61]">
-                      Ready for Payout
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
+              </>
+            );
+          })()}
         </div>
       )}
 

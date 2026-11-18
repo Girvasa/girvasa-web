@@ -45,6 +45,9 @@ export default function AmenitiesPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setAmenities([]);
+    setBookings([]);
+    setSelectedBooking(null);
     try {
       const [amenitiesData, bookingsData] = await Promise.all([
         endpoints.amenities.getAmenities(),
@@ -57,61 +60,10 @@ export default function AmenitiesPage() {
       };
       const fetchedAmenities = extractArray(amenitiesData);
       const fetchedBookings = extractArray(bookingsData);
-      setAmenities(fetchedAmenities.length > 0 ? fetchedAmenities : [
-        {
-          id: "amen-1",
-          name: "Clubhouse Banquet Hall",
-          description: "Air-conditioned banquet venue for society resident gatherings and celebrations.",
-          bookingFee: 2500,
-          deposit: 5000,
-          maxCapacity: 120,
-          status: "AVAILABLE",
-          operatingHours: "08:00 - 23:00",
-        } as any,
-        {
-          id: "amen-2",
-          name: "Badminton Court 1",
-          description: "Synthetic indoor tournament-grade badminton arena.",
-          bookingFee: 300,
-          deposit: 500,
-          maxCapacity: 4,
-          status: "AVAILABLE",
-          operatingHours: "06:00 - 22:00",
-        } as any,
-      ]);
-      const activeBookings = fetchedBookings.length > 0 ? fetchedBookings : [
-        {
-          id: "bkg-1",
-          amenityId: "amen-1",
-          amenityName: "Clubhouse Banquet Hall",
-          userId: "user-1",
-          bookedByName: "Aarav Sharma",
-          unitNumber: "A-101",
-          bookingDate: "2026-11-20",
-          startTime: "18:00",
-          endTime: "22:00",
-          status: "CONFIRMED" as const,
-          totalFee: 2500,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "bkg-2",
-          amenityId: "amen-2",
-          amenityName: "Badminton Court 1",
-          userId: "user-2",
-          bookedByName: "Rajesh Singhania",
-          unitNumber: "A-304",
-          bookingDate: "2026-11-18",
-          startTime: "07:00",
-          endTime: "08:00",
-          status: "PENDING" as const,
-          totalFee: 300,
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      setBookings(activeBookings);
-      if (activeBookings.length > 0 && !selectedBooking) {
-        setSelectedBooking(activeBookings[0]);
+      setAmenities(fetchedAmenities);
+      setBookings(fetchedBookings);
+      if (fetchedBookings.length > 0 && !selectedBooking) {
+        setSelectedBooking(fetchedBookings[0]);
       }
     } catch (err: any) {
       setError(err?.detail || err?.message || "Unable to load amenities data from server.");

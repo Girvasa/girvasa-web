@@ -133,6 +133,7 @@ export default function ResidentsPage() {
     if (!activeSocietyId) return;
     setIsLoading(true);
     setError(null);
+    setCensus([]);
     try {
       const data = await endpoints.members.getMembers();
       if (data && Array.isArray(data)) {
@@ -280,38 +281,8 @@ export default function ResidentsPage() {
       });
       await fetchLiveMembers();
       alert(`Resident ${onboardForm.name} onboarded successfully!`);
-    } catch {
-      const newRes: ResidentProfile = {
-        id: `res-${Date.now()}`,
-        initials: onboardForm.name.slice(0, 2).toUpperCase() || "NW",
-        name: onboardForm.name,
-        unit: onboardForm.flat,
-        wing: onboardForm.flat.startsWith("A") ? "Wing A" : "Wing B",
-        bhk: "2BHK",
-        sqft: 1020,
-        occupancyType: onboardForm.occupancyType as any,
-        occupancyBadge: onboardForm.occupancyType === "OWNER" ? "Owner Residing" : "Tenant",
-        occupancySub: "Newly Added",
-        phone: onboardForm.phone,
-        email: onboardForm.email,
-        iceContact: "Pending",
-        familyCount: onboardForm.familyCount,
-        vehiclesCount: "1 Vehicle",
-        vehicleDetails: "RFID Enrolled",
-        kycStatus: "PENDING",
-        kycBadge: "Verification Pending",
-        duesStatus: "NIL",
-        duesAmount: 0,
-        duesSub: "Current",
-        allotmentDate: "Today",
-        votingStatus: "Verification Pending",
-        agreementReg: "Pending",
-        electricityCa: "Pending",
-        nominees: "Not specified",
-      };
-      setCensus([newRes, ...census]);
-      setSelectedResidentId(newRes.id);
-      alert(`Resident ${onboardForm.name} added to Census Register!`);
+    } catch (err: any) {
+      alert(`Failed to onboard resident: ${err?.detail || err?.message || "Please check member details."}`);
     } finally {
       setIsAddModalOpen(false);
     }
