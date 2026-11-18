@@ -23,41 +23,6 @@ import { PollResponse } from "@/types/operation";
 import { useTenant } from "@/lib/tenant/TenantContext";
 import { formatDate } from "@/lib/utils";
 
-const FALLBACK_POLLS: PollResponse[] = [
-  {
-    id: "poll-demo-1",
-    societyId: "soc-1",
-    title: "Installation of Rooftop Solar PV Net-Metering System (100 kWp)",
-    description: "Resolution to allocate INR 35,00,000 from Sinking & Capital Reserve for 100 kWp grid-tied solar array to cut common area electricity costs by 70%.",
-    pollType: "SPECIAL_RESOLUTION",
-    status: "Active Ballot",
-    isAnonymous: false,
-    isActive: true,
-    totalVotes: 68,
-    endDate: "2026-10-31",
-    options: [
-      { id: "opt-1", optionText: "In Favor / Approve Solar Project", voteCount: 58 },
-      { id: "opt-2", optionText: "Against / Defer to next AGM", voteCount: 10 },
-    ],
-  } as any,
-  {
-    id: "poll-demo-2",
-    societyId: "soc-1",
-    title: "Upgradation of Society Access Control System to RFID & Fastag",
-    description: "Proposition to deploy automated barrier boom gates with RFID resident windshield tags across Gate 1 and Gate 2.",
-    pollType: "GENERAL_BALLOT",
-    status: "Active Ballot",
-    isAnonymous: true,
-    isActive: true,
-    totalVotes: 94,
-    endDate: "2026-11-15",
-    options: [
-      { id: "opt-21", optionText: "Yes, Upgrade Access Barriers", voteCount: 82 },
-      { id: "opt-22", optionText: "No, Maintain Manual Security Register", voteCount: 12 },
-    ],
-  } as any,
-];
-
 export default function PollsPage() {
   const { activeSocietyId } = useTenant();
   const [polls, setPolls] = useState<PollResponse[]>([]);
@@ -82,11 +47,11 @@ export default function PollsPage() {
     setError(null);
     try {
       const data = await endpoints.polls.getPolls().catch(() => []);
-      const rawPolls = Array.isArray(data) && data.length > 0 ? data : FALLBACK_POLLS;
+      const rawPolls = Array.isArray(data) ? data : [];
       setPolls(rawPolls);
     } catch (err: any) {
       console.error("Failed to load polls:", err);
-      setPolls(FALLBACK_POLLS);
+      setPolls([]);
     } finally {
       setIsLoading(false);
     }

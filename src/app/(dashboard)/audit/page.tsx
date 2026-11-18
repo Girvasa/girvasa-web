@@ -65,51 +65,6 @@ const DATE_PRESETS = [
   { id: "30D", label: "Last 30 Days" },
 ];
 
-const FALLBACK_AUDIT_LOGS: AuditLogResponse[] = [
-  {
-    id: "aud-demo-101",
-    societyId: "soc-1",
-    eventType: "SOCIETY_AUTH_LOGIN",
-    action: "SELECT_CONTEXT",
-    resource: "TENANT_CONTEXT",
-    userId: "u-admin-01",
-    userName: "Super Admin (+919876545001)",
-    ipAddress: "127.0.0.1",
-    createdAt: new Date().toISOString(),
-    timestamp: new Date().toISOString(),
-    metadata: "Dual-Factor authentication successful. Active tenant context established.",
-    description: "Super Admin authenticated via OTP and bound society tenant context.",
-  } as any,
-  {
-    id: "aud-demo-102",
-    societyId: "soc-1",
-    eventType: "FINANCE_LEDGER_SYNC",
-    action: "UPDATE",
-    resource: "SOCIETY_LEDGER",
-    userId: "u-admin-01",
-    userName: "System Daemon",
-    ipAddress: "127.0.0.1",
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    metadata: "Statutory maintenance ledger rebalanced against MCS Act Sec. 81 guidelines.",
-    description: "Automated integrity verification executed for General Ledger.",
-  } as any,
-  {
-    id: "aud-demo-103",
-    societyId: "soc-1",
-    eventType: "SECURITY_GATE_REGISTER",
-    action: "CREATE",
-    resource: "GATE_PASS",
-    userId: "u-guard-01",
-    userName: "Main Gate Guard",
-    ipAddress: "192.168.1.104",
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-    timestamp: new Date(Date.now() - 7200000).toISOString(),
-    metadata: "Visitor gate pass PASS-9201 issued and encrypted QR token generated.",
-    description: "Perimeter checkpoint logged entry for delivery logistics.",
-  } as any,
-];
-
 // Generate deterministic pseudo SHA-256 hash representation for event row
 function generateDeterministicHash(id: string, timestamp?: string, eventType?: string): string {
   if (!id) return "0000000000000000";
@@ -267,10 +222,10 @@ export default function AuditPage() {
           ? (res as any).meta.totalPages
           : Math.ceil(total / pageSize) || 1;
 
-      const activeItems = items.length > 0 ? items : FALLBACK_AUDIT_LOGS;
+      const activeItems = items;
       setLogs(activeItems);
-      setTotalElements(items.length > 0 ? total : FALLBACK_AUDIT_LOGS.length);
-      setTotalPages(items.length > 0 ? pages : 1);
+      setTotalElements(total);
+      setTotalPages(pages);
 
       // Maintain selection or select first entry
       if (activeItems.length > 0) {
@@ -284,8 +239,8 @@ export default function AuditPage() {
       }
     } catch (err: any) {
       console.error("Failed to load audit logs:", err);
-      setLogs(FALLBACK_AUDIT_LOGS);
-      setSelectedLog(FALLBACK_AUDIT_LOGS[0]);
+      setLogs([]);
+      setSelectedLog(null);
     } finally {
       setIsLoading(false);
     }
@@ -341,10 +296,10 @@ export default function AuditPage() {
             ? (res as any).meta.totalPages
             : Math.ceil(total / pageSize) || 1;
 
-        const activeItems = items.length > 0 ? items : FALLBACK_AUDIT_LOGS;
+        const activeItems = items;
         setLogs(activeItems);
-        setTotalElements(items.length > 0 ? total : FALLBACK_AUDIT_LOGS.length);
-        setTotalPages(items.length > 0 ? pages : 1);
+        setTotalElements(total);
+        setTotalPages(pages);
 
         if (activeItems.length > 0) {
           setSelectedLog((prev) => {
@@ -358,8 +313,8 @@ export default function AuditPage() {
       } catch (err: any) {
         if (!isCancelled) {
           console.error("Failed to load audit logs:", err);
-          setLogs(FALLBACK_AUDIT_LOGS);
-          setSelectedLog(FALLBACK_AUDIT_LOGS[0]);
+          setLogs([]);
+          setSelectedLog(null);
         }
       } finally {
         if (!isCancelled) {

@@ -29,6 +29,7 @@ import { BillSummaryResponse } from "@/types/billing";
 import { VisitResponse } from "@/types/visitor";
 import { ComplaintResponse } from "@/types/complaint";
 import { UnitResponse } from "@/types/structure";
+import { MemberResponse } from "@/types/member";
 import { OnboardingProgressResponse } from "@/types/subscription";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
@@ -43,6 +44,7 @@ export default function DashboardPage() {
   const [visits, setVisits] = useState<VisitResponse[]>([]);
   const [complaints, setComplaints] = useState<ComplaintResponse[]>([]);
   const [units, setUnits] = useState<UnitResponse[]>([]);
+  const [members, setMembers] = useState<MemberResponse[]>([]);
   const [onboardingProgress, setOnboardingProgress] = useState<OnboardingProgressResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export default function DashboardPage() {
         endpoints.structure.getUnits(),
         endpoints.reports.getAccountingSummary().catch(() => null),
         endpoints.subscription.getOnboardingProgress().catch(() => null),
+        endpoints.members.getMembers().catch(() => []),
       ]);
 
       if (results[0].status === "fulfilled" && results[0].value) {
@@ -86,6 +89,9 @@ export default function DashboardPage() {
       }
       if (results[6].status === "fulfilled" && results[6].value) {
         setOnboardingProgress(results[6].value);
+      }
+      if (results[7].status === "fulfilled" && Array.isArray(results[7].value)) {
+        setMembers(results[7].value);
       }
     } catch (err: any) {
       setError(err?.detail || "Unable to load society dashboard analytics.");
@@ -110,22 +116,22 @@ export default function DashboardPage() {
     return <ErrorState message={error} onRetry={fetchDashboard} />;
   }
 
-  // Dynamic values derived strictly from backend API data
+  // Dynamic values derived strictly from backend API data with zero static fallbacks
   const hasDynamicBills = bills.length > 0;
   const dynamicCollected = hasDynamicBills
     ? bills.filter((b) => b.status === "PAID").reduce((sum, b) => sum + (b.paidAmount || b.totalAmount), 0)
-    : null;
+    : 0;
   const dynamicOverdue = hasDynamicBills
     ? bills.filter((b) => b.status === "OVERDUE").reduce((sum, b) => sum + (b.outstandingAmount || b.totalAmount), 0)
-    : null;
+    : 0;
 
   const collectedAmount =
-    dynamicCollected !== null
+    hasDynamicBills
       ? dynamicCollected
       : (dashboardData?.financial?.totalPaid ?? 0);
 
   const overdueAmount =
-    dynamicOverdue !== null
+    hasDynamicBills
       ? dynamicOverdue
       : (dashboardData?.financial?.totalOutstanding ?? 0);
 
@@ -135,7 +141,7 @@ export default function DashboardPage() {
     : (dashboardData?.financial?.collectionPercentage ?? 0);
 
   const totalUnits = units.length;
-  const occupiedUnits = units.filter((u) => u.status === "OCCUPIED" || !u.status).length;
+  const occupiedUnits = units.filter((u) => u.status === "OCCUPIED").length;
   const vacantUnits = Math.max(0, totalUnits - occupiedUnits);
 
   const activeVisitors = visits.filter((v) => v.status === "CHECKED_IN").length ||
@@ -155,7 +161,7 @@ export default function DashboardPage() {
   const generalReserve = accountingSummary?.generalReserve ?? 0;
   const totalReserves = sinkingFund + repairFund + generalReserve;
 
-  // Collections table records derived strictly from real bills with statutory fallbacks
+  // Collections table records derived strictly from real bills with zero static fallbacks
   const allCollections =
     bills.length > 0
       ? bills.map((b) => ({
@@ -164,65 +170,19 @@ export default function DashboardPage() {
           member: b.buildingName ? `${b.buildingName} Resident` : "Member Account",
           occupancy: `${b.buildingName || "Tower"} • Due ${b.dueDate ? formatDate(b.dueDate) : "Cycle End"}`,
           voucher: b.billNumber || `INV-${b.id.substring(0, 8)}`,
-          cycle: b.periodName || "November 2026",
+          cycle: b.periodName || "Active Cycle",
           amount: b.totalAmount,
           interest:
             b.status === "OVERDUE" && b.outstandingAmount > b.totalAmount
               ? `+${formatCurrency(b.outstandingAmount - b.totalAmount)} Pen`
               : undefined,
-          channel: b.status === "PAID" ? "BBPS / Online" : "Payment Pending",
+          channel: b.status === "PAID" ? "Online Payment" : "Payment Pending",
           isVerified: b.status === "PAID",
           status: b.status === "PAID" ? "Paid & Settled" : b.status === "OVERDUE" ? "Overdue" : "Pending",
           type: b.status === "PAID" ? "PAID" : "OVERDUE",
           isOverdue: b.status === "OVERDUE",
         }))
-      : [
-          {
-            id: "v-default-1",
-            unit: "A-101",
-            member: "Aarav Sharma",
-            occupancy: "Tower A - Gulmohar • Due 15 Nov 2026",
-            voucher: "INV-2026-001",
-            cycle: "November 2026",
-            amount: 4750,
-            interest: undefined,
-            channel: "BBPS / HDFC Bank",
-            isVerified: true,
-            status: "Paid & Settled",
-            type: "PAID",
-            isOverdue: false,
-          },
-          {
-            id: "v-default-2",
-            unit: "A-304",
-            member: "Rajesh Nair",
-            occupancy: "Tower A - Gulmohar • Due 15 Oct 2026",
-            voucher: "INV-2026-042",
-            cycle: "October 2026",
-            amount: 18925,
-            interest: "+₹375 Penal Interest",
-            channel: "Defaulter Escalation",
-            isVerified: false,
-            status: "Overdue",
-            type: "OVERDUE",
-            isOverdue: true,
-          },
-          {
-            id: "v-default-3",
-            unit: "B-201",
-            member: "Pooja Verma",
-            occupancy: "Tower B - Amaltas • Due 15 Nov 2026",
-            voucher: "INV-2026-002",
-            cycle: "November 2026",
-            amount: 5120,
-            interest: undefined,
-            channel: "UPI / ICICI Bank",
-            isVerified: true,
-            status: "Paid & Settled",
-            type: "PAID",
-            isOverdue: false,
-          },
-        ];
+      : [];
 
   const filteredCollections = allCollections.filter((c) => {
     if (collectionTab === "PAID_TODAY") return c.type === "PAID";
@@ -244,14 +204,14 @@ export default function DashboardPage() {
               <span className="text-xs text-slate-500 font-medium">MCS Act Sec 79 Compliance</span>
               <span className="text-slate-300">•</span>
               <span className="text-xs text-slate-400 font-mono">
-                Reg: {currentSociety?.societyCode ? `MH/${currentSociety.societyCode}` : "MH/REG/ACTIVE"}
+                Reg: {currentSociety?.societyCode ? `MH/${currentSociety.societyCode}` : "Pending Registration"}
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-[#1E293B]">
               Society Operational Command Center
             </h1>
             <p className="text-xs text-slate-500">
-              {currentSociety?.societyName || "Housing Society"} • {totalUnits} Registered Units • {bills.length} Active Vouchers
+              {currentSociety?.societyName || "Housing Society"} • {totalUnits} Registered Units • {members.length} Enrolled Residents • {bills.length} Active Vouchers
             </p>
           </div>
 
@@ -266,6 +226,34 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* New Society Zero-Units Onboarding Banner */}
+      {totalUnits === 0 && (
+        <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-slate-500/10 border border-emerald-600/20 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-[#107A48] text-white shrink-0 shadow-sm">
+              <Building className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[#1E293B]">
+                Welcome to your newly registered society workspace!
+              </h3>
+              <p className="text-xs text-slate-600 mt-0.5">
+                No buildings, units, or residents have been registered yet. Get started by setting up your society&apos;s physical towers and flats.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/buildings"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#107A48] hover:bg-[#0D623A] text-white text-xs font-semibold shadow-sm transition-all"
+            >
+              <Building className="w-4 h-4" />
+              <span>Configure Buildings</span>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Onboarding Wizard Setup In-Progress Banner */}
       {onboardingProgress && !onboardingProgress.completed && (
@@ -343,8 +331,12 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="mt-3 pt-1 bg-slate-50 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
-            <span className="text-slate-600 font-medium">Interest Applicable</span>
-            <span className="text-red-600 font-semibold">Action Due</span>
+            <span className={overdueAmount > 0 ? "text-slate-600 font-medium" : "text-[#107A48] font-medium flex items-center gap-1"}>
+              {overdueAmount > 0 ? "Interest Applicable" : <><CheckCircle2 className="w-3.5 h-3.5" /> All Dues Cleared</>}
+            </span>
+            <span className={overdueAmount > 0 ? "text-red-600 font-semibold" : "text-[#107A48] font-semibold"}>
+              {overdueAmount > 0 ? "Action Due" : "Zero Overdue"}
+            </span>
           </div>
         </div>
 
@@ -397,8 +389,10 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="mt-3 pt-1 bg-slate-50 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
-            <span className="text-slate-400 font-medium">Main Gate Entry</span>
-            <span className="text-[#0D9488] font-semibold">Active</span>
+            <span className="text-slate-500 font-medium">Main Gate Entry</span>
+            <span className={activeVisitors > 0 ? "text-[#0D9488] font-semibold" : "text-slate-500 font-medium"}>
+              {activeVisitors > 0 ? "Active Inside" : "Zero Inside"}
+            </span>
           </div>
         </div>
 
@@ -425,8 +419,12 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="mt-3 pt-1 bg-slate-50 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs">
-            <span className="text-amber-600 font-medium">{openComplaints} Open</span>
-            <span className="text-slate-500">Live Support</span>
+            <span className={openComplaints > 0 ? "text-amber-600 font-medium" : "text-emerald-700 font-medium"}>
+              {openComplaints > 0 ? `${openComplaints} Open` : "All Clear"}
+            </span>
+            <span className={openComplaints > 0 ? "text-slate-500" : "text-emerald-700 font-semibold"}>
+              {openComplaints > 0 ? "Live Support" : "Operational"}
+            </span>
           </div>
         </div>
       </div>
@@ -816,7 +814,9 @@ export default function DashboardPage() {
                   <CheckCircle2 className="w-4 h-4 text-[#107A48] shrink-0" />
                   <div className="flex flex-col">
                     <span className="font-bold text-slate-900">&apos;I&apos; &amp; &apos;J&apos; Member Registers</span>
-                    <span className="text-slate-500 text-[11px]">MCS Act Sec 79(2) Format • {totalUnits} Units Tracked</span>
+                    <span className="text-slate-500 text-[11px]">
+                      {members.length > 0 ? `${members.length} Members Enrolled` : "No Residents Registered Yet"} • {totalUnits} Units
+                    </span>
                   </div>
                 </div>
                 <Link

@@ -130,46 +130,7 @@ export default function PaymentsPage() {
         });
         setVouchers(dynamicVouchers);
       } else {
-        setVouchers([
-          {
-            id: "v-1",
-            voucherNumber: "RV-2026-0081",
-            voucherType: "RV",
-            date: "2026-10-10",
-            accountHead: "Maintenance Dues Collection",
-            subLedger: "Unit A-101 (Aarav Sharma)",
-            narration: "Payment received via UPI - Ref: UPI/2026/98218",
-            mandateTag: "Status: SUCCESS",
-            referenceNo: "UPI/2026/98218",
-            debit: null,
-            credit: 5350,
-            runningBalance: 5350,
-            dualAuditStatus: "Settled",
-            dualAuditColor: "bg-[#86f2e4]/40 text-[#006f66]",
-            signatories: "Treasurer & Secretary",
-            paymentId: "p-sample-1",
-            unitNumber: "A-101",
-          },
-          {
-            id: "v-2",
-            voucherNumber: "RV-2026-0082",
-            voucherType: "RV",
-            date: "2026-10-09",
-            accountHead: "Maintenance Dues Collection",
-            subLedger: "Unit B-201 (Pooja Verma)",
-            narration: "Payment received via NEFT - Ref: NEFT-HDFC-9102",
-            mandateTag: "Status: SUCCESS",
-            referenceNo: "NEFT-HDFC-9102",
-            debit: null,
-            credit: 4800,
-            runningBalance: 10150,
-            dualAuditStatus: "Settled",
-            dualAuditColor: "bg-[#86f2e4]/40 text-[#006f66]",
-            signatories: "Treasurer & Secretary",
-            paymentId: "p-sample-2",
-            unitNumber: "B-201",
-          },
-        ]);
+        setVouchers([]);
       }
     } catch (err: any) {
       console.error("Failed to load payments/vouchers:", err);

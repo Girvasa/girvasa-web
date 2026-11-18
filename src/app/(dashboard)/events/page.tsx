@@ -26,54 +26,6 @@ import { EventResponse, PollResponse } from "@/types/operation";
 import { useTenant } from "@/lib/tenant/TenantContext";
 import { formatDate } from "@/lib/utils";
 
-const FALLBACK_EVENTS: EventResponse[] = [
-  {
-    id: "evt-demo-1",
-    societyId: "soc-1",
-    title: "Annual General Body Meeting (AGM 2026)",
-    description: "Statutory convocation for review of audited accounts, budget approval, and committee elections under MCS Act Sec. 75.",
-    startDate: "2026-10-25",
-    endDate: "2026-10-25",
-    startTime: "10:30 AM",
-    venue: "Main Clubhouse Auditorium",
-    eventType: "GENERAL_BODY",
-    status: "CONFIRMED",
-    rsvpCount: 84,
-  } as any,
-  {
-    id: "evt-demo-2",
-    societyId: "soc-1",
-    title: "Diwali Community Cultural Evening & Fireworks",
-    description: "Annual cultural festival celebration, traditional lighting, music, and community dinner for all residents.",
-    startDate: "2026-11-01",
-    endDate: "2026-11-01",
-    startTime: "06:30 PM",
-    venue: "Central Amphitheatre & Lawn",
-    eventType: "FESTIVAL",
-    status: "CONFIRMED",
-    rsvpCount: 142,
-  } as any,
-];
-
-const FALLBACK_POLLS: PollResponse[] = [
-  {
-    id: "poll-demo-1",
-    societyId: "soc-1",
-    title: "Installation of Rooftop Solar PV Net-Metering System (100 kWp)",
-    description: "Resolution to allocate INR 35,00,000 from Sinking & Capital Reserve for 100 kWp grid-tied solar array to cut common area electricity costs by 70%.",
-    pollType: "SPECIAL_RESOLUTION",
-    status: "ACTIVE",
-    isAnonymous: false,
-    isActive: true,
-    totalVotes: 68,
-    endDate: "2026-10-31",
-    options: [
-      { id: "opt-1", optionText: "In Favor / Approve Solar Project", voteCount: 58 },
-      { id: "opt-2", optionText: "Against / Defer to next AGM", voteCount: 10 },
-    ],
-  } as any,
-];
-
 export default function EventsAndResolutionsPage() {
   const { activeSocietyId } = useTenant();
   const [activeTab, setActiveTab] = useState<"RESOLUTIONS" | "EVENTS" | "ARCHIVES">("RESOLUTIONS");
@@ -105,14 +57,14 @@ export default function EventsAndResolutionsPage() {
         endpoints.events.getEvents().catch(() => []),
         endpoints.polls.getPolls().catch(() => []),
       ]);
-      const activeEvents = Array.isArray(eventsData) && eventsData.length > 0 ? eventsData : FALLBACK_EVENTS;
-      const activePolls = Array.isArray(pollsData) && pollsData.length > 0 ? pollsData : FALLBACK_POLLS;
+      const activeEvents = Array.isArray(eventsData) ? eventsData : [];
+      const activePolls = Array.isArray(pollsData) ? pollsData : [];
       setEvents(activeEvents);
       setPolls(activePolls);
     } catch (err: any) {
       console.error("Failed to load events/polls:", err);
-      setEvents(FALLBACK_EVENTS);
-      setPolls(FALLBACK_POLLS);
+      setEvents([]);
+      setPolls([]);
     } finally {
       setIsLoading(false);
     }

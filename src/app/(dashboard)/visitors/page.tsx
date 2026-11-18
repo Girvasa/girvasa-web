@@ -44,63 +44,6 @@ interface GateRecord {
   duration: string;
 }
 
-const FALLBACK_GATE_RECORDS: GateRecord[] = [
-  {
-    id: "v-demo-1",
-    visitorName: "Sunil Sharma",
-    avatar: "https://ui-avatars.com/api/?name=Sunil+Sharma&background=107A48&color=fff",
-    category: "DELIVERY",
-    categoryBadge: "Courier Delivery",
-    passRef: "PASS-9201",
-    passCode: "9201",
-    unit: "Flat A-402",
-    hostName: "Vikram Malhotra",
-    approvalMode: "OTP Verified",
-    purpose: "Amazon Package Delivery",
-    vehicleNumber: "MH 02 CZ 4412",
-    vehicleType: "two_wheeler",
-    status: "ACTIVE_INSIDE",
-    inTime: "11:20 AM",
-    duration: "Inside Campus",
-  },
-  {
-    id: "v-demo-2",
-    visitorName: "Rajesh Kulkarni",
-    avatar: "https://ui-avatars.com/api/?name=Rajesh+Kulkarni&background=006a61&color=fff",
-    category: "TECHNICIAN",
-    categoryBadge: "AMC Technician",
-    passRef: "PASS-8840",
-    passCode: "8840",
-    unit: "Tower A Elevator",
-    hostName: "Facility Manager",
-    approvalMode: "Pre-Approved",
-    purpose: "Lift Maintenance & Safety Inspection",
-    vehicleNumber: "MH 03 BT 8091",
-    vehicleType: "two_wheeler",
-    status: "ACTIVE_INSIDE",
-    inTime: "10:15 AM",
-    duration: "Inside Campus",
-  },
-  {
-    id: "v-demo-3",
-    visitorName: "Ananya Deshmukh",
-    avatar: "https://ui-avatars.com/api/?name=Ananya+Deshmukh&background=47464f&color=fff",
-    category: "GUEST",
-    categoryBadge: "Resident Guest",
-    passRef: "PASS-7721",
-    passCode: "7721",
-    unit: "Flat B-101",
-    hostName: "Rohan Deshmukh",
-    approvalMode: "Pre-Approved Pass",
-    purpose: "Family Dinner",
-    vehicleNumber: "MH 01 AB 1234",
-    vehicleType: "four_wheeler",
-    status: "EXPECTED",
-    inTime: "Expected 07:00 PM",
-    duration: "Awaiting Entry",
-  },
-];
-
 export default function VisitorsPage() {
   const { activeSocietyId } = useTenant();
   const [filterTab, setFilterTab] = useState<"ALL" | "DELIVERY" | "STAFF" | "EXPECTED" | "EXITED">("ALL");
@@ -169,11 +112,11 @@ export default function VisitorsPage() {
         });
         setRecords(mapped);
       } else {
-        setRecords(FALLBACK_GATE_RECORDS);
+        setRecords([]);
       }
     } catch (err: any) {
       console.error("Failed to fetch visits:", err);
-      setRecords(FALLBACK_GATE_RECORDS);
+      setRecords([]);
     } finally {
       setIsLoading(false);
     }

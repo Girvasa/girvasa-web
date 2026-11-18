@@ -115,51 +115,7 @@ export default function BillingPage() {
             isOverdue,
           };
         });
-        if (mapped.length > 0) {
-          setLedger(mapped);
-        } else {
-          setLedger([
-            {
-              id: "b-1",
-              unit: "A-101",
-              member: "Aarav Sharma",
-              occupancy: "Tower A - Gulmohar • Allotted",
-              maint: 3500,
-              sinking: 750,
-              repair: 750,
-              parking: 350,
-              noc: 0,
-              arrears: 0,
-              netPayable: 5350,
-              dueDate: "15 Nov 2026",
-              payDateSubtitle: "Paid & Reconciled",
-              status: "PAID",
-              statusBadge: "PAID",
-              channelRef: "BILL-2026-001",
-              receiptNumber: "#REC-001",
-            },
-            {
-              id: "b-2",
-              unit: "A-304",
-              member: "Rajesh Singhania",
-              occupancy: "Tower A - Gulmohar • Allotted",
-              maint: 4200,
-              sinking: 900,
-              repair: 900,
-              parking: 350,
-              noc: 0,
-              arrears: 12500,
-              interest: 375,
-              netPayable: 18925,
-              dueDate: "15 Nov 2026",
-              payDateSubtitle: "Overdue Cutoff",
-              status: "OVERDUE",
-              statusBadge: "OVERDUE",
-              channelRef: "BILL-2026-042",
-              isOverdue: true,
-            },
-          ]);
-        }
+        setLedger(mapped);
       } else {
         setLedger([]);
       }
