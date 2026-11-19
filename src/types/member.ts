@@ -43,6 +43,8 @@ export interface CreateMemberRequest {
   mobileNumber: string;
   email?: string;
   unitId?: string;
+  unitNumber?: string;
+  occupancyType?: string;
   role?: string;
   roleCodes?: string[];
   status?: MembershipStatus;

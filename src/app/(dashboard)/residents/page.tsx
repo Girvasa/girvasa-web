@@ -398,6 +398,8 @@ export default function ResidentsPage() {
         mobileNumber: onboardForm.phone,
         fullName: onboardForm.name,
         email: onboardForm.email,
+        unitNumber: onboardForm.flat,
+        occupancyType: onboardForm.occupancyType,
         role: "RESIDENT",
         roleCodes: [onboardForm.occupancyType === "TENANT" ? "TENANT" : "RESIDENT"],
         status: "ACTIVE",
