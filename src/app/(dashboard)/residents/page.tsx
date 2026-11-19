@@ -1304,6 +1304,21 @@ export default function ResidentsPage() {
                 <div className="text-[11px] text-slate-600 pt-1 border-t border-rose-200/60 mt-1">
                   <strong>Recommended Next Step:</strong> Ask <span className="font-bold text-slate-900">{onboardForm.name || "the resident"}</span> to log into Girvasa once using <span className="font-mono font-bold text-slate-900">{onboardForm.phone || "their mobile number"}</span> via OTP. Once verified, you can onboard them here immediately.
                 </div>
+                {onboardForm.phone && (
+                  <div className="pt-2">
+                    <a
+                      href={`https://api.whatsapp.com/send?phone=91${onboardForm.phone.replace(/[^0-9]/g, "").slice(-10)}&text=${encodeURIComponent(
+                        `Hello ${onboardForm.name || "Resident"},\n\nYou have been invited to join Shree Sai Mauli Society (Flat ${onboardForm.flat || "Allotment"}) on Girvasa Society OS.\n\nPlease verify your mobile number and activate your resident account here:\nhttps://girvasa-web.vercel.app`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors shadow-xs"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      Send WhatsApp Invite to {onboardForm.phone}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           )}
