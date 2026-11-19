@@ -131,6 +131,9 @@ export default function ResidentsPage() {
     occupancyType: "OWNER",
     familyCount: 1,
   });
+  const [isOnboarding, setIsOnboarding] = useState(false);
+  const [onboardError, setOnboardError] = useState<string | null>(null);
+  const [onboardSuccess, setOnboardSuccess] = useState<string | null>(null);
 
   const [census, setCensus] = useState<ResidentProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -387,21 +390,40 @@ export default function ResidentsPage() {
 
   const handleOnboardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsOnboarding(true);
+    setOnboardError(null);
+    setOnboardSuccess(null);
     try {
       await endpoints.members.createMember({
         mobileNumber: onboardForm.phone,
         fullName: onboardForm.name,
         email: onboardForm.email,
         role: "RESIDENT",
-        roleCodes: ["RESIDENT"],
+        roleCodes: [onboardForm.occupancyType === "TENANT" ? "TENANT" : "RESIDENT"],
         status: "ACTIVE",
       });
       await fetchLiveMembers();
-      alert(`Resident ${onboardForm.name} onboarded successfully!`);
+      setOnboardSuccess(`Resident ${onboardForm.name} onboarded successfully!`);
+      setTimeout(() => {
+        setIsAddModalOpen(false);
+        setOnboardSuccess(null);
+        setOnboardForm({ name: "", phone: "", email: "", flat: "", occupancyType: "OWNER", familyCount: 1 });
+      }, 1200);
     } catch (err: any) {
-      alert(`Failed to onboard resident: ${err?.detail || err?.message || "Please check member details."}`);
+      const rawMsg = err?.detail || err?.message || "";
+      if (
+        rawMsg.toLowerCase().includes("does not exist on the platform") ||
+        rawMsg.toLowerCase().includes("user must register via otp") ||
+        err?.code === "RESOURCE_NOT_FOUND"
+      ) {
+        setOnboardError(
+          `User with mobile number "${onboardForm.phone}" has not verified their phone on Girvasa yet. Per security compliance, the resident must complete mobile OTP verification once before an administrator can link them to a society.`
+        );
+      } else {
+        setOnboardError(rawMsg || "Failed to onboard resident. Please check member details.");
+      }
     } finally {
-      setIsAddModalOpen(false);
+      setIsOnboarding(false);
     }
   };
 
@@ -1252,11 +1274,48 @@ export default function ResidentsPage() {
       {/* 5. Onboard New Resident Modal */}
       <Modal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          if (!isOnboarding) {
+            setIsAddModalOpen(false);
+            setOnboardError(null);
+            setOnboardSuccess(null);
+          }
+        }}
         title="Onboard New Resident / Flat Allotment"
+        description="Add a resident to this society's statutory census directory. Users must complete mobile OTP verification."
         maxWidth="md"
       >
-        <form onSubmit={handleOnboardSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleOnboardSubmit} className="space-y-4 text-xs pt-1">
+          {/* Informational Guidance Notice */}
+          <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl flex items-start gap-2.5 text-blue-900 text-[11px] leading-relaxed">
+            <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Security Requirement:</span> For tenant data protection, a resident must have logged into Girvasa at least once via mobile OTP before being enrolled by an admin. Alternatively, residents can register via their app and submit a self-service join request under <span className="font-semibold underline">Pending Join Requests</span>.
+            </div>
+          </div>
+
+          {/* Error Banner */}
+          {onboardError && (
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-rose-800 text-xs">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="font-bold">Resident Not Yet Registered on Girvasa</div>
+                <div className="text-[11px] text-rose-700 leading-relaxed">{onboardError}</div>
+                <div className="text-[11px] text-slate-600 pt-1 border-t border-rose-200/60 mt-1">
+                  <strong>Recommended Next Step:</strong> Ask <span className="font-bold text-slate-900">{onboardForm.name || "the resident"}</span> to log into Girvasa once using <span className="font-mono font-bold text-slate-900">{onboardForm.phone || "their mobile number"}</span> via OTP. Once verified, you can onboard them here immediately.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Success Banner */}
+          {onboardSuccess && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-emerald-800 text-xs font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{onboardSuccess}</span>
+            </div>
+          )}
+
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
               Full Name
@@ -1264,10 +1323,11 @@ export default function ResidentsPage() {
             <input
               type="text"
               required
+              disabled={isOnboarding}
               value={onboardForm.name}
               onChange={(e) => setOnboardForm({ ...onboardForm, name: e.target.value })}
               placeholder="e.g. Rahul Deshmukh"
-              className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900"
+              className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900 disabled:opacity-60"
             />
           </div>
 
@@ -1279,10 +1339,11 @@ export default function ResidentsPage() {
               <input
                 type="tel"
                 required
+                disabled={isOnboarding}
                 value={onboardForm.phone}
                 onChange={(e) => setOnboardForm({ ...onboardForm, phone: e.target.value })}
                 placeholder="+91 98765 43210"
-                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900"
+                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900 disabled:opacity-60"
               />
             </div>
             <div>
@@ -1292,10 +1353,11 @@ export default function ResidentsPage() {
               <input
                 type="email"
                 required
+                disabled={isOnboarding}
                 value={onboardForm.email}
                 onChange={(e) => setOnboardForm({ ...onboardForm, email: e.target.value })}
                 placeholder="name@domain.com"
-                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900"
+                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900 disabled:opacity-60"
               />
             </div>
           </div>
@@ -1308,10 +1370,11 @@ export default function ResidentsPage() {
               <input
                 type="text"
                 required
+                disabled={isOnboarding}
                 value={onboardForm.flat}
                 onChange={(e) => setOnboardForm({ ...onboardForm, flat: e.target.value })}
                 placeholder="e.g. A-402"
-                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900"
+                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900 disabled:opacity-60"
               />
             </div>
             <div>
@@ -1319,9 +1382,10 @@ export default function ResidentsPage() {
                 Occupancy Type
               </label>
               <select
+                disabled={isOnboarding}
                 value={onboardForm.occupancyType}
                 onChange={(e) => setOnboardForm({ ...onboardForm, occupancyType: e.target.value })}
-                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900"
+                className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#070235] text-slate-900 disabled:opacity-60"
               >
                 <option value="OWNER">Owner Residing</option>
                 <option value="TENANT">Tenant (Lease Agreement)</option>
@@ -1333,16 +1397,23 @@ export default function ResidentsPage() {
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
             <button
               type="button"
-              onClick={() => setIsAddModalOpen(false)}
+              disabled={isOnboarding}
+              onClick={() => {
+                setIsAddModalOpen(false);
+                setOnboardError(null);
+                setOnboardSuccess(null);
+              }}
               className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-[#070235] text-white font-bold hover:bg-[#1e1b4b]"
+              disabled={isOnboarding || !!onboardSuccess}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#070235] text-white font-bold hover:bg-[#1e1b4b] transition-colors disabled:opacity-50"
             >
-              Onboard &amp; Generate Form 14
+              {isOnboarding && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{isOnboarding ? "Onboarding Resident..." : "Onboard & Generate Form 14"}</span>
             </button>
           </div>
         </form>
