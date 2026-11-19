@@ -154,6 +154,8 @@ export const endpoints = {
       api.post<MemberResponse>(`/members/${memberId}/suspend`, { reason }),
     terminateMember: (memberId: string, reason?: string) =>
       api.post<MemberResponse>(`/members/${memberId}/terminate`, { reason }),
+    updateMember: (memberId: string, data: { status?: string; roleCodes?: string[] }) =>
+      api.patch<MemberResponse>(`/members/${memberId}`, data),
   },
 
   // Billing

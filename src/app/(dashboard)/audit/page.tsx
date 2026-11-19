@@ -5,26 +5,22 @@ import {
   ShieldCheck,
   Search,
   Download,
-  CheckCircle2,
-  Lock,
-  Database,
   Calendar,
-  AlertTriangle,
   RefreshCw,
-  FileCheck,
-  Terminal,
-  ChevronLeft,
-  ChevronRight,
+  Clock,
+  UserCheck,
+  Eye,
+  X,
   Copy,
   Check,
-  ExternalLink,
   Filter,
-  X,
-  UserCheck,
-  Clock,
-  Layers,
-  ArrowUpDown,
-  Eye,
+  Receipt,
+  Users,
+  Shield,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Info,
 } from "lucide-react";
 import { Table, Column } from "@/components/common/Table";
 import { Modal } from "@/components/common/Modal";
@@ -36,26 +32,24 @@ import { useTenant } from "@/lib/tenant/TenantContext";
 import { usePermission } from "@/lib/rbac/usePermission";
 import { formatDateTime } from "@/lib/utils";
 
-// Category definitions for grouping society audit events
-const EVENT_CATEGORIES = [
-  { id: "ALL", label: "All Audit Domains" },
-  { id: "SOCIETY_AUTH", label: "Identity & Governance" },
+// Domain categories for society operations
+const DOMAIN_CATEGORIES = [
+  { id: "ALL", label: "All Categories" },
   { id: "FINANCE", label: "Billing & Finance" },
+  { id: "RESIDENTS", label: "Residents & Units" },
   { id: "SECURITY", label: "Gate & Security" },
-  { id: "COMPLAINT", label: "Complaints & Helpdesk" },
-  { id: "DOCUMENT", label: "Vault & Documents" },
-  { id: "AMENITY", label: "Amenities & Facilities" },
-  { id: "NOTICE", label: "Notices & Broadcasts" },
+  { id: "HELPDESK", label: "Complaints & Requests" },
+  { id: "COMMUNITY", label: "Amenities & Events" },
+  { id: "GOVERNANCE", label: "Governance & Settings" },
 ];
 
 const ACTION_FILTERS = [
   { id: "ALL", label: "All Actions" },
-  { id: "CREATE", label: "CREATE" },
-  { id: "UPDATE", label: "UPDATE" },
-  { id: "DELETE", label: "DELETE" },
-  { id: "VIEW", label: "VIEW" },
-  { id: "SELECT_CONTEXT", label: "SELECT_CONTEXT" },
-  { id: "EXPORT", label: "EXPORT" },
+  { id: "CREATE", label: "Create / Add" },
+  { id: "UPDATE", label: "Update / Edit" },
+  { id: "DELETE", label: "Delete / Remove" },
+  { id: "APPROVE", label: "Approval" },
+  { id: "PAYMENT", label: "Payment" },
 ];
 
 const DATE_PRESETS = [
@@ -65,92 +59,153 @@ const DATE_PRESETS = [
   { id: "30D", label: "Last 30 Days" },
 ];
 
-// Generate deterministic pseudo SHA-256 hash representation for event row
-function generateDeterministicHash(id: string, timestamp?: string, eventType?: string): string {
-  if (!id) return "0000000000000000";
-  const seed = (id + (timestamp || "") + (eventType || "")).replace(/-/g, "");
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+// Helper to map raw event types into human-readable titles
+function formatEventTitle(eventType: string): string {
+  if (!eventType) return "Society Activity";
+  switch (eventType.toUpperCase()) {
+    case "SOCIETY_CONTEXT_SELECTED":
+      return "Session Login";
+    case "BILL_CREATED":
+      return "Maintenance Bill Generated";
+    case "BILL_APPROVED":
+      return "Maintenance Bill Approved";
+    case "BILL_PUBLISHED":
+      return "Maintenance Bill Published";
+    case "BILL_CANCELLED":
+      return "Maintenance Bill Cancelled";
+    case "PAYMENT_CONFIRMED":
+      return "Payment Recorded";
+    case "PAYMENT_REVERSED":
+      return "Payment Reversed";
+    case "PAYMENT_INITIATED":
+      return "Payment Initiated";
+    case "MEMBERSHIP_CREATED":
+      return "Member Onboarded";
+    case "MEMBERSHIP_STATUS_CHANGED":
+      return "Member Status Updated";
+    case "MEMBERSHIP_REMOVED":
+      return "Member Removed";
+    case "UNIT_CREATED":
+      return "Unit Added";
+    case "UNIT_UPDATED":
+      return "Unit Updated";
+    case "BUILDING_CREATED":
+      return "Building Added";
+    case "BUILDING_UPDATED":
+      return "Building Updated";
+    case "COMPLAINT_CREATED":
+      return "Complaint Logged";
+    case "COMPLAINT_STATUS_CHANGED":
+      return "Complaint Status Updated";
+    case "COMPLAINT_RESOLVED":
+      return "Complaint Resolved";
+    case "VISITOR_CHECKED_IN":
+      return "Visitor Checked In";
+    case "VISITOR_CHECKED_OUT":
+      return "Visitor Checked Out";
+    case "AMENITY_BOOKING_CREATED":
+      return "Amenity Booked";
+    case "AMENITY_CREATED":
+      return "New Facility Added";
+    case "AMENITY_UPDATED":
+      return "Facility Details Updated";
+    case "NOTICE_PUBLISHED":
+      return "Society Notice Published";
+    case "ROLE_ASSIGNED":
+      return "Role Assigned";
+    case "ROLE_REVOKED":
+      return "Role Revoked";
+    case "SOCIETY_CONFIGURATION_UPDATED":
+      return "Society Settings Updated";
+    default:
+      return eventType
+        .toLowerCase()
+        .split("_")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
   }
-  const hexPart = Math.abs(hash).toString(16).padStart(8, "0");
-  return `${id.substring(0, 6)}${hexPart}`.toUpperCase();
 }
 
-// Badge styling helper based on audit domain
+// Clean badge styles by domain
 function getDomainBadge(eventType: string) {
   const type = (eventType || "").toUpperCase();
   if (type.includes("BILL") || type.includes("PAYMENT") || type.includes("ACCOUNTING") || type.includes("VOUCHER")) {
     return {
-      label: "FINANCE",
-      bg: "bg-emerald-50 border-emerald-200 text-emerald-800",
-      dot: "bg-emerald-600",
+      domain: "FINANCE",
+      label: "Finance",
+      bg: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      dot: "bg-emerald-500",
     };
   }
   if (type.includes("VISITOR") || type.includes("GATE") || type.includes("SECURITY") || type.includes("EMERGENCY")) {
     return {
-      label: "SECURITY",
-      bg: "bg-rose-50 border-rose-200 text-rose-800",
-      dot: "bg-rose-600",
+      domain: "SECURITY",
+      label: "Security",
+      bg: "bg-rose-50 text-rose-700 border-rose-200",
+      dot: "bg-rose-500",
     };
   }
   if (type.includes("COMPLAINT") || type.includes("GRIEVANCE")) {
     return {
-      label: "HELPDESK",
-      bg: "bg-amber-50 border-amber-200 text-amber-800",
-      dot: "bg-amber-600",
+      domain: "HELPDESK",
+      label: "Helpdesk",
+      bg: "bg-amber-50 text-amber-700 border-amber-200",
+      dot: "bg-amber-500",
     };
   }
-  if (type.includes("NOTICE") || type.includes("DOCUMENT") || type.includes("VAULT")) {
+  if (type.includes("UNIT") || type.includes("MEMBER") || type.includes("OCCUPANCY") || type.includes("BUILDING")) {
     return {
-      label: "STATUTORY",
-      bg: "bg-blue-50 border-blue-200 text-blue-800",
-      dot: "bg-blue-600",
+      domain: "RESIDENTS",
+      label: "Residents",
+      bg: "bg-blue-50 text-blue-700 border-blue-200",
+      dot: "bg-blue-500",
     };
   }
-  if (type.includes("AMENITY") || type.includes("POLL") || type.includes("EVENT")) {
+  if (type.includes("AMENITY") || type.includes("EVENT") || type.includes("POLL") || type.includes("NOTICE")) {
     return {
-      label: "COMMUNITY",
-      bg: "bg-purple-50 border-purple-200 text-purple-800",
-      dot: "bg-purple-600",
+      domain: "COMMUNITY",
+      label: "Community",
+      bg: "bg-purple-50 text-purple-700 border-purple-200",
+      dot: "bg-purple-500",
     };
   }
   return {
-    label: "GOVERNANCE",
-    bg: "bg-indigo-50 border-indigo-200 text-[#070235]",
-    dot: "bg-[#070235]",
+    domain: "GOVERNANCE",
+    label: "Governance",
+    bg: "bg-slate-100 text-slate-700 border-slate-200",
+    dot: "bg-slate-500",
   };
 }
 
 export default function AuditPage() {
-  const { activeSocietyId, isLoadingTenant } = useTenant();
+  const { activeSocietyId } = useTenant();
   const { canAccessModule } = usePermission();
   const canAccessAudit = canAccessModule("audit");
 
-  // Primary data state
   const [logs, setLogs] = useState<AuditLogResponse[]>([]);
   const [selectedLog, setSelectedLog] = useState<AuditLogResponse | null>(null);
-  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination state (0-indexed for Spring Data pageable)
+  // Pagination
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Multi-criteria filter state
+  // Filters
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [selectedAction, setSelectedAction] = useState("ALL");
   const [dateRange, setDateRange] = useState("ALL");
 
-  // Interaction feedback state
+  // Routine login suppressor (prevents screen flooding by SOCIETY_CONTEXT_SELECTED)
+  const [hideRoutineLogins, setHideRoutineLogins] = useState(true);
+
+  // Clipboard feedback
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [isVerifyingLedger, setIsVerifyingLedger] = useState(false);
-  const [verificationBanner, setVerificationBanner] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, key: string) => {
     if (!navigator?.clipboard) return;
@@ -159,7 +214,6 @@ export default function AuditPage() {
     setTimeout(() => setCopiedKey(null), 1800);
   };
 
-  // Build dateFrom / dateTo query parameters based on preset
   const getDateRangeParams = useCallback(() => {
     const now = new Date();
     if (dateRange === "TODAY") {
@@ -181,86 +235,9 @@ export default function AuditPage() {
     if (!activeSocietyId || !canAccessAudit) return;
     setIsLoading(true);
     setError(null);
-    setLogs([]);
-    setSelectedLog(null);
 
-    try {
-      const dateParams = getDateRangeParams();
-      const params: any = {
-        page,
-        size: pageSize,
-        ...dateParams,
-      };
-
-      if (selectedAction !== "ALL") {
-        params.action = selectedAction;
-      }
-
-      // If user selected a specific singular event type, pass it
-      if (selectedCategory !== "ALL" && !selectedCategory.includes("_")) {
-        params.eventType = selectedCategory;
-      }
-
-      const res = await endpoints.audit.getLogs(params);
-
-      // Handle Spring Data Page or raw array
-      const items: AuditLogResponse[] = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.content)
-        ? res.content
-        : [];
-
-      const total =
-        typeof res?.totalElements === "number"
-          ? res.totalElements
-          : typeof (res as any)?.meta?.totalElements === "number"
-          ? (res as any).meta.totalElements
-          : items.length;
-
-      const pages =
-        typeof res?.totalPages === "number"
-          ? res.totalPages
-          : typeof (res as any)?.meta?.totalPages === "number"
-          ? (res as any).meta.totalPages
-          : Math.ceil(total / pageSize) || 1;
-
-      const activeItems = items;
-      setLogs(activeItems);
-      setTotalElements(total);
-      setTotalPages(pages);
-
-      // Maintain selection or select first entry
-      if (activeItems.length > 0) {
-        setSelectedLog((prev) => {
-          if (!prev) return activeItems[0];
-          const exists = activeItems.find((i) => i.id === prev.id);
-          return exists || activeItems[0];
-        });
-      } else {
-        setSelectedLog(null);
-      }
-    } catch (err: any) {
-      console.error("Failed to load audit logs:", err);
-      setLogs([]);
-      setSelectedLog(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeSocietyId, canAccessAudit, page, pageSize, selectedAction, selectedCategory, getDateRangeParams]);
-
-  useEffect(() => {
-    if (!canAccessAudit || !activeSocietyId) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    const runFetch = async () => {
-      setIsLoading(true);
-      setError(null);
-      setLogs([]);
-      setSelectedLog(null);
-
+    let attempt = 0;
+    while (attempt < 2) {
       try {
         const dateParams = getDateRangeParams();
         const params: any = {
@@ -273,13 +250,7 @@ export default function AuditPage() {
           params.action = selectedAction;
         }
 
-        if (selectedCategory !== "ALL" && !selectedCategory.includes("_")) {
-          params.eventType = selectedCategory;
-        }
-
         const res = await endpoints.audit.getLogs(params);
-        if (isCancelled) return;
-
         const items: AuditLogResponse[] = Array.isArray(res)
           ? res
           : Array.isArray(res?.content)
@@ -300,127 +271,101 @@ export default function AuditPage() {
             ? (res as any).meta.totalPages
             : Math.ceil(total / pageSize) || 1;
 
-        const activeItems = items;
-        setLogs(activeItems);
+        setLogs(items);
         setTotalElements(total);
         setTotalPages(pages);
-
-        if (activeItems.length > 0) {
-          setSelectedLog((prev) => {
-            if (!prev) return activeItems[0];
-            const exists = activeItems.find((i) => i.id === prev.id);
-            return exists || activeItems[0];
-          });
-        } else {
-          setSelectedLog(null);
-        }
+        setError(null);
+        break;
       } catch (err: any) {
-        if (!isCancelled) {
-          console.error("Failed to load audit logs:", err);
+        attempt++;
+        if (attempt >= 2) {
+          setError(err?.detail || err?.message || "Unable to load society audit events.");
           setLogs([]);
-          setSelectedLog(null);
+        } else {
+          await new Promise((r) => setTimeout(r, 600));
         }
       } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
-    };
+    }
+  }, [activeSocietyId, canAccessAudit, page, pageSize, selectedAction, getDateRangeParams]);
 
-    runFetch();
+  useEffect(() => {
+    fetchAuditLogs();
+  }, [fetchAuditLogs]);
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [canAccessAudit, activeSocietyId, page, pageSize, selectedAction, selectedCategory, dateRange, getDateRangeParams]);
-
-  // Client-side instant filter on current page items
+  // Client-side filtering on current dataset
   const filteredLogs = useMemo(() => {
     return logs.filter((l: any) => {
-      // 1. Keyword search
+      const eventType = (l.eventType || "").toUpperCase();
+      const action = (l.action || "").toUpperCase();
+
+      // 1. Exclude routine logins if toggle is active
+      if (hideRoutineLogins) {
+        if (eventType === "SOCIETY_CONTEXT_SELECTED" || eventType === "MEMBERSHIP_VIEWED" || action === "SELECT_CONTEXT") {
+          return false;
+        }
+      }
+
+      // 2. Keyword search
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const matchesSearch =
           l.eventType?.toLowerCase().includes(q) ||
+          formatEventTitle(l.eventType).toLowerCase().includes(q) ||
           (l.userName || l.actorName)?.toLowerCase().includes(q) ||
           (l.metadata || l.description || l.action)?.toLowerCase().includes(q) ||
           l.resource?.toLowerCase().includes(q) ||
-          l.ipAddress?.includes(q) ||
           l.id?.toLowerCase().includes(q);
         if (!matchesSearch) return false;
       }
 
-      // 2. Category group filter
+      // 3. Category group filter
       if (selectedCategory !== "ALL") {
-        const type = (l.eventType || "").toUpperCase();
-        if (selectedCategory === "SOCIETY_AUTH") {
-          return type.includes("SOCIETY") || type.includes("MEMBERSHIP") || type.includes("ROLE") || type.includes("PERMISSION");
-        }
-        if (selectedCategory === "FINANCE") {
-          return type.includes("BILL") || type.includes("PAYMENT") || type.includes("ACCOUNTING") || type.includes("VOUCHER");
-        }
-        if (selectedCategory === "SECURITY") {
-          return type.includes("VISITOR") || type.includes("GATE") || type.includes("SECURITY") || type.includes("EMERGENCY");
-        }
-        if (selectedCategory === "COMPLAINT") {
-          return type.includes("COMPLAINT") || type.includes("GRIEVANCE");
-        }
-        if (selectedCategory === "DOCUMENT") {
-          return type.includes("DOCUMENT") || type.includes("VAULT");
-        }
-        if (selectedCategory === "AMENITY") {
-          return type.includes("AMENITY");
-        }
-        if (selectedCategory === "NOTICE") {
-          return type.includes("NOTICE");
-        }
+        const badge = getDomainBadge(eventType);
+        if (badge.domain !== selectedCategory) return false;
       }
 
       return true;
     });
-  }, [logs, search, selectedCategory]);
+  }, [logs, search, selectedCategory, hideRoutineLogins]);
 
-  if (isLoadingTenant) {
-    return (
-      <div className="space-y-6">
-        <div className="h-8 w-64 bg-slate-200 animate-pulse rounded-lg" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-28 bg-slate-100 animate-pulse rounded-xl" />
-          ))}
-        </div>
-        <div className="h-96 bg-slate-100 animate-pulse rounded-xl" />
-      </div>
-    );
-  }
+  const routineLoginsCount = useMemo(() => {
+    return logs.filter((l: any) => {
+      const type = (l.eventType || "").toUpperCase();
+      const action = (l.action || "").toUpperCase();
+      return type === "SOCIETY_CONTEXT_SELECTED" || type === "MEMBERSHIP_VIEWED" || action === "SELECT_CONTEXT";
+    }).length;
+  }, [logs]);
 
-  if (!canAccessAudit) {
-    return (
-      <AccessDenied message="Audit logs are strictly restricted to Society Administrators and Authorized Statutory Auditors." />
-    );
-  }
+  // Metrics counts
+  const financialCount = useMemo(() => {
+    return logs.filter((l: any) => {
+      const t = (l.eventType || "").toUpperCase();
+      return t.includes("BILL") || t.includes("PAYMENT") || t.includes("ACCOUNTING");
+    }).length;
+  }, [logs]);
 
-  // Handle Verify Ledger Integrity
-  const handleVerifyLedger = () => {
-    setIsVerifyingLedger(true);
-    setTimeout(() => {
-      setIsVerifyingLedger(false);
-      setVerificationBanner(
-        `SHA-256 Ledger Verified: All ${filteredLogs.length} current block transactions cryptographically chained with 0 tamper alerts.`
-      );
-    }, 700);
-  };
+  const residentCount = useMemo(() => {
+    return logs.filter((l: any) => {
+      const t = (l.eventType || "").toUpperCase();
+      return t.includes("MEMBER") || t.includes("UNIT") || t.includes("OCCUPANCY");
+    }).length;
+  }, [logs]);
 
-  // Handle Full Server-Side CSV Export
+  const securityCount = useMemo(() => {
+    return logs.filter((l: any) => {
+      const t = (l.eventType || "").toUpperCase();
+      return t.includes("VISITOR") || t.includes("GATE") || t.includes("SECURITY");
+    }).length;
+  }, [logs]);
+
   const handleExportCsv = async () => {
     setIsExporting(true);
     try {
       const dateParams = getDateRangeParams();
-      const exportFilters: any = {
-        ...dateParams,
-      };
+      const exportFilters: any = { ...dateParams };
       if (selectedAction !== "ALL") exportFilters.action = selectedAction;
-      if (selectedCategory !== "ALL" && !selectedCategory.includes("_")) exportFilters.eventType = selectedCategory;
 
       const blob = await endpoints.audit.exportLogs(exportFilters);
       const url = URL.createObjectURL(blob);
@@ -428,27 +373,26 @@ export default function AuditPage() {
       link.setAttribute("href", url);
       link.setAttribute(
         "download",
-        `audit_events_export_${activeSocietyId || "society"}_${new Date().toISOString().split("T")[0]}.csv`
+        `society_audit_log_${activeSocietyId || "society"}_${new Date().toISOString().split("T")[0]}.csv`
       );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (err: any) {
-      console.warn("Server streaming export unavailable, falling back to active journal dataset:", err);
-      // Client-side fallback for active records
-      if (logs.length > 0) {
-        const header = "Audit ID,Event Type,Timestamp,Actor User ID,Actor Name,Resource,Resource ID,Action,IP Address,User Agent,Metadata\n";
-        const rows = logs
+    } catch {
+      // Clean fallback export using active table items
+      if (filteredLogs.length > 0) {
+        const header = "Date & Time,Activity,Category,Actor,Resource,Action,Description,IP Address\n";
+        const rows = filteredLogs
           .map((l: any) =>
-            `"${l.id}","${l.eventType}","${l.createdAt || l.timestamp}","${l.userId || l.actorUserId || ""}","${l.userName || l.actorName || ""}","${l.resource || ""}","${l.resourceId || ""}","${l.action || ""}","${l.ipAddress || ""}","${(l.userAgent || "").replace(/"/g, '""')}","${(l.metadata || "").replace(/"/g, '""')}"`
+            `"${formatDateTime(l.createdAt || l.timestamp)}","${formatEventTitle(l.eventType)}","${getDomainBadge(l.eventType).label}","${l.userName || l.actorName || "Admin"}","${l.resource || "—"}","${l.action || "—"}","${(l.metadata || l.description || "").replace(/"/g, '""')}","${l.ipAddress || "—"}"`
           )
           .join("\n");
         const fallbackBlob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(fallbackBlob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `audit_trail_page_${page + 1}_${new Date().toISOString().split("T")[0]}.csv`);
+        link.setAttribute("download", `society_audit_log_${new Date().toISOString().split("T")[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -458,468 +402,371 @@ export default function AuditPage() {
     }
   };
 
-  const hasActiveFilters = search || selectedCategory !== "ALL" || selectedAction !== "ALL" || dateRange !== "ALL";
-
   const clearAllFilters = () => {
     setSearch("");
     setSelectedCategory("ALL");
     setSelectedAction("ALL");
     setDateRange("ALL");
+    setHideRoutineLogins(true);
     setPage(0);
   };
 
-  // Derive Dynamic Financial and Security counts
-  const financialEventsCount = logs.filter((l: any) =>
-    l.eventType?.includes("BILL") ||
-    l.eventType?.includes("PAYMENT") ||
-    l.eventType?.includes("ACCOUNTING") ||
-    l.eventType?.includes("VOUCHER")
-  ).length;
+  const hasActiveFilters = search || selectedCategory !== "ALL" || selectedAction !== "ALL" || dateRange !== "ALL" || !hideRoutineLogins;
 
-  const securityEventsCount = logs.filter((l: any) =>
-    l.eventType?.includes("VISITOR") ||
-    l.eventType?.includes("GATE") ||
-    l.eventType?.includes("SECURITY") ||
-    l.eventType?.includes("EMERGENCY")
-  ).length;
+  if (!canAccessAudit) {
+    return (
+      <AccessDenied
+        message="Only authorized Society Administrators and Compliance Officers may review statutory society activity logs."
+      />
+    );
+  }
 
-  // Table Column Definitions
   const columns: Column<AuditLogResponse>[] = [
     {
-      header: "Timestamp & Event ID",
+      header: "Date & Time",
       accessor: (l: any) => (
         <div className="flex flex-col whitespace-nowrap">
-          <span className="font-bold text-[#070235] text-xs flex items-center gap-1.5">
-            <Clock className="w-3 h-3 text-[#006a61]" />
+          <span className="font-semibold text-slate-800 text-xs flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
             {formatDateTime(l.createdAt || l.timestamp)}
           </span>
-          <span className="text-[10px] text-slate-400 font-mono mt-0.5">
-            UID: #{l.id?.substring(0, 8)}
+          <span className="text-[10px] text-slate-400 mt-0.5">
+            Ref: {l.id?.substring(0, 8)}
           </span>
         </div>
       ),
     },
     {
-      header: "Actor & Client Origin",
-      accessor: (l: any) => (
-        <div className="flex flex-col">
-          <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
-            <UserCheck className="w-3 h-3 text-slate-400" />
-            {l.userName || l.actorName || (l.userId ? `User #${l.userId.substring(0, 6)}` : "System Daemon")}
-          </span>
-          <span className="text-[10px] text-slate-400 font-mono mt-0.5">
-            {l.ipAddress || "Internal Loopback"}
-          </span>
-        </div>
-      ),
-    },
-    {
-      header: "Domain & Event Type",
+      header: "Activity & Details",
       accessor: (l: any) => {
         const badge = getDomainBadge(l.eventType);
         return (
-          <div className="flex flex-col max-w-xs">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className={`px-1.5 py-0.2 rounded border text-[9px] font-bold uppercase tracking-wider ${badge.bg}`}>
+          <div className="flex flex-col max-w-md py-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold flex items-center gap-1 ${badge.bg}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`}></span>
                 {badge.label}
               </span>
-              <span className="text-xs font-bold text-[#070235] truncate">{l.eventType}</span>
+              <span className="text-xs font-bold text-slate-900">
+                {formatEventTitle(l.eventType)}
+              </span>
             </div>
-            <span className="text-[11px] text-slate-600 truncate">
-              {l.resource ? <span className="font-semibold text-slate-700">{l.resource} • </span> : ""}
-              {l.action ? <span className="text-[#006a61] font-medium">{l.action}: </span> : ""}
-              {l.metadata || l.description || "State mutation validated"}
-            </span>
+            <p className="text-xs text-slate-600 line-clamp-1">
+              {l.metadata || l.description || "Administrative event processed"}
+            </p>
           </div>
         );
       },
     },
     {
-      header: "Cryptographic Hash",
+      header: "Performed By",
       accessor: (l: any) => {
-        const hash = generateDeterministicHash(l.id, l.createdAt || l.timestamp, l.eventType);
+        const actorName = l.userName || l.actorName || "Society Admin";
+        const initials = actorName
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .substring(0, 2)
+          .toUpperCase() || "SA";
+
         return (
-          <div className="flex items-center gap-1.5">
-            <div className="font-mono text-[10px] text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-200/80 shadow-xs max-w-[130px] truncate">
-              SHA256:{hash}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-700 shrink-0">
+              {initials}
             </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                copyToClipboard(hash, `hash-${l.id}`);
-              }}
-              title="Copy SHA-256 Hash"
-              className="p-1 rounded text-slate-400 hover:text-[#070235] hover:bg-slate-100 transition-colors"
-            >
-              {copiedKey === `hash-${l.id}` ? (
-                <Check className="w-3 h-3 text-emerald-600" />
-              ) : (
-                <Copy className="w-3 h-3" />
-              )}
-            </button>
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-slate-900 leading-tight">
+                {actorName}
+              </span>
+              <span className="text-[10px] text-slate-400">
+                {l.ipAddress || "Web Portal"}
+              </span>
+            </div>
           </div>
         );
       },
     },
     {
-      header: "Verification",
-      className: "text-right",
-      accessor: (l: any) => {
-        const isSelected = selectedLog?.id === l.id;
-        return (
-          <div className="flex items-center justify-end gap-2">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200/60 text-[#006a61] text-[10px] font-bold">
-              <CheckCircle2 className="w-3 h-3 text-[#006a61]" />
-              Anchored
+      header: "Resource",
+      accessor: (l: any) => (
+        <div className="flex flex-col">
+          <span className="text-xs font-medium text-slate-800 capitalize">
+            {l.resource || "Society"}
+          </span>
+          {l.resourceId && l.resourceId !== activeSocietyId && (
+            <span className="text-[10px] text-slate-400 font-mono">
+              #{l.resourceId.substring(0, 8)}
             </span>
-            {isSelected && (
-              <span className="w-2 h-2 rounded-full bg-[#070235] animate-pulse" title="Currently Selected" />
-            )}
-          </div>
-        );
-      },
+          )}
+        </div>
+      ),
     },
     {
       header: "Action",
-      className: "text-center",
       accessor: (l: any) => (
-        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedLog(l);
-              setIsAuditModalOpen(true);
-            }}
-            className="p-1 rounded text-slate-400 hover:text-[#070235] hover:bg-slate-100 transition-colors"
-            title="Inspect Audit Event Dossier"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-        </div>
+        <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-semibold uppercase tracking-wider">
+          {l.action || "EVENT"}
+        </span>
+      ),
+    },
+    {
+      header: "",
+      accessor: (l: any) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedLog(l);
+            setIsDetailModalOpen(true);
+          }}
+          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#006a61] hover:bg-teal-50 border border-transparent hover:border-teal-200 transition-colors flex items-center gap-1"
+        >
+          <Eye className="w-3.5 h-3.5" />
+          <span>Details</span>
+        </button>
       ),
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-500 uppercase tracking-wider font-semibold">
-        <span>Data &amp; Governance</span>
-        <span>&rsaquo;</span>
-        <span>Security &amp; Audit</span>
-        <span>&rsaquo;</span>
-        <span className="text-[#070235] font-bold">Statutory Society Event Journal</span>
-      </div>
-
-      {/* Header & Main Actions */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-        <div className="max-w-3xl">
-          <div className="flex items-center gap-2.5 mb-1.5">
-            <h1 className="text-2xl font-bold tracking-tight text-[#070235]">
-              Comprehensive Society Audit Trail Log
+      {/* Page Title & Main Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Society Activity &amp; Audit Log
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-bold flex items-center gap-1.5 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#006a61] animate-pulse"></span>
-              Ledger Chained
+            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+              Verified &amp; Immutable
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Immutable, cryptographically anchored audit journal capturing administrative actions, financial vouchers,
-            gate entries, role privilege changes, and statutory registrar governance records.
+          <p className="text-xs sm:text-sm text-slate-500">
+            Official record of administrative actions, billing updates, resident changes, and security events.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={handleVerifyLedger}
-            disabled={isVerifyingLedger}
-            className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all disabled:opacity-60"
+            onClick={fetchAuditLogs}
+            disabled={isLoading}
+            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-xs transition-colors"
+            title="Refresh Log"
           >
-            <ShieldCheck className={`w-4 h-4 text-[#006a61] ${isVerifyingLedger ? "animate-spin" : ""}`} />
-            <span>{isVerifyingLedger ? "Verifying Block..." : "Verify SHA-256 Ledger"}</span>
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
           </button>
 
           <button
             type="button"
             onClick={handleExportCsv}
-            disabled={isExporting}
-            className="px-4 py-2 rounded-xl bg-[#070235] hover:bg-[#1e1b4b] text-white text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all disabled:opacity-60"
+            disabled={isExporting || logs.length === 0}
+            className="px-3.5 py-2 rounded-xl bg-[#070235] hover:bg-[#150d4d] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
           >
-            <Download className={`w-4 h-4 ${isExporting ? "animate-bounce" : ""}`} />
-            <span>{isExporting ? "Streaming CSV Export..." : "Export Audit Trail (CSV)"}</span>
+            <Download className="w-4 h-4" />
+            <span>{isExporting ? "Exporting..." : "Export Log (CSV)"}</span>
           </button>
         </div>
       </div>
 
-      {/* Cryptographic Verification Banner */}
-      {verificationBanner && (
-        <div className="p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-[#006a61] text-xs font-semibold flex items-center justify-between shadow-xs animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#006a61] shrink-0" />
-            <span>{verificationBanner}</span>
+      {/* KPI Overview Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Activities</span>
+            <FileText className="w-4 h-4 text-[#006a61]" />
           </div>
-          <button
-            type="button"
-            onClick={() => setVerificationBanner(null)}
-            className="text-xs underline hover:text-teal-900 font-bold"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* Overview KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Events */}
-        <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-100 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#006a61]"></div>
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] uppercase tracking-wider font-bold">Total Logged Events</span>
-            <Database className="w-4 h-4 text-[#006a61]" />
+          <div className="text-2xl font-bold text-slate-900">
+            {totalElements > 0 ? totalElements.toLocaleString() : logs.length}
           </div>
-          <div>
-            <div className="text-2xl font-bold text-[#070235] tracking-tight">
-              {totalElements > 0 ? totalElements.toLocaleString() : logs.length}
-            </div>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-              <span>Immutable Records</span>
-              <span className="font-semibold text-[#006a61] flex items-center gap-0.5">
-                <Lock className="w-3 h-3" /> Synchronized
-              </span>
-            </div>
-          </div>
+          <span className="text-[11px] text-slate-400 mt-1">Society Journal Entries</span>
         </div>
 
-        {/* Card 2: Financial Mutations */}
-        <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-100 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#070235]"></div>
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] uppercase tracking-wider font-bold">Financial Mutations</span>
-            <FileCheck className="w-4 h-4 text-[#070235]" />
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Finance &amp; Bills</span>
+            <Receipt className="w-4 h-4 text-emerald-600" />
           </div>
-          <div>
-            <div className="text-2xl font-bold text-[#070235] tracking-tight">
-              {financialEventsCount > 0 ? financialEventsCount : "Active"}
-            </div>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-              <span>Billing &amp; Ledger</span>
-              <span className="px-1.5 py-0.2 rounded bg-indigo-50 text-[#070235] font-bold text-[10px]">
-                Double-Entry
-              </span>
-            </div>
+          <div className="text-2xl font-bold text-emerald-700">
+            {financialCount}
           </div>
+          <span className="text-[11px] text-slate-400 mt-1">Bills &amp; Payment Records</span>
         </div>
 
-        {/* Card 3: Security & Perimeter Overrides */}
-        <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-100 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-rose-600"></div>
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] uppercase tracking-wider font-bold">Security Overrides</span>
-            <AlertTriangle className="w-4 h-4 text-rose-600" />
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Residents &amp; Units</span>
+            <Users className="w-4 h-4 text-blue-600" />
           </div>
-          <div>
-            <div className="text-2xl font-bold text-rose-600 tracking-tight">
-              {securityEventsCount > 0 ? securityEventsCount : "Monitored"}
-            </div>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-              <span>Perimeter Passes</span>
-              <span className="font-semibold text-rose-700">Audit-Locked</span>
-            </div>
+          <div className="text-2xl font-bold text-blue-700">
+            {residentCount}
           </div>
+          <span className="text-[11px] text-slate-400 mt-1">Member &amp; Flat Changes</span>
         </div>
 
-        {/* Card 4: Access Integrity & Cryptographic Proof */}
-        <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-100 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#006a61]"></div>
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] uppercase tracking-wider font-bold">Access Integrity</span>
-            <ShieldCheck className="w-4 h-4 text-[#006a61]" />
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Security &amp; Gate</span>
+            <Shield className="w-4 h-4 text-rose-600" />
           </div>
-          <div>
-            <div className="text-2xl font-bold text-[#006a61] tracking-tight">100.0%</div>
-            <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-              <span>Tenant Isolation</span>
-              <span className="font-semibold text-[#006a61]">0 Tamper Alerts</span>
-            </div>
+          <div className="text-2xl font-bold text-rose-700">
+            {securityCount}
           </div>
+          <span className="text-[11px] text-slate-400 mt-1">Visitor &amp; Access Events</span>
         </div>
       </div>
 
-      {/* Multi-Criteria Filter & Search Toolbar */}
-      <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-100 flex flex-col gap-3">
-        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
-          {/* Search Field */}
-          <div className="w-full lg:w-80 relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+      {/* Filter Toolbar */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by actor, action, resource, IP..."
-              className="w-full h-9 pl-9 pr-3 rounded-lg bg-slate-50 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:ring-1 focus:ring-[#070235] border border-slate-200 transition-all font-medium"
+              placeholder="Search by activity, member name, flat, or action..."
+              className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#006a61]/20 focus:border-[#006a61]"
             />
           </div>
 
-          {/* Dropdown Filters */}
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {/* Category Dropdown */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
-                setPage(0);
-              }}
-              className="h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 outline-none focus:ring-1 focus:ring-[#070235]"
-            >
-              {EVENT_CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+          {/* Category Dropdown */}
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium focus:outline-none focus:border-[#006a61]"
+          >
+            {DOMAIN_CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
 
-            {/* Action Dropdown */}
-            <select
-              value={selectedAction}
-              onChange={(e) => {
-                setSelectedAction(e.target.value);
-                setPage(0);
-              }}
-              className="h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 outline-none focus:ring-1 focus:ring-[#070235]"
-            >
-              {ACTION_FILTERS.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.label}
-                </option>
-              ))}
-            </select>
+          {/* Action Dropdown */}
+          <select
+            value={selectedAction}
+            onChange={(e) => setSelectedAction(e.target.value)}
+            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium focus:outline-none focus:border-[#006a61]"
+          >
+            {ACTION_FILTERS.map((a) => (
+              <option key={a.id} value={a.id}>{a.label}</option>
+            ))}
+          </select>
 
-            {/* Date Range Preset */}
-            <select
-              value={dateRange}
-              onChange={(e) => {
-                setDateRange(e.target.value);
-                setPage(0);
-              }}
-              className="h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 outline-none focus:ring-1 focus:ring-[#070235]"
-            >
-              {DATE_PRESETS.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-
-            {/* Reset Filters */}
-            {hasActiveFilters && (
+          {/* Time Preset Buttons */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg shrink-0">
+            {DATE_PRESETS.map((p) => (
               <button
+                key={p.id}
                 type="button"
-                onClick={clearAllFilters}
-                className="h-9 px-2.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-rose-200 flex items-center gap-1 font-semibold transition-colors"
-                title="Clear Filters"
+                onClick={() => setDateRange(p.id)}
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors ${
+                  dateRange === p.id
+                    ? "bg-white text-slate-900 shadow-xs"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
               >
-                <X className="w-3.5 h-3.5" />
-                <span>Reset</span>
+                {p.label}
               </button>
-            )}
+            ))}
+          </div>
 
-            {/* Refresh Button */}
+          {hasActiveFilters && (
             <button
               type="button"
-              onClick={fetchAuditLogs}
-              disabled={isLoading}
-              className="h-9 px-3 flex items-center gap-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition-colors disabled:opacity-50"
+              onClick={clearAllFilters}
+              className="text-xs font-semibold text-rose-600 hover:text-rose-700 px-2 py-1 shrink-0 flex items-center gap-1"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-              <span>Refresh</span>
+              <X className="w-3.5 h-3.5" />
+              <span>Reset</span>
             </button>
-          </div>
+          )}
         </div>
 
-        {/* Quick Domain Filter Chips */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100">
-          <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
-            <Filter className="w-3 h-3" /> Quick Domains:
+        {/* Noise Suppression & Visibility Toggle */}
+        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600">
+            <input
+              type="checkbox"
+              checked={hideRoutineLogins}
+              onChange={(e) => setHideRoutineLogins(e.target.checked)}
+              className="w-4 h-4 rounded text-[#006a61] border-slate-300 focus:ring-[#006a61]"
+            />
+            <span className="font-medium">
+              Hide routine session logins ({routineLoginsCount} entries hidden)
+            </span>
+          </label>
+
+          <span className="text-[11px] text-slate-400">
+            Showing {filteredLogs.length} matching events
           </span>
-          {EVENT_CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => {
-                setSelectedCategory(cat.id);
-                setPage(0);
-              }}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                selectedCategory === cat.id
-                  ? "bg-[#070235] text-white shadow-xs"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
         </div>
       </div>
 
-      {/* Main Content Layout: Master Ledger Table + Forensic Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Master Audit Timeline Table (8 Columns) */}
-        <div className="lg:col-span-8 bg-white rounded-xl shadow-xs border border-slate-100 overflow-hidden flex flex-col">
-          {/* Table Header Bar */}
-          <div className="px-4 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#070235]" />
-              <span className="text-xs font-bold text-[#070235]">Statutory Society Ledger</span>
-              <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-bold">
-                {filteredLogs.length} of {totalElements || logs.length} Events
-              </span>
-            </div>
-
-            <div className="text-[11px] text-slate-500 font-medium hidden sm:block">
-              Click any row to inspect tamper-evident metadata
-            </div>
+      {/* Routine Logins Filter Notice */}
+      {hideRoutineLogins && routineLoginsCount > 0 && (
+        <div className="px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Info className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>
+              Showing operational activities only. {routineLoginsCount} routine session logins are hidden from this view.
+            </span>
           </div>
+          <button
+            type="button"
+            onClick={() => setHideRoutineLogins(false)}
+            className="text-xs font-semibold text-[#006a61] hover:underline shrink-0"
+          >
+            Show All Logins
+          </button>
+        </div>
+      )}
 
-          {/* Table Body */}
-          {error ? (
-            <ErrorState message={error} onRetry={fetchAuditLogs} />
-          ) : (
-            <Table
-              columns={columns}
-              data={filteredLogs}
-              keyExtractor={(l) => l.id}
-              isLoading={isLoading}
-              onRowClick={(log) => setSelectedLog(log)}
-              emptyMessage={
-                hasActiveFilters
-                  ? "No audit events match your selected filters. Try broadening your criteria."
-                  : "No audit log entries recorded for this society tenant."
-              }
-            />
-          )}
+      {error ? (
+        <ErrorState
+          title="Audit Log Service Interruption"
+          message={error}
+          onRetry={fetchAuditLogs}
+        />
+      ) : (
+        /* Full-Width Activity Table */
+        <div className="space-y-4">
+          <Table
+            columns={columns}
+            data={filteredLogs}
+            keyExtractor={(l) => l.id}
+            isLoading={isLoading}
+            emptyMessage={
+              hasActiveFilters
+                ? "No audit records match the selected filters."
+                : "No society activity has been recorded yet."
+            }
+            onRowClick={(l) => {
+              setSelectedLog(l);
+              setIsDetailModalOpen(true);
+            }}
+          />
 
-          {/* Server-Side Pagination Bar */}
-          <div className="p-3.5 bg-slate-50/80 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <div className="text-slate-600 font-medium">
+          {/* Pagination Bar */}
+          <div className="p-4 bg-white rounded-xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="text-slate-600">
               Showing{" "}
-              <span className="font-bold text-[#070235]">
+              <span className="font-bold text-slate-900">
                 {totalElements === 0 ? 0 : page * pageSize + 1}
               </span>{" "}
               to{" "}
-              <span className="font-bold text-[#070235]">
+              <span className="font-bold text-slate-900">
                 {Math.min((page + 1) * pageSize, totalElements || logs.length)}
               </span>{" "}
               of{" "}
-              <span className="font-bold text-[#070235]">
+              <span className="font-bold text-slate-900">
                 {(totalElements || logs.length).toLocaleString()}
               </span>{" "}
               recorded events
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Page Size Selector */}
               <div className="flex items-center gap-1.5 text-slate-500">
                 <span>Per Page:</span>
                 <select
@@ -928,7 +775,7 @@ export default function AuditPage() {
                     setPageSize(Number(e.target.value));
                     setPage(0);
                   }}
-                  className="h-8 px-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 outline-none"
+                  className="h-8 px-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 outline-none"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -937,27 +784,26 @@ export default function AuditPage() {
                 </select>
               </div>
 
-              {/* Prev / Next Page Buttons */}
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   disabled={page <= 0 || isLoading}
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  className="h-8 px-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold flex items-center gap-1 disabled:opacity-40 transition-colors"
+                  className="h-8 px-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold flex items-center gap-1 disabled:opacity-40 transition-colors"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                   <span>Prev</span>
                 </button>
 
-                <div className="px-2 text-xs font-bold text-[#070235]">
+                <span className="px-2 font-semibold text-slate-800">
                   Page {page + 1} of {Math.max(1, totalPages)}
-                </div>
+                </span>
 
                 <button
                   type="button"
                   disabled={page + 1 >= totalPages || isLoading}
                   onClick={() => setPage((p) => p + 1)}
-                  className="h-8 px-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold flex items-center gap-1 disabled:opacity-40 transition-colors"
+                  className="h-8 px-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold flex items-center gap-1 disabled:opacity-40 transition-colors"
                 >
                   <span>Next</span>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -966,229 +812,104 @@ export default function AuditPage() {
             </div>
           </div>
         </div>
+      )}
 
-        {/* Right Column: Forensic Event Inspector (4 Columns) */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
-          <div className="bg-white rounded-xl shadow-xs border border-slate-100 p-4 flex flex-col gap-3 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#070235]"></div>
-
-            {/* Inspector Header */}
-            <div className="flex items-center justify-between pt-1">
-              <div className="flex items-center gap-1.5">
-                <Terminal className="w-4 h-4 text-[#070235]" />
-                <h3 className="text-xs font-bold text-[#070235] uppercase tracking-wider">
-                  Forensic Event Inspector
-                </h3>
+      {/* Clean Activity Detail Modal */}
+      {selectedLog && (
+        <Modal
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          title="Society Activity Details"
+          description={`Recorded on ${formatDateTime(selectedLog.createdAt || selectedLog.timestamp)}`}
+          maxWidth="lg"
+        >
+          <div className="space-y-4 pt-1">
+            {/* Event Header Banner */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
+                  Activity
+                </span>
+                <span className="text-sm font-bold text-slate-900">
+                  {formatEventTitle(selectedLog.eventType)}
+                </span>
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-[#006a61] text-[10px] font-bold">
-                Tamper-Evident
-              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${getDomainBadge(selectedLog.eventType).bg}`}>
+                  {getDomainBadge(selectedLog.eventType).label}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-bold uppercase">
+                  {selectedLog.action || "EVENT"}
+                </span>
+              </div>
             </div>
 
-            {selectedLog ? (
-              <div className="flex flex-col gap-3">
-                {/* Event Dossier Box */}
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex flex-col gap-2.5 text-xs">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400">Event Signature</span>
-                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <p className="font-bold text-[#070235] text-sm break-all">{selectedLog.eventType}</p>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#070235] text-white shrink-0">
-                        {selectedLog.action || "EVENT"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Primary UUID with Copy */}
-                  <div className="pt-2 border-t border-slate-200/60">
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">
-                      Canonical Event ID
-                    </span>
-                    <div className="flex items-center justify-between gap-1.5 mt-0.5">
-                      <span className="font-mono text-[11px] text-slate-800 break-all">{selectedLog.id}</span>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(selectedLog.id, "id")}
-                        className="p-1 rounded text-slate-400 hover:text-[#070235] hover:bg-slate-200 transition-colors shrink-0"
-                        title="Copy Event ID"
-                      >
-                        {copiedKey === "id" ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Actor & Tenant Grid */}
-                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-2 border-t border-slate-200/60">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold">Actor Identity</span>
-                      <span className="font-bold text-slate-800 block">
-                        {selectedLog.userName || selectedLog.actorName || "Admin Alpha"}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400 truncate block">
-                        {selectedLog.userId || selectedLog.actorUserId || "Platform UID"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold">Society Tenant</span>
-                      <span className="font-bold text-slate-800 block">
-                        {activeSocietyId || selectedLog.societyId || "EH_001"}
-                      </span>
-                      <span className="text-[10px] text-emerald-700 font-semibold block">Isolated Boundary</span>
-                    </div>
-                  </div>
-
-                  {/* Client IP & Request Correlation */}
-                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-2 border-t border-slate-200/60">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold">IP Address</span>
-                      <span className="font-mono text-slate-700 block">
-                        {selectedLog.ipAddress || "127.0.0.1"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold">Target Entity</span>
-                      <span className="font-mono text-slate-700 block truncate">
-                        {selectedLog.resource || selectedLog.targetEntity || "General Ledger"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Correlation ID */}
-                  <div className="pt-2 border-t border-slate-200/60">
-                    <span className="text-[10px] text-slate-400 block font-semibold">
-                      HTTP Request Correlation
-                    </span>
-                    <span className="font-mono text-slate-600 text-[10px] block break-all">
-                      req-{selectedLog.id}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Human-Readable Description / Metadata */}
-                {(selectedLog.metadata || selectedLog.description) && (
-                  <div className="p-3 rounded-lg bg-blue-50/60 border border-blue-200/60 text-xs">
-                    <span className="text-[10px] uppercase font-bold text-blue-900 block mb-1">
-                      Event Summary Details
-                    </span>
-                    <p className="text-slate-800 leading-relaxed font-medium">
-                      {selectedLog.metadata || selectedLog.description}
-                    </p>
-                  </div>
-                )}
-
-                {/* Raw JSON Payload Inspector */}
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400">
-                    <span>Immutable Payload Metadata</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(JSON.stringify(selectedLog, null, 2), "json")}
-                      className="text-xs text-[#006a61] hover:underline flex items-center gap-1 font-semibold"
-                    >
-                      {copiedKey === "json" ? (
-                        <>
-                          <Check className="w-3 h-3 text-emerald-600" />
-                          <span>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3" />
-                          <span>Copy Raw JSON</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  <pre className="p-3 rounded-xl bg-[#070235] text-indigo-200 text-[10px] font-mono overflow-x-auto max-h-56 leading-relaxed shadow-inner border border-slate-800">
-                    {JSON.stringify(selectedLog, null, 2)}
-                  </pre>
-                </div>
+            {/* Key Information Grid */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-lg border border-slate-200/70 bg-white">
+                <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-0.5">
+                  Performed By
+                </span>
+                <span className="font-bold text-slate-900 block">
+                  {selectedLog.userName || selectedLog.actorName || "Society Admin"}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">
+                  IP: {selectedLog.ipAddress || "Web Portal"}
+                </span>
               </div>
-            ) : (
-              <div className="py-12 flex flex-col items-center justify-center text-center text-slate-400">
-                <Terminal className="w-8 h-8 mb-2 opacity-50" />
-                <p className="text-xs font-semibold">No event selected</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Click any row in the ledger to view forensic trace</p>
+
+              <div className="p-3 rounded-lg border border-slate-200/70 bg-white">
+                <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-0.5">
+                  Target Resource
+                </span>
+                <span className="font-bold text-slate-900 block capitalize">
+                  {selectedLog.resource || "Society"}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono truncate block">
+                  {selectedLog.resourceId || "Society Workspace"}
+                </span>
               </div>
-            )}
+            </div>
+
+            {/* Description / Summary */}
+            <div className="p-3 rounded-lg border border-slate-200/70 bg-white space-y-1">
+              <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+                Activity Summary
+              </span>
+              <p className="text-xs text-slate-800 leading-relaxed">
+                {selectedLog.metadata || selectedLog.description || "State transition recorded and verified."}
+              </p>
+            </div>
+
+            {/* Technical Metadata (Collapsible) */}
+            <details className="group border border-slate-200 rounded-lg p-3 text-xs bg-slate-50/50">
+              <summary className="font-semibold text-slate-600 cursor-pointer flex items-center justify-between select-none">
+                <span>Technical Metadata &amp; JSON Payload</span>
+                <span className="text-[10px] text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <div className="mt-3 space-y-2">
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(JSON.stringify(selectedLog, null, 2), "payload")}
+                    className="px-2 py-1 rounded bg-white border border-slate-200 hover:bg-slate-50 text-[11px] font-semibold text-slate-700 flex items-center gap-1"
+                  >
+                    {copiedKey === "payload" ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                    <span>{copiedKey === "payload" ? "Copied" : "Copy JSON"}</span>
+                  </button>
+                </div>
+                <pre className="p-2.5 rounded bg-slate-900 text-slate-100 text-[11px] font-mono overflow-x-auto max-h-48">
+                  {JSON.stringify(selectedLog, null, 2)}
+                </pre>
+              </div>
+            </details>
           </div>
-        </div>
-      </div>
-
-      {/* Forensic Audit Event Dossier Modal */}
-      <Modal
-        isOpen={isAuditModalOpen && !!selectedLog}
-        onClose={() => setIsAuditModalOpen(false)}
-        title="Forensic Audit Event Dossier"
-        description="Tamper-evident cryptographically chained event log, SHA-256 seal, and client telemetry."
-        maxWidth="md"
-      >
-        {selectedLog && (
-          <div className="space-y-4 pt-1 text-xs">
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getDomainBadge(selectedLog.eventType).bg}`}>
-                    {getDomainBadge(selectedLog.eventType).label}
-                  </span>
-                  <h4 className="font-bold text-slate-900 text-sm truncate">{selectedLog.eventType}</h4>
-                </div>
-                <span className="text-slate-500 text-[11px] block mt-1 font-mono">
-                  Event UID: #{selectedLog.id?.substring(0, 12)}
-                </span>
-              </div>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-teal-50 border border-teal-200 text-[#006a61] text-xs font-bold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#006a61]" />
-                Anchored
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl border border-slate-100 bg-white shadow-xs">
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Timestamp</span>
-                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{formatDateTime(selectedLog.createdAt || (selectedLog as any).timestamp)}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Actor Identity</span>
-                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">
-                  {selectedLog.userName || selectedLog.actorName || (selectedLog.userId ? `User #${selectedLog.userId.substring(0, 8)}` : "System Daemon")}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Resource / Action</span>
-                <span className="font-semibold text-[#006a61] text-xs mt-0.5 block">
-                  {selectedLog.resource ? `${selectedLog.resource} • ` : ""}{selectedLog.action || "MUTATION"}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">IP Address Origin</span>
-                <span className="font-mono font-semibold text-slate-800 text-xs mt-0.5 block">{selectedLog.ipAddress || "Loopback / Direct"}</span>
-              </div>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-              <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">SHA-256 Cryptographic Hash</span>
-              <span className="font-mono text-slate-700 text-[11px] break-all block">
-                SHA256:{generateDeterministicHash(selectedLog.id, selectedLog.createdAt || (selectedLog as any).timestamp, selectedLog.eventType)}
-              </span>
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsAuditModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold"
-              >
-                Close Dossier
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 }
