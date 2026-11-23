@@ -71,6 +71,7 @@ export default function StaffPage() {
   // Enroll Form State
   const [formName, setFormName] = useState("");
   const [formMobile, setFormMobile] = useState("");
+  const [formRole, setFormRole] = useState<"SECURITY_GUARD" | "FACILITY_MANAGER" | "STAFF">("SECURITY_GUARD");
   const [formCategoryId, setFormCategoryId] = useState("");
   const [formArea, setFormArea] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -144,20 +145,46 @@ export default function StaffPage() {
     if (!formName.trim() || !formMobile.trim()) return;
     setIsSubmitting(true);
     try {
-      const categoryId = formCategoryId || (categories.length > 0 ? categories[0].id : null);
+      // Resolve category based on role or selection
+      let categoryId = formCategoryId;
+      if (!categoryId && categories.length > 0) {
+        if (formRole === "SECURITY_GUARD") {
+          const guardCat = categories.find((c) =>
+            (c.code || c.name || "").toUpperCase().includes("GUARD") ||
+            (c.code || c.name || "").toUpperCase().includes("SECURITY")
+          );
+          categoryId = guardCat ? guardCat.id : categories[0].id;
+        } else if (formRole === "FACILITY_MANAGER") {
+          const mgrCat = categories.find((c) =>
+            (c.code || c.name || "").toUpperCase().includes("CARETAKER") ||
+            (c.code || c.name || "").toUpperCase().includes("FACILITY") ||
+            (c.code || c.name || "").toUpperCase().includes("MANAGER")
+          );
+          categoryId = mgrCat ? mgrCat.id : categories[0].id;
+        } else {
+          categoryId = categories[0].id;
+        }
+      }
+
       await endpoints.staff.createStaff({
         fullName: formName.trim(),
         mobile: formMobile.trim(),
-        categoryId,
-        assignedArea: formArea.trim() || "Society Premises",
+        categoryId: categoryId || null,
+        assignedArea: formArea.trim() || (formRole === "SECURITY_GUARD" ? "Main Gate 1" : "Society Premises"),
         joiningDate: new Date().toISOString().split("T")[0],
+        enableAppLogin: formRole === "SECURITY_GUARD" || formRole === "FACILITY_MANAGER",
       });
       await fetchStaffData();
       setIsEnrollModalOpen(false);
+      const enrolledMobile = formMobile.trim();
       setFormName("");
       setFormMobile("");
       setFormArea("");
-      setActionNotice("New staff member enrolled and queued for society access badge.");
+      setActionNotice(
+        formRole === "SECURITY_GUARD" || formRole === "FACILITY_MANAGER"
+          ? `✓ Guard ID successfully created! Mobile App Login activated for ${enrolledMobile}. Guard can now log in via OTP.`
+          : "New staff member enrolled and queued for society access badge."
+      );
     } catch (err: any) {
       alert(err?.detail || err?.message || "Failed to enroll staff member. Check permissions.");
     } finally {
@@ -347,14 +374,30 @@ export default function StaffPage() {
             <span>Refresh</span>
           </button>
           {activeTab === "directory" && (
-            <button
-              type="button"
-              onClick={() => setIsEnrollModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#070235] text-white text-xs font-semibold hover:bg-[#1e1b4b] transition-all shadow-sm"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>+ Enroll Staff Member</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormRole("SECURITY_GUARD");
+                  setIsEnrollModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#006a61] text-white text-xs font-semibold hover:bg-[#00524a] transition-all shadow-sm"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>+ Add Guard / Caretaker</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormRole("STAFF");
+                  setIsEnrollModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#070235] text-white text-xs font-semibold hover:bg-[#1e1b4b] transition-all shadow-sm"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>+ Enroll Staff Member</span>
+              </button>
+            </>
           )}
           {activeTab === "payroll_timesheets" && (
             <button
@@ -1213,21 +1256,42 @@ export default function StaffPage() {
         )}
       </Modal>
 
-      {/* Enroll Staff Modal */}
+      {/* Enroll Staff / Guard Modal */}
       <Modal
         isOpen={isEnrollModalOpen}
         onClose={() => setIsEnrollModalOpen(false)}
-        title="Enroll New Staff Member"
-        description="Add a domestic help, guard, or maintenance contractor to the society roster."
+        title={formRole === "SECURITY_GUARD" || formRole === "FACILITY_MANAGER" ? "Add Security Guard / Caretaker" : "Enroll Staff / Daily Help"}
+        description="Add a gate security guard, caretaker, or maintenance contractor to the society roster."
         maxWidth="md"
       >
         <form onSubmit={handleEnrollSubmit} className="space-y-4 pt-2">
+          {/* Mobile App Access Callout */}
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-teal-50 border border-teal-200 text-[#006a61]">
+            <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-[#006a61]" />
+            <div className="text-[11px] leading-relaxed">
+              <strong className="font-bold">Instant Mobile App Login ID:</strong> Enrolling a guard or caretaker automatically provisions their Girvasa Mobile App ID using their mobile number. They can log in immediately via OTP on the mobile app to access the Security Gate Desk, Visitor Check-In/Out, and Intercom.
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Role &amp; Mobile App Access *</label>
+            <select
+              value={formRole}
+              onChange={(e) => setFormRole(e.target.value as any)}
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-1 focus:ring-[#070235] outline-none bg-white font-medium text-slate-800"
+            >
+              <option value="SECURITY_GUARD">Security Guard (Gate Desk &amp; Mobile Login ID)</option>
+              <option value="FACILITY_MANAGER">Caretaker / Facility Manager (Mobile Login ID)</option>
+              <option value="STAFF">General Support Staff / Daily Help</option>
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
             <input
               type="text"
               required
-              placeholder="e.g. Ramesh Kumar"
+              placeholder="e.g. Ramesh Pawar"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-1 focus:ring-[#070235] outline-none"
@@ -1235,25 +1299,29 @@ export default function StaffPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile Number *</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile Number (Login ID) *</label>
             <input
               type="text"
               required
-              placeholder="e.g. +91 9876543210"
+              placeholder="e.g. +91 9876545003"
               value={formMobile}
               onChange={(e) => setFormMobile(e.target.value)}
               className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-1 focus:ring-[#070235] outline-none"
             />
+            <span className="text-[10px] text-slate-400 mt-0.5 block">
+              Guard will use this phone number + OTP to log into the Girvasa mobile app.
+            </span>
           </div>
 
           {categories.length > 0 && (
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Service Category *</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Service Category</label>
               <select
                 value={formCategoryId}
                 onChange={(e) => setFormCategoryId(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-1 focus:ring-[#070235] outline-none bg-white"
               >
+                <option value="">Default (Auto-matched by Role)</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -1264,10 +1332,12 @@ export default function StaffPage() {
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Wings / Units</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              {formRole === "SECURITY_GUARD" ? "Assigned Security Gate / Post" : "Assigned Wings / Common Area"}
+            </label>
             <input
               type="text"
-              placeholder="e.g. Wing A & B Common Area"
+              placeholder={formRole === "SECURITY_GUARD" ? "e.g. Main Gate 1, Tower A Gate, or Clubhouse" : "e.g. Wing A & B Common Area"}
               value={formArea}
               onChange={(e) => setFormArea(e.target.value)}
               className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-1 focus:ring-[#070235] outline-none"
@@ -1279,7 +1349,11 @@ export default function StaffPage() {
               Cancel
             </Button>
             <Button variant="primary" size="sm" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Enrolling..." : "Enroll Staff"}
+              {isSubmitting
+                ? "Provisioning..."
+                : formRole === "SECURITY_GUARD" || formRole === "FACILITY_MANAGER"
+                ? "Create Guard ID & Activate Access"
+                : "Enroll Staff"}
             </Button>
           </div>
         </form>
