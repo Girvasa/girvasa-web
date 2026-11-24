@@ -27,7 +27,13 @@ import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import { endpoints } from "@/lib/api/endpoints";
-import { PaymentSummaryResponse, PaymentDetailResponse, PaymentMethod } from "@/types/payment";
+import {
+  PaymentSummaryResponse,
+  PaymentDetailResponse,
+  PaymentMethod,
+  SocietyPaymentGatewayConfigResponse,
+  SubscriptionOrderResponse,
+} from "@/types/payment";
 import { UnitResponse } from "@/types/structure";
 import { useTenant } from "@/lib/tenant/TenantContext";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -81,6 +87,25 @@ export default function PaymentsPage() {
     reference: "",
     notes: "",
   });
+
+  // Razorpay Route Gateway Configuration State
+  const [gatewayConfig, setGatewayConfig] = useState<SocietyPaymentGatewayConfigResponse | null>(null);
+  const [isGatewayModalOpen, setIsGatewayModalOpen] = useState(false);
+  const [isSavingGateway, setIsSavingGateway] = useState(false);
+  const [gatewayForm, setGatewayForm] = useState({
+    merchantName: "",
+    accountNumber: "",
+    ifscCode: "",
+    bankName: "",
+    linkedAccountId: "",
+    isActive: true,
+  });
+
+  // Girvasa SaaS Subscription State (Flow 1)
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isCreatingSubOrder, setIsCreatingSubOrder] = useState(false);
+  const [subscriptionOrderResult, setSubscriptionOrderResult] = useState<SubscriptionOrderResponse | null>(null);
+  const [subBillingMonths, setSubBillingMonths] = useState(12);
 
   const fetchUnits = useCallback(async () => {
     try {
@@ -144,10 +169,76 @@ export default function PaymentsPage() {
     }
   }, [activeSocietyId]);
 
+  const fetchGatewayConfig = useCallback(async () => {
+    if (!activeSocietyId) return;
+    try {
+      const cfg = await endpoints.payments.getSocietyGatewayConfig(activeSocietyId);
+      if (cfg) {
+        setGatewayConfig(cfg);
+        setGatewayForm({
+          merchantName: cfg.merchantName || "",
+          accountNumber: "",
+          ifscCode: cfg.ifscCode || "",
+          bankName: cfg.bankName || "",
+          linkedAccountId: cfg.linkedAccountId || "",
+          isActive: cfg.isActive,
+        });
+      }
+    } catch (e) {
+      console.warn("Could not load gateway config:", e);
+    }
+  }, [activeSocietyId]);
+
   useEffect(() => {
     fetchPayments();
     fetchUnits();
-  }, [fetchPayments, fetchUnits]);
+    fetchGatewayConfig();
+  }, [fetchPayments, fetchUnits, fetchGatewayConfig]);
+
+  const handleSaveGatewayConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeSocietyId) return;
+    setIsSavingGateway(true);
+    try {
+      const res = await endpoints.payments.updateSocietyGatewayConfig(activeSocietyId, {
+        merchantName: gatewayForm.merchantName,
+        accountNumber: gatewayForm.accountNumber || undefined,
+        ifscCode: gatewayForm.ifscCode,
+        bankName: gatewayForm.bankName,
+        linkedAccountId: gatewayForm.linkedAccountId,
+        isActive: gatewayForm.isActive,
+      });
+      setGatewayConfig(res);
+      setIsGatewayModalOpen(false);
+      setBannerMessage({
+        type: "success",
+        text: `Razorpay Route linked account updated for direct settlement (Account: ${res.linkedAccountId || "Pending"}).`,
+      });
+    } catch (err: any) {
+      setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to update gateway config." });
+    } finally {
+      setIsSavingGateway(false);
+    }
+  };
+
+  const handleCreateSubscriptionOrder = async () => {
+    setIsCreatingSubOrder(true);
+    try {
+      const res = await endpoints.subscriptions.createCheckoutOrder({
+        planCode: "GROWTH_300",
+        billingMonths: subBillingMonths,
+      });
+      setSubscriptionOrderResult(res);
+      setBannerMessage({
+        type: "success",
+        text: `Razorpay SaaS subscription order created (${res.orderReference}). Direct settlement to Girvasa master account.`,
+      });
+    } catch (err: any) {
+      setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to create subscription order." });
+    } finally {
+      setIsCreatingSubOrder(false);
+    }
+  };
 
   const handleViewPayment = async (paymentId: string) => {
     try {
@@ -291,6 +382,36 @@ export default function PaymentsPage() {
           >
             <Plus className="w-4 h-4" />
             <span>+ Record Payment Voucher</span>
+          </button>
+
+          {/* Razorpay Route Linked Account Button */}
+          <button
+            onClick={() => setIsGatewayModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold text-xs hover:bg-emerald-100 transition-colors shadow-sm"
+            type="button"
+          >
+            <Landmark className="w-3.5 h-3.5 text-emerald-600" />
+            <span>
+              Razorpay Route: {gatewayConfig?.linkedAccountId ? gatewayConfig.linkedAccountId : "Configure Bank"}
+            </span>
+            {gatewayConfig?.isActive ? (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+            )}
+          </button>
+
+          {/* Girvasa SaaS Subscription Button (Flow 1) */}
+          <button
+            onClick={() => {
+              setSubscriptionOrderResult(null);
+              setIsSubscriptionModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold text-xs hover:bg-indigo-100 transition-colors shadow-sm"
+            type="button"
+          >
+            <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
+            <span>SaaS Plan Subscription</span>
           </button>
         </div>
       </div>
@@ -939,6 +1060,191 @@ export default function PaymentsPage() {
               onChange={(e) => setReversalReason(e.target.value)}
               required
             />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Razorpay Route Linked Account Configuration Modal */}
+      <Modal
+        isOpen={isGatewayModalOpen}
+        onClose={() => setIsGatewayModalOpen(false)}
+        title="Razorpay Route — Multi-Tenant Direct Settlement"
+        description="Connect your society's registered bank account. Resident maintenance payments route directly to your account with zero intermediary pooling (100% RBI & MCS compliant)."
+      >
+        <form onSubmit={handleSaveGatewayConfig} className="space-y-4 text-xs">
+          <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-900 space-y-1">
+            <div className="flex items-center gap-2 font-semibold">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Direct Bank Settlement Status</span>
+            </div>
+            <p className="text-[11px] text-emerald-700">
+              Provider: <span className="font-mono font-bold">RAZORPAY_ROUTE</span> • Linked Account:{" "}
+              <span className="font-mono font-bold">{gatewayConfig?.linkedAccountId || "Pending Verification"}</span> • KYC:{" "}
+              <span className="font-bold uppercase">{gatewayConfig?.kycStatus || "PENDING"}</span>
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Society Merchant / Legal Name *</label>
+            <Input
+              placeholder="e.g. Greenwood Co-operative Housing Society Ltd"
+              value={gatewayForm.merchantName}
+              onChange={(e) => setGatewayForm({ ...gatewayForm, merchantName: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Settlement Bank Name *</label>
+              <Input
+                placeholder="e.g. HDFC Bank, SBI, ICICI"
+                value={gatewayForm.bankName}
+                onChange={(e) => setGatewayForm({ ...gatewayForm, bankName: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Branch IFSC Code *</label>
+              <Input
+                placeholder="e.g. HDFC0001234"
+                value={gatewayForm.ifscCode}
+                onChange={(e) => setGatewayForm({ ...gatewayForm, ifscCode: e.target.value.toUpperCase() })}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Settlement Account Number {gatewayConfig?.accountNumberMask && `(${gatewayConfig.accountNumberMask})`}
+              </label>
+              <Input
+                type="password"
+                placeholder="Enter new account number to update"
+                value={gatewayForm.accountNumber}
+                onChange={(e) => setGatewayForm({ ...gatewayForm, accountNumber: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Razorpay Linked Account ID</label>
+              <Input
+                placeholder="e.g. acc_001"
+                value={gatewayForm.linkedAccountId}
+                onChange={(e) => setGatewayForm({ ...gatewayForm, linkedAccountId: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <input
+              type="checkbox"
+              id="routeActiveCheck"
+              checked={gatewayForm.isActive}
+              onChange={(e) => setGatewayForm({ ...gatewayForm, isActive: e.target.checked })}
+              className="rounded text-emerald-600 focus:ring-emerald-500"
+            />
+            <label htmlFor="routeActiveCheck" className="text-xs font-medium text-slate-800">
+              Enable active direct settlement routing for resident maintenance payments
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+            <Button variant="secondary" size="sm" type="button" onClick={() => setIsGatewayModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" type="submit" isLoading={isSavingGateway}>
+              Save Gateway Configuration
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Girvasa SaaS Subscription Modal (Flow 1) */}
+      <Modal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        title="Girvasa SaaS Subscription (Software License)"
+        description="Society software license fees settle directly into the Girvasa Platform Master Razorpay account."
+      >
+        <div className="space-y-4 text-xs">
+          <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-950 space-y-1">
+            <div className="flex items-center justify-between font-bold text-sm">
+              <span>Growth Plan (Up to 300 Units)</span>
+              <span className="text-indigo-700">₹2,999 / month</span>
+            </div>
+            <p className="text-[11px] text-indigo-700">
+              Includes full Gate OS, Accounting HUD, General Ledger, Resident Mobile App, and Razorpay Route integration.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-2">Select Subscription Duration</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSubBillingMonths(1)}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  subBillingMonths === 1
+                    ? "border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold ring-1 ring-indigo-600"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <div className="font-bold">1 Month</div>
+                <div className="text-[11px] text-slate-500">₹2,999.00</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSubBillingMonths(12)}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  subBillingMonths === 12
+                    ? "border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold ring-1 ring-indigo-600"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold">Annual (12 Months)</span>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Recommended</span>
+                </div>
+                <div className="text-[11px] text-slate-500">₹35,988.00</div>
+              </button>
+            </div>
+          </div>
+
+          {subscriptionOrderResult ? (
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="flex items-center gap-2 text-emerald-700 font-bold">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Subscription Order Ready for Checkout</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-600">
+                <div>Order Ref: {subscriptionOrderResult.orderReference}</div>
+                <div>Razorpay Order: {subscriptionOrderResult.externalOrderId}</div>
+                <div>Amount: ₹{subscriptionOrderResult.amount}</div>
+                <div>Key ID: {subscriptionOrderResult.keyId}</div>
+              </div>
+              <p className="text-[11px] text-slate-500 italic">
+                Direct settlement to Girvasa Platform master account. On payment confirmation, society subscription is automatically extended.
+              </p>
+            </div>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full bg-indigo-700 hover:bg-indigo-800 text-white"
+              onClick={handleCreateSubscriptionOrder}
+              isLoading={isCreatingSubOrder}
+            >
+              Pay SaaS Subscription via Razorpay
+            </Button>
+          )}
+
+          <div className="flex justify-end pt-2 border-t border-slate-100">
+            <Button variant="secondary" size="sm" onClick={() => setIsSubscriptionModalOpen(false)}>
+              Close
+            </Button>
           </div>
         </div>
       </Modal>
