@@ -139,7 +139,7 @@ describe("Subscription Checkout Payment Options (All Plans)", () => {
 
     await waitFor(() => {
       expect(submitUtrSpy).toHaveBeenCalledWith("req-starter-1", {
-        utrNumber: "432998765432",
+        utrReference: "432998765432",
         paymentMethod: "UPI",
       });
     });
@@ -223,6 +223,100 @@ describe("Subscription Checkout Payment Options (All Plans)", () => {
     });
 
     expect(await screen.findByText(/Open UPI App to Pay ₹7,999/i)).toBeInTheDocument();
+  });
+
+  it("renders SettingsPage SUBSCRIPTION tab without nested <form> elements so UTR submission succeeds cleanly", async () => {
+    const SettingsPage = (await import("@/app/(dashboard)/settings/page")).default;
+
+    vi.spyOn(TenantContextModule, "useTenant").mockReturnValue({
+      activeSocietyId: "soc-new-1",
+      currentSociety: { societyId: "soc-new-1", societyName: "Silver Oak CHS", societyCode: "SO_01", roles: ["SOCIETY_ADMIN"] } as any,
+      societies: [],
+      isLoadingTenant: false,
+      switchSociety: vi.fn(),
+      refreshTenant: vi.fn(),
+    });
+    vi.spyOn(PermissionModule, "usePermission").mockReturnValue({
+      hasRole: (role: string | string[]) =>
+        Array.isArray(role) ? role.includes("SOCIETY_ADMIN") : role === "SOCIETY_ADMIN",
+      isPlatformAdmin: false,
+      isPlatformSuperAdmin: false,
+      isSocietyAdmin: true,
+      isAccountant: false,
+      isWebAuthorized: true,
+      permissions: ["society.configure", "settings.view"],
+      roles: ["SOCIETY_ADMIN"],
+      hasPermission: vi.fn().mockReturnValue(true),
+      canAccessModule: vi.fn().mockReturnValue(true),
+    });
+    vi.spyOn(endpoints.billing, "getChargeHeads").mockResolvedValue([] as any);
+    vi.spyOn(endpoints.subscription, "getCurrentSubscription").mockResolvedValue({
+      id: "sub-1",
+      societyId: "soc-new-1",
+      plan: MOCK_PLANS[0],
+      status: "TRIALING",
+      trialEndsAt: "2026-12-09T00:00:00Z",
+      currentPeriodStart: "2026-11-25T00:00:00Z",
+      currentPeriodEnd: "2026-12-09T00:00:00Z",
+      daysRemaining: 14,
+      isExpiringSoon: false,
+      isExpired: false,
+    });
+    vi.spyOn(endpoints.subscriptions, "createCheckoutOrder").mockResolvedValueOnce({
+      requestId: "req-set-1",
+      societyId: "soc-new-1",
+      planCode: "ENTERPRISE",
+      planName: "Enterprise Plan",
+      billingMonths: 1,
+      orderReference: "SUB-ORD-SET-1",
+      gatewayName: "DIRECT_UPI",
+      amount: 7999,
+      currency: "INR",
+      status: "INITIATED",
+      upiUri: "upi://pay?pa=girvasa@upi&am=7999.00",
+      payeeUpiId: "girvasa@upi",
+      payeeName: "Girvasa Technologies",
+      bankName: "HDFC Bank",
+      bankAccountNumber: "50200000000001",
+      ifscCode: "HDFC0000001",
+    });
+    const submitUtrSpy = vi.spyOn(endpoints.subscriptions, "submitUtr").mockResolvedValueOnce({
+      requestId: "req-set-1",
+      societyId: "soc-new-1",
+      planCode: "ENTERPRISE",
+      planName: "Enterprise Plan",
+      billingMonths: 1,
+      orderReference: "SUB-ORD-SET-1",
+      gatewayName: "DIRECT_UPI",
+      amount: 7999,
+      currency: "INR",
+      status: "PENDING_VERIFICATION",
+      paymentMethod: "UPI",
+      utrReference: "QAOPT3999111",
+    });
+
+    const { container } = render(<SettingsPage />);
+
+    // Open Subscription tab
+    fireEvent.click(screen.getByRole("button", { name: /SaaS Plan & Subscription/i }));
+    // Confirm ZERO <form> tags exist inside Subscription tab (preventing nested form reload bug)
+    expect(container.querySelectorAll("form").length).toBe(0);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Enterprise Plan/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Show Zero-Fee UPI & Bank Payment Options/i }));
+
+    const utrInput = await screen.findByPlaceholderText(/432912345678 or NEFT reference/i);
+    fireEvent.change(utrInput, { target: { value: "QAOPT3999111" } });
+    fireEvent.click(screen.getByRole("button", { name: /Submit UTR for Plan Activation/i }));
+
+    await waitFor(() => {
+      expect(submitUtrSpy).toHaveBeenCalledWith("req-set-1", {
+        utrReference: "QAOPT3999111",
+        paymentMethod: "UPI",
+      });
+    });
+
+    expect(await screen.findByText(/UTR Submitted: QAOPT3999111/i)).toBeInTheDocument();
   });
 });
 

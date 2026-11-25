@@ -1128,7 +1128,7 @@ export function getDevMockResponse<T>(endpoint: string, options: any = {}): T | 
       currency: "INR",
       status: "PENDING_VERIFICATION",
       paymentMethod: body.paymentMethod || "UPI",
-      utrReference: body.utrNumber || "432912345678",
+      utrReference: body.utrReference || body.utrNumber || "432912345678",
       payeeUpiId: "girvasa@upi",
       payeeName: "Girvasa Technologies",
       bankName: "HDFC Bank",

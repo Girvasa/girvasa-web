@@ -242,10 +242,11 @@ export default function SettingsPage() {
 
       {/* Main Form Content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column (8 cols): Active Tab Form */}
+        {/* Left Column (8 cols): Active Tab Content */}
         <div className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6">
-          <form onSubmit={handleSave} className="space-y-6">
-            {activeTab === "PROFILE" && (
+          {activeTab !== "SUBSCRIPTION" ? (
+            <form onSubmit={handleSave} className="space-y-6">
+              {activeTab === "PROFILE" && (
               <div className="space-y-4">
                 <div className="border-b border-slate-100 pb-3">
                   <h2 className="text-sm font-bold text-[#070235]">General Society Identity</h2>
@@ -489,104 +490,6 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {activeTab === "SUBSCRIPTION" && (
-              <div className="space-y-6">
-                <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-sm font-bold text-[#070235]">SaaS Subscription &amp; Tier Management</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      14-day free trial status, live plan limits, and zero-fee Direct UPI / Bank NEFT renewals.
-                    </p>
-                  </div>
-                  {subSuccessMsg && (
-                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                      ✓ {subSuccessMsg}
-                    </span>
-                  )}
-                </div>
-
-                {/* Current Active Plan Badge Card */}
-                <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white p-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Current Society Plan</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          subData?.status === "ACTIVE"
-                            ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                            : subData?.status === "TRIALING"
-                            ? "bg-amber-100 text-amber-800 border border-amber-200"
-                            : "bg-red-100 text-red-800 border border-red-200"
-                        }`}>
-                          {subData?.status || "TRIALING"}
-                        </span>
-                      </div>
-                      <div className="text-xl font-extrabold text-slate-900 mt-1">
-                        {subData?.plan?.name || "Growth Plan"}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {subData?.plan?.description || "Full management suite for societies up to 300 units."}
-                      </div>
-                    </div>
-
-                    <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-200">
-                      <div className="text-xs text-slate-500">Days Remaining</div>
-                      <div className="text-2xl font-black text-blue-600">
-                        {subData?.daysRemaining ?? 14} <span className="text-xs font-medium text-slate-400">days</span>
-                      </div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        Expires: {subData?.trialEndsAt ? formatDate(subData.trialEndsAt) : "—"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Zero-Fee Plan Selection, Direct UPI/Bank Checkout & UTR Submission */}
-                <SubscriptionCheckoutPanel
-                  initialPlanCode={selectedPlanCode}
-                  plans={plans}
-                  onOrderUpdated={(order) => {
-                    if (order.status === "PENDING_VERIFICATION") {
-                      setSubSuccessMsg(`UTR ${order.utrReference} submitted for verification.`);
-                    } else if (order.status === "INITIATED") {
-                      setSubSuccessMsg(`Payment options generated (${order.orderReference}).`);
-                    }
-                  }}
-                />
-
-                {/* Dev Testing Controls */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
-                    <span className="font-semibold text-slate-700">🧪 Developer QA Simulation Bar:</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleSimulateSubscription(3)}
-                        className="px-2.5 py-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-800 text-[11px] font-semibold"
-                      >
-                        Simulate 3 Days Left
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSimulateSubscription(0)}
-                        className="px-2.5 py-1 rounded bg-red-100 hover:bg-red-200 text-red-800 text-[11px] font-semibold"
-                      >
-                        Simulate Expired
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSimulateSubscription(14)}
-                        className="px-2.5 py-1 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-semibold"
-                      >
-                        Reset 14 Days
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab !== "SUBSCRIPTION" && (
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
                 <button
                   type="submit"
@@ -597,8 +500,103 @@ export default function SettingsPage() {
                   <span>{isSaving ? "Saving Changes..." : "Commit Settings"}</span>
                 </button>
               </div>
-            )}
-          </form>
+            </form>
+          ) : (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-[#070235]">SaaS Subscription &amp; Tier Management</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    14-day free trial status, live plan limits, and zero-fee Direct UPI / Bank NEFT renewals.
+                  </p>
+                </div>
+                {subSuccessMsg && (
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                    ✓ {subSuccessMsg}
+                  </span>
+                )}
+              </div>
+
+              {/* Current Active Plan Badge Card */}
+              <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Current Society Plan</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        subData?.status === "ACTIVE"
+                          ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                          : subData?.status === "TRIALING"
+                          ? "bg-amber-100 text-amber-800 border border-amber-200"
+                          : "bg-red-100 text-red-800 border border-red-200"
+                      }`}>
+                        {subData?.status || "TRIALING"}
+                      </span>
+                    </div>
+                    <div className="text-xl font-extrabold text-slate-900 mt-1">
+                      {subData?.plan?.name || "Growth Plan"}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      {subData?.plan?.description || "Full management suite for societies up to 300 units."}
+                    </div>
+                  </div>
+
+                  <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-200">
+                    <div className="text-xs text-slate-500">Days Remaining</div>
+                    <div className="text-2xl font-black text-blue-600">
+                      {subData?.daysRemaining ?? 14} <span className="text-xs font-medium text-slate-400">days</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      Expires: {subData?.trialEndsAt ? formatDate(subData.trialEndsAt) : "—"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Zero-Fee Plan Selection, Direct UPI/Bank Checkout & UTR Submission */}
+              <SubscriptionCheckoutPanel
+                initialPlanCode={selectedPlanCode}
+                plans={plans}
+                onOrderUpdated={(order) => {
+                  if (order.status === "PENDING_VERIFICATION") {
+                    setSubSuccessMsg(`UTR ${order.utrReference} submitted for verification.`);
+                  } else if (order.status === "INITIATED") {
+                    setSubSuccessMsg(`Payment options generated (${order.orderReference}).`);
+                  }
+                }}
+              />
+
+              {/* Dev Testing Controls */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
+                  <span className="font-semibold text-slate-700">🧪 Developer QA Simulation Bar:</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSimulateSubscription(3)}
+                      className="px-2.5 py-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-800 text-[11px] font-semibold"
+                    >
+                      Simulate 3 Days Left
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSimulateSubscription(0)}
+                      className="px-2.5 py-1 rounded bg-red-100 hover:bg-red-200 text-red-800 text-[11px] font-semibold"
+                    >
+                      Simulate Expired
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSimulateSubscription(14)}
+                      className="px-2.5 py-1 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-semibold"
+                    >
+                      Reset 14 Days
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column (4 cols): Active Tenant Metadata Badge */}
