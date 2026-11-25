@@ -15,6 +15,8 @@ export interface SelfServeRegistrationRequest {
   adminName: string;
   adminMobile: string;
   adminEmail?: string;
+  otpRequestId: string;
+  otpCode: string;
   societyName: string;
   societyCode?: string;
   addressLine1: string;

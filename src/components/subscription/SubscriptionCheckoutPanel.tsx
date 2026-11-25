@@ -167,6 +167,15 @@ export function SubscriptionCheckoutPanel({
     e?.preventDefault();
     if (!activeOrder) return;
     const normalizedUtr = utrNumber.trim().toUpperCase();
+    if (paymentMethod === "UPI") {
+      if (!/^[0-9]{12}$/.test(normalizedUtr)) {
+        setErrorMsg("UPI Reference / RRN must be an exact 12-digit numeric value (e.g. 432912345678).");
+        return;
+      }
+    } else if (!/^[A-Za-z0-9]{10,35}$/.test(normalizedUtr)) {
+      setErrorMsg("Bank NEFT/IMPS UTR must be 10–35 alphanumeric characters.");
+      return;
+    }
     if (!/^[A-Za-z0-9._-]{6,100}$/.test(normalizedUtr)) {
       setErrorMsg("Enter a valid 6-100 character UPI UTR or Bank NEFT/IMPS reference number.");
       return;

@@ -84,6 +84,26 @@ export default function RegisterPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [otpRequestId, setOtpRequestId] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [otpMessage, setOtpMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (otpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [otpCountdown]);
+
+  const formatAdminMobile = (raw: string) => {
+    const clean = raw.replace(/[^\d+]/g, "");
+    if (clean.startsWith("+")) return clean;
+    if (clean.length === 10) return `+91${clean}`;
+    return clean;
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -105,25 +125,61 @@ export default function RegisterPage() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    if (name === "adminMobile") {
+      setOtpRequestId(null);
+      setOtpCode("");
+      setOtpMessage(null);
+    }
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+  };
+
+  const handleSendOtp = async () => {
+    setError(null);
+    setOtpMessage(null);
+    const formattedMobile = formatAdminMobile(formData.adminMobile);
+    if (formattedMobile.length < 10) {
+      setError("Please enter a valid 10-digit mobile number before requesting OTP.");
+      return;
+    }
+
+    setIsSendingOtp(true);
+    try {
+      const res = await endpoints.auth.requestOtp(formattedMobile, "SMS");
+      if (!res.requestId) {
+        throw new Error("OTP request did not return a verification reference.");
+      }
+      setOtpRequestId(res.requestId);
+      setOtpCountdown(res.resendAfterSeconds || 60);
+      setOtpMessage(`Verification code sent to ${formattedMobile}. Enter the 6-digit OTP below.`);
+    } catch (err: any) {
+      setError(err.message || "Failed to send verification OTP.");
+    } finally {
+      setIsSendingOtp(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const cleanMobile = formData.adminMobile.replace(/[^\d+]/g, "");
-    const formattedMobile = cleanMobile.startsWith("+")
-      ? cleanMobile
-      : cleanMobile.length === 10
-      ? `+91${cleanMobile}`
-      : cleanMobile;
+    const formattedMobile = formatAdminMobile(formData.adminMobile);
 
     if (formattedMobile.length < 10) {
       setError("Please enter a valid 10-digit mobile number");
+      return;
+    }
+
+    if (formData.adminEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminEmail.trim())) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (!otpRequestId || !/^[0-9]{4,8}$/.test(otpCode.trim())) {
+      setError("Please verify the Admin Mobile Number by requesting and entering the 6-digit OTP.");
       return;
     }
 
@@ -138,7 +194,9 @@ export default function RegisterPage() {
       const response = await endpoints.subscription.registerSocietyWithTrial({
         adminName: formData.adminName,
         adminMobile: formattedMobile,
-        adminEmail: formData.adminEmail || undefined,
+        adminEmail: formData.adminEmail ? formData.adminEmail.trim() : undefined,
+        otpRequestId,
+        otpCode: otpCode.trim(),
         societyName: formData.societyName,
         societyCode: formData.societyCode || undefined,
         addressLine1: formData.addressLine1,
@@ -390,19 +448,59 @@ export default function RegisterPage() {
                 <label className="block text-xs font-semibold text-[#070235] mb-1">
                   Admin Mobile Number *
                 </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="tel"
-                    name="adminMobile"
-                    required
-                    maxLength={10}
-                    placeholder="e.g. 9876543210"
-                    value={formData.adminMobile}
-                    onChange={handleChange}
-                    className="w-full h-10 pl-9 pr-3 text-sm rounded-lg border border-slate-300 focus:outline-none focus:border-[#006a61]"
-                  />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="tel"
+                      name="adminMobile"
+                      required
+                      maxLength={10}
+                      placeholder="e.g. 9876543210"
+                      value={formData.adminMobile}
+                      onChange={handleChange}
+                      className="w-full h-10 pl-9 pr-3 text-sm rounded-lg border border-slate-300 focus:outline-none focus:border-[#006a61]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={isSendingOtp || otpCountdown > 0 || formData.adminMobile.replace(/\D/g, "").length < 10}
+                    className="h-10 px-3.5 rounded-lg bg-[#070235] text-white text-xs font-semibold hover:bg-[#1e1b4b] disabled:opacity-50 whitespace-nowrap transition-colors"
+                  >
+                    {isSendingOtp
+                      ? "Sending..."
+                      : otpCountdown > 0
+                      ? `Resend (${otpCountdown}s)`
+                      : otpRequestId
+                      ? "Resend OTP"
+                      : "Send OTP"}
+                  </button>
                 </div>
+                {otpMessage && (
+                  <p className="mt-1.5 text-[11px] font-medium text-emerald-700">{otpMessage}</p>
+                )}
+              </div>
+
+              {/* Mobile OTP Verification Code */}
+              <div>
+                <label className="block text-xs font-semibold text-[#070235] mb-1">
+                  Mobile Verification Code (OTP) *
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  name="otpCode"
+                  required
+                  maxLength={6}
+                  placeholder="Enter 6-digit OTP"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                  className="w-full h-10 px-3 text-sm font-mono tracking-widest rounded-lg border border-slate-300 focus:outline-none focus:border-[#006a61]"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Verifies phone ownership before creating your society account.
+                </p>
               </div>
 
               {/* Admin Email */}

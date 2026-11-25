@@ -21,7 +21,13 @@ import { SocietySubscriptionDetailResponse } from "@/types/subscription";
 import { SubscriptionCheckoutPanel } from "@/components/subscription/SubscriptionCheckoutPanel";
 import { formatDate } from "@/lib/utils";
 
-export const SubscriptionAlertBanner: React.FC = () => {
+export interface SubscriptionAlertBannerProps {
+  onSubscriptionChange?: (subscription: SocietySubscriptionDetailResponse | null) => void;
+}
+
+export const SubscriptionAlertBanner: React.FC<SubscriptionAlertBannerProps> = ({
+  onSubscriptionChange,
+}) => {
   const { activeSocietyId, currentSociety } = useTenant();
   const { hasRole, isPlatformAdmin } = usePermission();
   const [subscription, setSubscription] = useState<SocietySubscriptionDetailResponse | null>(null);
@@ -32,14 +38,18 @@ export const SubscriptionAlertBanner: React.FC = () => {
   const isSocietyAdmin = isPlatformAdmin || hasRole("SOCIETY_ADMIN");
 
   const loadSubscription = useCallback(async () => {
-    if (!activeSocietyId) return;
+    if (!activeSocietyId) {
+      onSubscriptionChange?.(null);
+      return;
+    }
     try {
       const data = await endpoints.subscription.getCurrentSubscription();
       setSubscription(data);
+      onSubscriptionChange?.(data);
     } catch (err) {
       console.error("Failed to load society subscription state:", err);
     }
-  }, [activeSocietyId]);
+  }, [activeSocietyId, onSubscriptionChange]);
 
   useEffect(() => {
     loadSubscription();
@@ -54,6 +64,7 @@ export const SubscriptionAlertBanner: React.FC = () => {
     try {
       const updated = await endpoints.subscription.simulateSubscription(days);
       setSubscription(updated);
+      onSubscriptionChange?.(updated);
       setBannerDismissed(false);
       setShowCheckoutPanel(false);
       window.dispatchEvent(new CustomEvent("subscription:updated"));
@@ -156,25 +167,27 @@ export const SubscriptionAlertBanner: React.FC = () => {
           )}
 
           {/* Dev Demo Helpers */}
-          <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span>🧪 Developer QA Testing Bar:</span>
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() => handleSimulate(3)}
-                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300"
-              >
-                Simulate 3-Day Warning
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSimulate(14)}
-                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300"
-              >
-                Reset to 14-Day Active Trial
-              </button>
+          {process.env.NEXT_PUBLIC_ENABLE_SUBSCRIPTION_QA === "true" && (
+            <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+              <span>🧪 Developer QA Testing Bar:</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => handleSimulate(3)}
+                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300"
+                >
+                  Simulate 3-Day Warning
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulate(14)}
+                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300"
+                >
+                  Reset to 14-Day Active Trial
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       );
     }
@@ -245,25 +258,27 @@ export const SubscriptionAlertBanner: React.FC = () => {
         </div>
 
         {/* Dev Quick Test Toolbar */}
-        <div className="mt-2.5 pt-2 border-t border-amber-200/60 flex items-center justify-between text-[10px] text-amber-700">
-          <span>Dev QA Toolbar:</span>
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={() => handleSimulate(0)}
-              className="underline hover:text-amber-900"
-            >
-              [Test Expired Lockout]
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSimulate(14)}
-              className="underline hover:text-amber-900"
-            >
-              [Reset to 14 Days]
-            </button>
+        {process.env.NEXT_PUBLIC_ENABLE_SUBSCRIPTION_QA === "true" && (
+          <div className="mt-2.5 pt-2 border-t border-amber-200/60 flex items-center justify-between text-[10px] text-amber-700">
+            <span>Dev QA Toolbar:</span>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => handleSimulate(0)}
+                className="underline hover:text-amber-900"
+              >
+                [Test Expired Lockout]
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSimulate(14)}
+                className="underline hover:text-amber-900"
+              >
+                [Reset to 14 Days]
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }

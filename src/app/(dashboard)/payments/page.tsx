@@ -37,6 +37,7 @@ import {
 } from "@/types/payment";
 import { UnitResponse } from "@/types/structure";
 import { useTenant } from "@/lib/tenant/TenantContext";
+import { usePermission } from "@/lib/rbac/usePermission";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 interface LedgerVoucher {
@@ -61,6 +62,8 @@ interface LedgerVoucher {
 
 export default function PaymentsPage() {
   const { activeSocietyId } = useTenant();
+  const { hasPermission } = usePermission();
+  const canConfigureSociety = hasPermission("society.configure");
   const [payments, setPayments] = useState<PaymentSummaryResponse[]>([]);
   const [units, setUnits] = useState<UnitResponse[]>([]);
   const [vouchers, setVouchers] = useState<LedgerVoucher[]>([]);
@@ -418,32 +421,36 @@ export default function PaymentsPage() {
             <span>+ Record Payment Voucher</span>
           </button>
 
-          {/* Zero-Fee Direct UPI & Bank Collection Button */}
-          <button
-            onClick={() => setIsGatewayModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold text-xs hover:bg-emerald-100 transition-colors shadow-sm"
-            type="button"
-          >
-            <Landmark className="w-3.5 h-3.5 text-emerald-600" />
-            <span>
-              Direct UPI / Bank: {gatewayConfig?.upiId || gatewayConfig?.accountNumberMask || "Configure Bank"}
-            </span>
-            {gatewayConfig?.isActive ? (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            ) : (
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-            )}
-          </button>
+          {canConfigureSociety && (
+            <>
+              {/* Zero-Fee Direct UPI & Bank Collection Button */}
+              <button
+                onClick={() => setIsGatewayModalOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold text-xs hover:bg-emerald-100 transition-colors shadow-sm"
+                type="button"
+              >
+                <Landmark className="w-3.5 h-3.5 text-emerald-600" />
+                <span>
+                  Direct UPI / Bank: {gatewayConfig?.upiId || gatewayConfig?.accountNumberMask || "Configure Bank"}
+                </span>
+                {gatewayConfig?.isActive ? (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                ) : (
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                )}
+              </button>
 
-          {/* Girvasa SaaS Subscription Button (Flow 1) */}
-          <button
-            onClick={() => setIsSubscriptionModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold text-xs hover:bg-indigo-100 transition-colors shadow-sm"
-            type="button"
-          >
-            <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
-            <span>SaaS Plan Subscription</span>
-          </button>
+              {/* Girvasa SaaS Subscription Button (Flow 1) */}
+              <button
+                onClick={() => setIsSubscriptionModalOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold text-xs hover:bg-indigo-100 transition-colors shadow-sm"
+                type="button"
+              >
+                <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
+                <span>SaaS Plan Subscription</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 

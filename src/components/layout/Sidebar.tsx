@@ -88,9 +88,10 @@ const navGroups: NavGroup[] = [
 export interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isSubscriptionLocked?: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isSubscriptionLocked = false }) => {
   const pathname = usePathname();
   const { canAccessModule, isPlatformSuperAdmin, isAccountant, isSocietyAdmin } = usePermission();
 
@@ -138,7 +139,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
         {/* Navigation list */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
-          {navGroups.map((group, groupIdx) => {
+          {isSubscriptionLocked ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-3.5 text-xs text-rose-800 space-y-2">
+              <div className="font-bold uppercase tracking-wider text-[10px] text-rose-700">
+                Workspace Paused
+              </div>
+              <p className="leading-relaxed text-rose-700">
+                Society trial or subscription expired. Operational modules are locked until renewal is verified.
+              </p>
+              {isPlatformSuperAdmin && (
+                <Link
+                  href="/platform/admin"
+                  onClick={onClose}
+                  className="mt-2 inline-flex items-center space-x-2 rounded-lg bg-white px-2.5 py-1.5 font-semibold text-rose-900 border border-rose-200 hover:bg-rose-100"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  <span>Super Admin Console</span>
+                </Link>
+              )}
+            </div>
+          ) : (
+            navGroups.map((group, groupIdx) => {
             const accessibleItems = group.items.filter((item) => canAccessModule(item.moduleKey));
             if (accessibleItems.length === 0) return null;
 
@@ -177,7 +198,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 })}
               </div>
             );
-          })}
+          })
+          )}
         </div>
 
         {/* Role & build footer */}

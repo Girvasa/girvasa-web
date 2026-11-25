@@ -292,7 +292,7 @@ describe("Subscription Checkout Payment Options (All Plans)", () => {
       currency: "INR",
       status: "PENDING_VERIFICATION",
       paymentMethod: "UPI",
-      utrReference: "QAOPT3999111",
+      utrReference: "432939991110",
     });
 
     const { container } = render(<SettingsPage />);
@@ -306,17 +306,17 @@ describe("Subscription Checkout Payment Options (All Plans)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Show Zero-Fee UPI & Bank Payment Options/i }));
 
     const utrInput = await screen.findByPlaceholderText(/432912345678 or NEFT reference/i);
-    fireEvent.change(utrInput, { target: { value: "QAOPT3999111" } });
+    fireEvent.change(utrInput, { target: { value: "432939991110" } });
     fireEvent.click(screen.getByRole("button", { name: /Submit UTR for Plan Activation/i }));
 
     await waitFor(() => {
       expect(submitUtrSpy).toHaveBeenCalledWith("req-set-1", {
-        utrReference: "QAOPT3999111",
+        utrReference: "432939991110",
         paymentMethod: "UPI",
       });
     });
 
-    expect(await screen.findByText(/UTR Submitted: QAOPT3999111/i)).toBeInTheDocument();
+    expect(await screen.findByText(/UTR Submitted: 432939991110/i)).toBeInTheDocument();
   });
 });
 

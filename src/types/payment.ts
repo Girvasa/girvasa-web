@@ -106,6 +106,7 @@ export interface SubscriptionOrderResponse {
   ifscCode?: string;
   submittedAt?: string;
   verifiedAt?: string;
+  expiresAt?: string;
   createdAt?: string;
 }
 

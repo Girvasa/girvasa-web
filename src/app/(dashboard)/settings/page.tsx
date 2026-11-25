@@ -568,32 +568,34 @@ export default function SettingsPage() {
 
               {/* Dev Testing Controls */}
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
-                  <span className="font-semibold text-slate-700">🧪 Developer QA Simulation Bar:</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleSimulateSubscription(3)}
-                      className="px-2.5 py-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-800 text-[11px] font-semibold"
-                    >
-                      Simulate 3 Days Left
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSimulateSubscription(0)}
-                      className="px-2.5 py-1 rounded bg-red-100 hover:bg-red-200 text-red-800 text-[11px] font-semibold"
-                    >
-                      Simulate Expired
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSimulateSubscription(14)}
-                      className="px-2.5 py-1 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-semibold"
-                    >
-                      Reset 14 Days
-                    </button>
+                {process.env.NEXT_PUBLIC_ENABLE_SUBSCRIPTION_QA === "true" && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
+                    <span className="font-semibold text-slate-700">🧪 Developer QA Simulation Bar:</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSimulateSubscription(3)}
+                        className="px-2.5 py-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-800 text-[11px] font-semibold"
+                      >
+                        Simulate 3 Days Left
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSimulateSubscription(0)}
+                        className="px-2.5 py-1 rounded bg-red-100 hover:bg-red-200 text-red-800 text-[11px] font-semibold"
+                      >
+                        Simulate Expired
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSimulateSubscription(14)}
+                        className="px-2.5 py-1 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-semibold"
+                      >
+                        Reset 14 Days
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}
