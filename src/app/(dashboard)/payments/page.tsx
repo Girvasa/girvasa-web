@@ -1172,7 +1172,7 @@ export default function PaymentsPage() {
           <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-950 space-y-1">
             <div className="flex items-center justify-between font-bold text-sm">
               <span>Growth Plan (Up to 300 Units)</span>
-              <span className="text-indigo-700">₹2,999 / month</span>
+              <span className="text-indigo-700">₹3,499 / month</span>
             </div>
             <p className="text-[11px] text-indigo-700">
               Includes full Gate OS, Accounting HUD, General Ledger, Resident Mobile App, and Razorpay Route integration.
@@ -1192,7 +1192,7 @@ export default function PaymentsPage() {
                 }`}
               >
                 <div className="font-bold">1 Month</div>
-                <div className="text-[11px] text-slate-500">₹2,999.00</div>
+                <div className="text-[11px] text-slate-500">₹3,499.00</div>
               </button>
 
               <button
@@ -1208,7 +1208,7 @@ export default function PaymentsPage() {
                   <span className="font-bold">Annual (12 Months)</span>
                   <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Recommended</span>
                 </div>
-                <div className="text-[11px] text-slate-500">₹35,988.00</div>
+                <div className="text-[11px] text-slate-500">₹41,988.00</div>
               </button>
             </div>
           </div>
