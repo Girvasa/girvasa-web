@@ -222,7 +222,7 @@ export const endpoints = {
   subscriptions: {
     createCheckoutOrder: (data: { planCode: string; billingMonths?: number }) =>
       api.post<SubscriptionOrderResponse>("/subscriptions/checkout-order", data),
-    submitUtr: (requestId: string, data: { utrNumber: string; paymentMethod?: string }) =>
+    submitUtr: (requestId: string, data: { utrReference: string; paymentMethod?: string }) =>
       api.post<SubscriptionOrderResponse>(`/subscriptions/checkout-order/${requestId}/submit-utr`, data),
     listMyRequests: () =>
       api.get<SubscriptionOrderResponse[]>("/subscriptions/checkout-orders"),

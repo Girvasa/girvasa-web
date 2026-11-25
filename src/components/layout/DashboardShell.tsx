@@ -10,13 +10,39 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { useTenant } from "@/lib/tenant/TenantContext";
 import { usePermission } from "@/lib/rbac/usePermission";
 import { Loader2, Eye, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { SocietySubscriptionDetailResponse } from "@/types/subscription";
 
 export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
   const { isAuthenticated, isLoading } = useAuth();
-  const { isLoadingTenant } = useTenant();
+  const { activeSocietyId, isLoadingTenant } = useTenant();
   const { isWebAuthorized } = usePermission();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isPlatformRoute = Boolean(pathname?.startsWith("/platform"));
+  const isSubscriptionLocked = isSubscriptionExpired && !isPlatformRoute;
+
+  const handleSubscriptionChange = React.useCallback((sub: SocietySubscriptionDetailResponse | null) => {
+    setIsSubscriptionExpired(Boolean(sub?.isExpired));
+  }, []);
+
+  React.useEffect(() => {
+    setIsSubscriptionExpired(false);
+  }, [activeSocietyId]);
+
+  React.useEffect(() => {
+    const onSubEvent = (evt: Event) => {
+      const detail = (evt as CustomEvent<{ expired?: boolean }>)?.detail;
+      if (detail && typeof detail.expired === "boolean") {
+        setIsSubscriptionExpired(detail.expired);
+      }
+    };
+    window.addEventListener("subscription:updated", onSubEvent);
+    return () => window.removeEventListener("subscription:updated", onSubEvent);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -101,13 +127,17 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
       )}
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          isSubscriptionLocked={isSubscriptionLocked}
+        />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
             <div className="mx-auto max-w-7xl">
-              <SubscriptionAlertBanner />
-              {children}
+              <SubscriptionAlertBanner onSubscriptionChange={handleSubscriptionChange} />
+              {!isSubscriptionLocked && children}
             </div>
           </main>
         </div>

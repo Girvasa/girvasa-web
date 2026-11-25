@@ -407,6 +407,14 @@ function createTimeoutSignal(ms: number): AbortSignal | undefined {
     }
 
     if (!response.ok) {
+      if (response.status === 402 && typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("subscription:updated", {
+            detail: { expired: true, code: payload?.code || "SUBSCRIPTION_EXPIRED" },
+          })
+        );
+      }
+
       if (response.status >= 502 && response.status <= 504 && endpoint) {
         const devMock = getDevMockResponse<T>(endpoint, options);
         if (devMock !== undefined) {

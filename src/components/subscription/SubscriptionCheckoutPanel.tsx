@@ -163,10 +163,19 @@ export function SubscriptionCheckoutPanel({
     }
   };
 
-  const handleSubmitUtr = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitUtr = async (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
     if (!activeOrder) return;
     const normalizedUtr = utrNumber.trim().toUpperCase();
+    if (paymentMethod === "UPI") {
+      if (!/^[0-9]{12}$/.test(normalizedUtr)) {
+        setErrorMsg("UPI Reference / RRN must be an exact 12-digit numeric value (e.g. 432912345678).");
+        return;
+      }
+    } else if (!/^[A-Za-z0-9]{10,35}$/.test(normalizedUtr)) {
+      setErrorMsg("Bank NEFT/IMPS UTR must be 10–35 alphanumeric characters.");
+      return;
+    }
     if (!/^[A-Za-z0-9._-]{6,100}$/.test(normalizedUtr)) {
       setErrorMsg("Enter a valid 6-100 character UPI UTR or Bank NEFT/IMPS reference number.");
       return;
@@ -176,7 +185,7 @@ export function SubscriptionCheckoutPanel({
     setIsSubmittingUtr(true);
     try {
       const updated = await endpoints.subscriptions.submitUtr(activeOrder.requestId, {
-        utrNumber: normalizedUtr,
+        utrReference: normalizedUtr,
         paymentMethod,
       });
       setActiveOrder(updated);
@@ -440,7 +449,7 @@ export function SubscriptionCheckoutPanel({
               ✓ Payment Verified! Your {activeOrder.planName || activeOrder.planCode} subscription is ACTIVE.
             </div>
           ) : (
-            <form onSubmit={handleSubmitUtr} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2.5">
+            <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2.5">
               <div className="font-bold text-slate-800">
                 3. Enter 12-Digit UTR / Bank Transfer Reference After Paying
               </div>
@@ -450,7 +459,12 @@ export function SubscriptionCheckoutPanel({
                     placeholder="e.g. 432912345678 or NEFT reference"
                     value={utrNumber}
                     onChange={(e) => setUtrNumber(e.target.value)}
-                    required
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSubmitUtr();
+                      }
+                    }}
                   />
                 </div>
                 <select
@@ -465,19 +479,20 @@ export function SubscriptionCheckoutPanel({
               <Button
                 variant="primary"
                 size="sm"
-                type="submit"
+                type="button"
+                onClick={() => handleSubmitUtr()}
                 className="w-full bg-indigo-700 hover:bg-indigo-800 text-white"
                 isLoading={isSubmittingUtr}
               >
                 Submit UTR for Plan Activation
               </Button>
-            </form>
+            </div>
           )}
         </div>
       )}
 
       {/* Existing Society Checkout History */}
-      {recentOrders.length > 0 && !compact && (
+      {recentOrders.length > 0 && !darkSurface && (
         <div className="pt-2 border-t border-slate-200 space-y-2">
           <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
             <span>Recent Subscription Payment Requests</span>
@@ -491,7 +506,7 @@ export function SubscriptionCheckoutPanel({
             </button>
           </div>
           <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white overflow-hidden">
-            {recentOrders.slice(0, 5).map((item) => (
+            {recentOrders.slice(0, compact ? 3 : 5).map((item) => (
               <div
                 key={item.requestId}
                 className="px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px]"
