@@ -83,7 +83,7 @@ export interface MaintenanceConfig {
 }
 
 export interface PaymentGatewayConfig {
-  activeProvider: "RAZORPAY" | "CASHFREE" | "PAYU" | "STRIPE";
+  activeProvider: "DIRECT_UPI_BANK" | "DIRECT_UPI" | "NEFT_IMPS" | "CASHFREE";
   keyId: string;
   keySecretMasked: string;
   webhookSecretMasked: string;

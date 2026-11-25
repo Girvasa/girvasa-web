@@ -46,8 +46,10 @@ export interface SocietyPaymentGatewayConfigResponse {
   id: string;
   societyId: string;
   gatewayProvider: string;
-  linkedAccountId?: string;
+  upiId?: string;
+  upiPayeeName?: string;
   merchantName?: string;
+  accountNumber?: string;
   accountNumberMask?: string;
   ifscCode?: string;
   bankName?: string;
@@ -57,34 +59,53 @@ export interface SocietyPaymentGatewayConfigResponse {
 }
 
 export interface SocietyPaymentGatewayConfigUpdateRequest {
+  upiId?: string;
+  upiPayeeName?: string;
   merchantName?: string;
   accountNumber?: string;
   ifscCode?: string;
   bankName?: string;
-  linkedAccountId?: string;
   isActive?: boolean;
 }
 
 export interface PaymentOrderResult {
+  orderId?: string;
   gatewayName: string;
   externalOrderId: string;
   orderReference: string;
   checkoutUrl: string;
   amount: number;
   currency: string;
-  keyId?: string;
+  upiUri?: string;
+  payeeUpiId?: string;
+  payeeName?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  ifscCode?: string;
 }
 
 export interface SubscriptionOrderResponse {
+  requestId: string;
   societyId: string;
   planCode: string;
   planName: string;
   billingMonths: number;
   orderReference: string;
-  externalOrderId: string;
   gatewayName: string;
   amount: number;
   currency: string;
-  keyId?: string;
+  status: string;
+  paymentMethod?: string;
+  utrReference?: string;
+  rejectionReason?: string;
+  upiUri?: string;
+  payeeUpiId?: string;
+  payeeName?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  ifscCode?: string;
+  submittedAt?: string;
+  verifiedAt?: string;
+  createdAt?: string;
 }
 

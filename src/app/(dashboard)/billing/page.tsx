@@ -995,7 +995,7 @@ export default function BillingPage() {
         <form onSubmit={handleCollectSubmit} className="space-y-4 text-xs">
           <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] flex items-center gap-2">
             <Shield className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-            <span>Direct Settlement via Razorpay Route to Society Bank Account</span>
+            <span>Zero-Fee Direct UPI QR &amp; Bank Settlement to Society Account</span>
           </div>
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">

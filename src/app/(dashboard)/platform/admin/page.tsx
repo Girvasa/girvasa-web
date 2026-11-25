@@ -1709,29 +1709,29 @@ export default function SuperAdminConsolePage() {
               <div>
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-emerald-600" />
-                  Primary Payment Gateway Integration (PG)
+                  Primary Zero-Fee Collection Settings (Direct UPI &amp; Bank)
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Razorpay, Cashfree, PayU, and Stripe production merchant credentials.
+                  Girvasa Platform Master UPI VPA, settlement bank details, and UTR reconciliation rules (₹0 gateway fees).
                 </p>
               </div>
               <span className="px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 text-xs font-bold">
-                {paymentConfig?.activeProvider} LIVE
+                {paymentConfig?.activeProvider} ACTIVE
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                <span className="text-slate-500 block">Gateway Provider</span>
+                <span className="text-slate-500 block">Collection Mode</span>
                 <span className="font-bold text-slate-900 text-sm">{paymentConfig?.activeProvider}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                <span className="text-slate-500 block">Key ID (Merchant Identifier)</span>
+                <span className="text-slate-500 block">Master Platform UPI VPA</span>
                 <span className="font-mono text-slate-900 font-semibold">{paymentConfig?.keyId}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Key Secret</span>
+                  <span className="text-slate-500">Bank IFSC &amp; Account</span>
                   <button
                     type="button"
                     onClick={() => setShowSecret(!showSecret)}
@@ -1741,7 +1741,7 @@ export default function SuperAdminConsolePage() {
                   </button>
                 </div>
                 <span className="font-mono text-slate-900 font-semibold">
-                  {showSecret ? "sec_live_99A821948192841289133bK" : paymentConfig?.keySecretMasked}
+                  {showSecret ? "HDFC0000128 / 50200000000001" : paymentConfig?.keySecretMasked}
                 </span>
               </div>
             </div>

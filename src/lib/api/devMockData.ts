@@ -636,13 +636,13 @@ export const DEV_MAINTENANCE_CONFIG: MaintenanceConfig = {
 };
 
 export const DEV_PAYMENT_GATEWAY: PaymentGatewayConfig = {
-  activeProvider: "RAZORPAY",
-  keyId: "rzp_test_mock_gateway_key", // gitleaks:allow
-  keySecretMasked: "sec_live_99A••••••••••••••••33bK",
-  webhookSecretMasked: "whsec_live_••••••••••••••••91Qx",
+  activeProvider: "DIRECT_UPI_BANK",
+  keyId: "girvasa@hdfcbank",
+  keySecretMasked: "HDFC0000128 ••••0001",
+  webhookSecretMasked: "DIRECT_UTR_MANUAL_RECON",
   testMode: false,
   autoSettlement: true,
-  settlementUtrPrefix: "GRV-SETTLE",
+  settlementUtrPrefix: "GRV-UTR",
 };
 
 export const DEV_SOCIETY_BANK_ACCOUNTS: SocietyBankAccountItem[] = [
