@@ -5,7 +5,15 @@ import { CurrentSocietyContext, UserSocietyMembership } from "@/types/tenant";
 import { BuildingResponse, UnitResponse, WingResponse } from "@/types/structure";
 import { MemberResponse, CreateMemberRequest } from "@/types/member";
 import { BillDetailResponse, BillSummaryResponse } from "@/types/billing";
-import { PaymentCreateRequest, PaymentDetailResponse, PaymentSummaryResponse } from "@/types/payment";
+import {
+  PaymentCreateRequest,
+  PaymentDetailResponse,
+  PaymentSummaryResponse,
+  SocietyPaymentGatewayConfigResponse,
+  SocietyPaymentGatewayConfigUpdateRequest,
+  PaymentOrderResult,
+  SubscriptionOrderResponse,
+} from "@/types/payment";
 import { ComplaintResponse } from "@/types/complaint";
 import { VisitResponse } from "@/types/visitor";
 import { NoticeResponse, CreateNoticeRequest } from "@/types/notice";
@@ -196,6 +204,18 @@ export const endpoints = {
       }),
     reversePayment: (paymentId: string, reason: string) =>
       api.post<PaymentDetailResponse>(`/payments/${paymentId}/reverse`, { reason }),
+    getSocietyGatewayConfig: (societyId: string) =>
+      api.get<SocietyPaymentGatewayConfigResponse>(`/societies/${societyId}/payment-gateway-config`),
+    updateSocietyGatewayConfig: (societyId: string, data: SocietyPaymentGatewayConfigUpdateRequest) =>
+      api.put<SocietyPaymentGatewayConfigResponse>(`/societies/${societyId}/payment-gateway-config`, data),
+    createOrder: (data: { unitId: string; amount: number; currency?: string; gatewayName?: string; description?: string }) =>
+      api.post<PaymentOrderResult>("/payments/orders", data),
+  },
+
+  // Platform SaaS Subscriptions
+  subscriptions: {
+    createCheckoutOrder: (data: { planCode: string; billingMonths?: number }) =>
+      api.post<SubscriptionOrderResponse>("/subscriptions/checkout-order", data),
   },
 
   // Complaints

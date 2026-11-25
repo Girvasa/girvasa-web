@@ -41,3 +41,50 @@ export interface PaymentCreateRequest {
   }[];
   notes?: string;
 }
+
+export interface SocietyPaymentGatewayConfigResponse {
+  id: string;
+  societyId: string;
+  gatewayProvider: string;
+  linkedAccountId?: string;
+  merchantName?: string;
+  accountNumberMask?: string;
+  ifscCode?: string;
+  bankName?: string;
+  kycStatus: string;
+  isActive: boolean;
+  updatedAt?: string;
+}
+
+export interface SocietyPaymentGatewayConfigUpdateRequest {
+  merchantName?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  bankName?: string;
+  linkedAccountId?: string;
+  isActive?: boolean;
+}
+
+export interface PaymentOrderResult {
+  gatewayName: string;
+  externalOrderId: string;
+  orderReference: string;
+  checkoutUrl: string;
+  amount: number;
+  currency: string;
+  keyId?: string;
+}
+
+export interface SubscriptionOrderResponse {
+  societyId: string;
+  planCode: string;
+  planName: string;
+  billingMonths: number;
+  orderReference: string;
+  externalOrderId: string;
+  gatewayName: string;
+  amount: number;
+  currency: string;
+  keyId?: string;
+}
+
