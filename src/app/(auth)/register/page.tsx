@@ -86,6 +86,12 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const requestedPlan = new URLSearchParams(window.location.search).get("plan");
+      if (requestedPlan && requestedPlan.trim()) {
+        setSelectedPlanCode(requestedPlan.trim().toUpperCase());
+      }
+    }
     endpoints.subscription
       .getPublicPlans()
       .then((res) => {

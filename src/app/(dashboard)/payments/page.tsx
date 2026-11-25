@@ -23,18 +23,17 @@ import {
   Layers,
   RefreshCw,
   XCircle,
-  Copy,
 } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
+import { SubscriptionCheckoutPanel } from "@/components/subscription/SubscriptionCheckoutPanel";
 import { endpoints } from "@/lib/api/endpoints";
 import {
   PaymentSummaryResponse,
   PaymentDetailResponse,
   PaymentMethod,
   SocietyPaymentGatewayConfigResponse,
-  SubscriptionOrderResponse,
 } from "@/types/payment";
 import { UnitResponse } from "@/types/structure";
 import { useTenant } from "@/lib/tenant/TenantContext";
@@ -106,12 +105,6 @@ export default function PaymentsPage() {
 
   // Girvasa SaaS Subscription State (Flow 1 — Zero-Fee Direct UPI/Bank + UTR)
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
-  const [isCreatingSubOrder, setIsCreatingSubOrder] = useState(false);
-  const [subscriptionOrderResult, setSubscriptionOrderResult] = useState<SubscriptionOrderResponse | null>(null);
-  const [subBillingMonths, setSubBillingMonths] = useState(12);
-  const [subUtrNumber, setSubUtrNumber] = useState("");
-  const [subUtrMethod, setSubUtrMethod] = useState<"UPI" | "BANK_TRANSFER">("UPI");
-  const [isSubmittingSubUtr, setIsSubmittingSubUtr] = useState(false);
 
   // Accountant Pending UTR Verification / Rejection State (Flow 2)
   const [verifyingPaymentId, setVerifyingPaymentId] = useState<string | null>(null);
@@ -239,47 +232,6 @@ export default function PaymentsPage() {
       setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to update collection settings." });
     } finally {
       setIsSavingGateway(false);
-    }
-  };
-
-  const handleCreateSubscriptionOrder = async () => {
-    setIsCreatingSubOrder(true);
-    try {
-      const res = await endpoints.subscriptions.createCheckoutOrder({
-        planCode: "GROWTH_300",
-        billingMonths: subBillingMonths,
-      });
-      setSubscriptionOrderResult(res);
-      setSubUtrNumber("");
-      setBannerMessage({
-        type: "success",
-        text: `Zero-fee subscription checkout created (${res.orderReference}). Pay via UPI or NEFT and submit your 12-digit UTR below.`,
-      });
-    } catch (err: any) {
-      setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to create subscription order." });
-    } finally {
-      setIsCreatingSubOrder(false);
-    }
-  };
-
-  const handleSubmitSubscriptionUtr = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!subscriptionOrderResult || !subUtrNumber.trim()) return;
-    setIsSubmittingSubUtr(true);
-    try {
-      const updated = await endpoints.subscriptions.submitUtr(subscriptionOrderResult.requestId, {
-        utrNumber: subUtrNumber.trim(),
-        paymentMethod: subUtrMethod,
-      });
-      setSubscriptionOrderResult(updated);
-      setBannerMessage({
-        type: "success",
-        text: `Subscription UTR ${updated.utrReference} submitted for Platform Super Admin verification.`,
-      });
-    } catch (err: any) {
-      setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to submit subscription UTR." });
-    } finally {
-      setIsSubmittingSubUtr(false);
     }
   };
 
@@ -485,10 +437,7 @@ export default function PaymentsPage() {
 
           {/* Girvasa SaaS Subscription Button (Flow 1) */}
           <button
-            onClick={() => {
-              setSubscriptionOrderResult(null);
-              setIsSubscriptionModalOpen(true);
-            }}
+            onClick={() => setIsSubscriptionModalOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold text-xs hover:bg-indigo-100 transition-colors shadow-sm"
             type="button"
           >
@@ -1314,167 +1263,30 @@ export default function PaymentsPage() {
         </form>
       </Modal>
 
-      {/* Girvasa SaaS Subscription Modal (Flow 1 — Zero-Fee Direct UPI / Bank + UTR) */}
+      {/* Girvasa SaaS Subscription Modal (Flow 1 — Any Plan, Zero-Fee Direct UPI / Bank + UTR) */}
       <Modal
         isOpen={isSubscriptionModalOpen}
         onClose={() => setIsSubscriptionModalOpen(false)}
         title="Girvasa SaaS Subscription (Zero-Fee Direct Transfer)"
-        description="Pay society software license fees directly to the Girvasa Master UPI or Bank Account (₹0 gateway fees) and submit your UTR reference for instant activation."
+        description="Select any society subscription plan and pay directly to the Girvasa Master UPI or Bank Account (₹0 gateway fees)."
       >
-        <div className="space-y-4 text-xs">
-          <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-950 space-y-1">
-            <div className="flex items-center justify-between font-bold text-sm">
-              <span>Growth Plan (Up to 300 Units)</span>
-              <span className="text-indigo-700">₹3,499 / month</span>
-            </div>
-            <p className="text-[11px] text-indigo-700">
-              Includes full Gate OS, Accounting HUD, General Ledger, Resident Mobile App, and Zero-Fee Direct UPI/NEFT Maintenance Collections.
-            </p>
-          </div>
-
-          {!subscriptionOrderResult && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-2">Select Subscription Duration</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSubBillingMonths(1)}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    subBillingMonths === 1
-                      ? "border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold ring-1 ring-indigo-600"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="font-bold">1 Month</div>
-                  <div className="text-[11px] text-slate-500">₹3,499.00</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSubBillingMonths(12)}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    subBillingMonths === 12
-                      ? "border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold ring-1 ring-indigo-600"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold">Annual (12 Months)</span>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Recommended</span>
-                  </div>
-                  <div className="text-[11px] text-slate-500">₹41,988.00</div>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {subscriptionOrderResult ? (
-            <div className="space-y-3">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-emerald-700 font-bold">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Reference: {subscriptionOrderResult.orderReference}</span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold">
-                    {subscriptionOrderResult.status}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-700 pt-1">
-                  <div>
-                    <span className="text-slate-500 block">Payable Amount (₹0 Fee)</span>
-                    <span className="font-bold text-slate-900">₹{subscriptionOrderResult.amount}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Girvasa UPI VPA</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-bold text-slate-900">{subscriptionOrderResult.payeeUpiId || "girvasa@upi"}</span>
-                      <button
-                        type="button"
-                        onClick={() => navigator.clipboard?.writeText(subscriptionOrderResult.payeeUpiId || "")}
-                        className="text-indigo-600 hover:text-indigo-800"
-                        title="Copy UPI VPA"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Bank &amp; IFSC</span>
-                    <span className="font-mono font-semibold text-slate-900">
-                      {subscriptionOrderResult.bankName} ({subscriptionOrderResult.ifscCode})
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Bank Account Number</span>
-                    <span className="font-mono font-semibold text-slate-900">{subscriptionOrderResult.bankAccountNumber}</span>
-                  </div>
-                </div>
-
-                {subscriptionOrderResult.upiUri && (
-                  <div className="pt-1">
-                    <a
-                      href={subscriptionOrderResult.upiUri}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700"
-                    >
-                      Open UPI App to Pay ₹{subscriptionOrderResult.amount}
-                      <ArrowRight className="w-3 h-3" />
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              {subscriptionOrderResult.status === "PENDING_VERIFICATION" ? (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px]">
-                  <div className="font-bold">UTR Submitted: {subscriptionOrderResult.utrReference}</div>
-                  <div>Awaiting Platform Super Admin bank reconciliation. Your subscription activates automatically upon approval.</div>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmitSubscriptionUtr} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2.5">
-                  <div className="font-bold text-slate-800">Step 2: Enter Transfer UTR Reference</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-2">
-                      <Input
-                        placeholder="12-digit UPI UTR / Bank NEFT Ref"
-                        value={subUtrNumber}
-                        onChange={(e) => setSubUtrNumber(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <select
-                      value={subUtrMethod}
-                      onChange={(e) => setSubUtrMethod(e.target.value as "UPI" | "BANK_TRANSFER")}
-                      className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs bg-white"
-                    >
-                      <option value="UPI">UPI</option>
-                      <option value="BANK_TRANSFER">NEFT/IMPS</option>
-                    </select>
-                  </div>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    type="submit"
-                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white"
-                    isLoading={isSubmittingSubUtr}
-                  >
-                    Submit UTR for Activation
-                  </Button>
-                </form>
-              )}
-            </div>
-          ) : (
-            <Button
-              variant="primary"
-              size="sm"
-              className="w-full bg-indigo-700 hover:bg-indigo-800 text-white"
-              onClick={handleCreateSubscriptionOrder}
-              isLoading={isCreatingSubOrder}
-            >
-              Generate Zero-Fee UPI / Bank Checkout Details
-            </Button>
-          )}
-
+        <div className="space-y-4">
+          <SubscriptionCheckoutPanel
+            compact
+            onOrderUpdated={(order) => {
+              if (order.status === "PENDING_VERIFICATION") {
+                setBannerMessage({
+                  type: "success",
+                  text: `Subscription UTR ${order.utrReference} submitted for Platform Super Admin verification.`,
+                });
+              } else if (order.status === "INITIATED") {
+                setBannerMessage({
+                  type: "success",
+                  text: `Zero-fee subscription checkout created (${order.orderReference}). Transfer via UPI or NEFT and submit UTR.`,
+                });
+              }
+            }}
+          />
           <div className="flex justify-end pt-2 border-t border-slate-100">
             <Button variant="secondary" size="sm" onClick={() => setIsSubscriptionModalOpen(false)}>
               Close

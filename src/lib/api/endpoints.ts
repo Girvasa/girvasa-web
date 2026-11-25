@@ -225,7 +225,7 @@ export const endpoints = {
     submitUtr: (requestId: string, data: { utrNumber: string; paymentMethod?: string }) =>
       api.post<SubscriptionOrderResponse>(`/subscriptions/checkout-order/${requestId}/submit-utr`, data),
     listMyRequests: () =>
-      api.get<SubscriptionOrderResponse[]>("/subscriptions/checkout-order"),
+      api.get<SubscriptionOrderResponse[]>("/subscriptions/checkout-orders"),
   },
 
   // Complaints

@@ -1030,6 +1030,122 @@ export function getDevMockResponse<T>(endpoint: string, options: any = {}): T | 
     return DEV_ONBOARDING_PROGRESS as unknown as T;
   }
 
+  // Subscription: Public Plans & Direct UPI/Bank Checkout Mocks
+  if (cleanEndpoint === "/public/plans") {
+    return [
+      {
+        id: "10000000-0000-0000-0000-000000000001",
+        code: "STARTER_100",
+        name: "Starter Plan",
+        description: "Essential digital gate security and billing up to 100 flats.",
+        maxUnits: 100,
+        pricePaise: 149900,
+        currency: "INR",
+        billingInterval: "MONTHLY",
+        featuresSummary: "Gate Security, Resident App, Billing",
+        active: true,
+      },
+      {
+        id: "10000000-0000-0000-0000-000000000002",
+        code: "GROWTH_300",
+        name: "Growth Plan",
+        description: "Full management suite up to 300 units.",
+        maxUnits: 300,
+        pricePaise: 349900,
+        currency: "INR",
+        billingInterval: "MONTHLY",
+        featuresSummary: "All Starter features + Zero-Fee Direct UPI, Amenities, Accounting",
+        active: true,
+      },
+      {
+        id: "10000000-0000-0000-0000-000000000003",
+        code: "ENTERPRISE",
+        name: "Enterprise Plan",
+        description: "Unlimited units multi-tower township management.",
+        maxUnits: 999999,
+        pricePaise: 799900,
+        currency: "INR",
+        billingInterval: "MONTHLY",
+        featuresSummary: "Unlimited Towers, Polls, Dedicated Account Manager",
+        active: true,
+      },
+    ] as unknown as T;
+  }
+
+  if (cleanEndpoint === "/subscriptions/checkout-order" && method === "POST") {
+    let body: any = {};
+    try {
+      body = options.body ? JSON.parse(options.body) : {};
+    } catch {
+      // ignore
+    }
+    const planCode = body.planCode || "GROWTH_300";
+    const months = Number(body.billingMonths || 1);
+    const rate = planCode === "STARTER_100" ? 1499 : planCode === "ENTERPRISE" ? 7999 : 3499;
+    const total = rate * months;
+    const orderRef = `SUB-ORD-MOCK-${Date.now() % 100000}`;
+    return {
+      requestId: `sub-req-${Date.now()}`,
+      societyId: "soc-girvasa-apex",
+      planCode,
+      planName: planCode === "STARTER_100" ? "Starter Plan" : planCode === "ENTERPRISE" ? "Enterprise Plan" : "Growth Plan",
+      billingMonths: months,
+      orderReference: orderRef,
+      gatewayName: "DIRECT_UPI",
+      amount: total,
+      currency: "INR",
+      status: "INITIATED",
+      upiUri: `upi://pay?pa=girvasa@upi&pn=Girvasa%20Technologies&tr=${orderRef}&am=${total.toFixed(2)}&cu=INR`,
+      payeeUpiId: "girvasa@upi",
+      payeeName: "Girvasa Technologies",
+      bankName: "HDFC Bank",
+      bankAccountNumber: "50200000000001",
+      ifscCode: "HDFC0000001",
+      createdAt: new Date().toISOString(),
+    } as unknown as T;
+  }
+
+  if (cleanEndpoint === "/subscriptions/checkout-orders") {
+    return [] as unknown as T;
+  }
+
+  if (cleanEndpoint.match(/\/subscriptions\/checkout-order\/[^/]+\/submit-utr/) && method === "POST") {
+    let body: any = {};
+    try {
+      body = options.body ? JSON.parse(options.body) : {};
+    } catch {
+      // ignore
+    }
+    return {
+      requestId: "sub-req-mock",
+      societyId: "soc-girvasa-apex",
+      planCode: "GROWTH_300",
+      planName: "Growth Plan",
+      billingMonths: 1,
+      orderReference: "SUB-ORD-MOCK-001",
+      gatewayName: "DIRECT_UPI",
+      amount: 3499,
+      currency: "INR",
+      status: "PENDING_VERIFICATION",
+      paymentMethod: body.paymentMethod || "UPI",
+      utrReference: body.utrNumber || "432912345678",
+      payeeUpiId: "girvasa@upi",
+      payeeName: "Girvasa Technologies",
+      bankName: "HDFC Bank",
+      bankAccountNumber: "50200000000001",
+      ifscCode: "HDFC0000001",
+      submittedAt: new Date().toISOString(),
+    } as unknown as T;
+  }
+
+  if (cleanEndpoint === "/platform/subscription-payments") {
+    return [] as unknown as T;
+  }
+
+  if (cleanEndpoint.match(/\/platform\/subscription-payments\/[^/]+\/(approve|reject)/) && method === "POST") {
+    return { status: "VERIFIED" } as unknown as T;
+  }
+
   // Subscription: Current Subscription
   if (cleanEndpoint === "/societies/current/subscription") {
     return DEV_SUBSCRIPTION as unknown as T;

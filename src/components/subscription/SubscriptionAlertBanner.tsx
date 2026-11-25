@@ -18,15 +18,15 @@ import { useTenant } from "@/lib/tenant/TenantContext";
 import { usePermission } from "@/lib/rbac/usePermission";
 import { endpoints } from "@/lib/api/endpoints";
 import { SocietySubscriptionDetailResponse } from "@/types/subscription";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { SubscriptionCheckoutPanel } from "@/components/subscription/SubscriptionCheckoutPanel";
+import { formatDate } from "@/lib/utils";
 
 export const SubscriptionAlertBanner: React.FC = () => {
   const { activeSocietyId, currentSociety } = useTenant();
   const { hasRole, isPlatformAdmin } = usePermission();
   const [subscription, setSubscription] = useState<SocietySubscriptionDetailResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRenewing, setIsRenewing] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("GROWTH_300");
+  const [showCheckoutPanel, setShowCheckoutPanel] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const isSocietyAdmin = isPlatformAdmin || hasRole("SOCIETY_ADMIN");
@@ -50,28 +50,12 @@ export const SubscriptionAlertBanner: React.FC = () => {
     return () => window.removeEventListener("subscription:updated", handleUpdate);
   }, [loadSubscription]);
 
-  const handleRenewNow = async (planCode: string) => {
-    setIsRenewing(true);
-    try {
-      const updated = await endpoints.subscription.renewSubscription({
-        planCode,
-        billingMonths: 1,
-        paymentMethod: "UPI",
-      });
-      setSubscription(updated);
-      window.dispatchEvent(new CustomEvent("subscription:updated"));
-    } catch (err: any) {
-      alert("Failed to renew plan: " + (err?.message || "Payment error"));
-    } finally {
-      setIsRenewing(false);
-    }
-  };
-
   const handleSimulate = async (days: number) => {
     try {
       const updated = await endpoints.subscription.simulateSubscription(days);
       setSubscription(updated);
       setBannerDismissed(false);
+      setShowCheckoutPanel(false);
       window.dispatchEvent(new CustomEvent("subscription:updated"));
     } catch (err: any) {
       console.error("Simulation error:", err);
@@ -104,37 +88,38 @@ export const SubscriptionAlertBanner: React.FC = () => {
                 <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
                   The 14-day free trial for <strong>{currentSociety?.societyName || "your society"}</strong> has ended.
                   Gate security verification, automated billing, and resident mobile access are currently paused.
-                  Select a subscription plan below to renew and instantly restore full access.
+                  Select any subscription plan below and pay with ₹0 gateway fees via Direct UPI or Bank NEFT/IMPS.
                 </p>
 
-                {/* Plan Selector */}
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    { code: "STARTER_100", name: "Starter Plan", price: "₹1,499/mo", units: "Up to 100 flats" },
-                    { code: "GROWTH_300", name: "Growth Plan", price: "₹3,499/mo", units: "Up to 300 flats", popular: true },
-                    { code: "ENTERPRISE", name: "Enterprise Plan", price: "₹7,999/mo", units: "Unlimited flats" },
-                  ].map((p) => (
-                    <button
-                      key={p.code}
-                      type="button"
-                      onClick={() => setSelectedPlan(p.code)}
-                      className={`relative flex flex-col p-3 rounded-xl text-left border transition-all ${
-                        selectedPlan === p.code
-                          ? "bg-blue-600/20 border-blue-400 ring-2 ring-blue-500"
-                          : "bg-slate-900/60 border-slate-700 hover:border-slate-500"
-                      }`}
-                    >
-                      {p.popular && (
-                        <span className="absolute -top-2 right-2 rounded-full bg-blue-500 px-2 py-0.2 text-[9px] font-bold text-white uppercase tracking-wider">
-                          Recommended
-                        </span>
-                      )}
-                      <div className="text-xs font-bold text-white">{p.name}</div>
-                      <div className="text-sm font-extrabold text-blue-400 mt-0.5">{p.price}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{p.units}</div>
-                    </button>
-                  ))}
-                </div>
+                {!showCheckoutPanel && (
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { code: "STARTER_100", name: "Starter Plan", price: "₹1,499/mo", units: "Up to 100 flats" },
+                      { code: "GROWTH_300", name: "Growth Plan", price: "₹3,499/mo", units: "Up to 300 flats", popular: true },
+                      { code: "ENTERPRISE", name: "Enterprise Plan", price: "₹7,999/mo", units: "Unlimited flats" },
+                    ].map((p) => (
+                      <button
+                        key={p.code}
+                        type="button"
+                        onClick={() => setSelectedPlan(p.code)}
+                        className={`relative flex flex-col p-3 rounded-xl text-left border transition-all ${
+                          selectedPlan === p.code
+                            ? "bg-blue-600/20 border-blue-400 ring-2 ring-blue-500"
+                            : "bg-slate-900/60 border-slate-700 hover:border-slate-500"
+                        }`}
+                      >
+                        {p.popular && (
+                          <span className="absolute -top-2 right-2 rounded-full bg-blue-500 px-2 py-0.2 text-[9px] font-bold text-white uppercase tracking-wider">
+                            Recommended
+                          </span>
+                        )}
+                        <div className="text-xs font-bold text-white">{p.name}</div>
+                        <div className="text-sm font-extrabold text-blue-400 mt-0.5">{p.price}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">{p.units}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -142,12 +127,11 @@ export const SubscriptionAlertBanner: React.FC = () => {
             <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => handleRenewNow(selectedPlan)}
-                disabled={isRenewing}
-                className="inline-flex items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/30 hover:from-emerald-500 hover:to-teal-500 active:scale-95 transition-all disabled:opacity-50"
+                onClick={() => setShowCheckoutPanel((v) => !v)}
+                className="inline-flex items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/30 hover:from-emerald-500 hover:to-teal-500 active:scale-95 transition-all"
               >
                 <CreditCard className="h-4 w-4" />
-                <span>{isRenewing ? "Reactivating..." : "Pay & Reactivate Society"}</span>
+                <span>{showCheckoutPanel ? "Hide Payment Options" : "Pay & Reactivate Society"}</span>
               </button>
 
               <Link
@@ -159,6 +143,17 @@ export const SubscriptionAlertBanner: React.FC = () => {
               </Link>
             </div>
           </div>
+
+          {showCheckoutPanel && (
+            <div className="mt-5 pt-4 border-t border-slate-700/80">
+              <SubscriptionCheckoutPanel
+                initialPlanCode={selectedPlan}
+                compact
+                darkSurface
+                ctaLabel="Pay & Reactivate Society (Zero-Fee UPI / Bank)"
+              />
+            </div>
+          )}
 
           {/* Dev Demo Helpers */}
           <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">

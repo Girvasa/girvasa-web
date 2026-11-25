@@ -754,13 +754,30 @@ export default function OnboardingWizardPage() {
             </div>
           </div>
 
-          <div className="pt-4 flex justify-center gap-3">
+          <div className="pt-4 flex flex-wrap justify-center gap-3">
             <button
               onClick={() => setCurrentStep(3)}
               className="px-4 h-10 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                setIsFinalizing(true);
+                try {
+                  await endpoints.subscription.updateOnboardingStep("WIZARD_COMPLETED");
+                  router.push("/settings?tab=subscription");
+                } catch {
+                  setIsFinalizing(false);
+                }
+              }}
+              disabled={isFinalizing}
+              className="px-5 h-10 border border-emerald-600 text-emerald-700 hover:bg-emerald-50 text-xs font-bold rounded-xl flex items-center gap-2 transition-all disabled:opacity-60"
+            >
+              <span>Subscribe Paid Plan (₹0-Fee UPI / Bank)</span>
             </button>
 
             <button
