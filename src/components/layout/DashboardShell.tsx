@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { SubscriptionAlertBanner } from "@/components/subscription/SubscriptionAlertBanner";
+import { EmergencyAlertBanner } from "@/components/emergency/EmergencyAlertBanner";
 import { WebAccessGatekeeper } from "./WebAccessGatekeeper";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useTenant } from "@/lib/tenant/TenantContext";
@@ -136,6 +137,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
           <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
             <div className="mx-auto max-w-7xl">
+              <EmergencyAlertBanner />
               <SubscriptionAlertBanner onSubscriptionChange={handleSubscriptionChange} />
               {!isSubscriptionLocked && children}
             </div>

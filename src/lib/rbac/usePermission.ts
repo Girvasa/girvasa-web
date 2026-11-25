@@ -57,6 +57,8 @@ export function usePermission() {
           return isSocietyAdmin;
         case "complaints":
           return isSocietyAdmin;
+        case "emergencies":
+          return isSocietyAdmin || isAccountant;
         case "visitors":
           return isSocietyAdmin;
         case "amenities":
