@@ -22,6 +22,7 @@ import { endpoints } from "@/lib/api/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { SocietySubscriptionDetailResponse, SubscriptionPlanDto } from "@/types/subscription";
 import { AccessDenied } from "@/components/common/AccessDenied";
+import { SubscriptionCheckoutPanel } from "@/components/subscription/SubscriptionCheckoutPanel";
 import { usePermission } from "@/lib/rbac/usePermission";
 
 export default function SettingsPage() {
@@ -36,8 +37,6 @@ export default function SettingsPage() {
   const [subData, setSubData] = useState<SocietySubscriptionDetailResponse | null>(null);
   const [plans, setPlans] = useState<SubscriptionPlanDto[]>([]);
   const [selectedPlanCode, setSelectedPlanCode] = useState<string>("GROWTH_300");
-  const [billingMonths, setBillingMonths] = useState<number>(1);
-  const [isRenewingSub, setIsRenewingSub] = useState<boolean>(false);
   const [subSuccessMsg, setSubSuccessMsg] = useState<string | null>(null);
 
   // Society Profile Form State
@@ -150,29 +149,6 @@ export default function SettingsPage() {
       .then((data) => setPlans(data || []))
       .catch(() => {});
   }, [activeSocietyId]);
-
-  const handleRenewSubscription = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsRenewingSub(true);
-    setSubSuccessMsg(null);
-    try {
-      const updated = await endpoints.subscription.renewSubscription({
-        planCode: selectedPlanCode,
-        billingMonths,
-        paymentMethod: "UPI",
-      });
-      setSubData(updated);
-      setSubSuccessMsg("Subscription successfully renewed! Services are fully active.");
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("subscription:updated"));
-      }
-      setTimeout(() => setSubSuccessMsg(null), 4000);
-    } catch (err: any) {
-      alert("Renewal failed: " + (err?.message || "Payment processing error"));
-    } finally {
-      setIsRenewingSub(false);
-    }
-  };
 
   const handleSimulateSubscription = async (days: number) => {
     try {
@@ -519,7 +495,7 @@ export default function SettingsPage() {
                   <div>
                     <h2 className="text-sm font-bold text-[#070235]">SaaS Subscription &amp; Tier Management</h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      14-day free trial status, live plan limits, and instant UPI/Card renewals.
+                      14-day free trial status, live plan limits, and zero-fee Direct UPI / Bank NEFT renewals.
                     </p>
                   </div>
                   {subSuccessMsg && (
@@ -565,88 +541,18 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Billing Frequency Selector */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-2">
-                    Billing Cycle
-                  </label>
-                  <div className="grid grid-cols-2 gap-3 max-w-sm">
-                    <button
-                      type="button"
-                      onClick={() => setBillingMonths(1)}
-                      className={`p-3 rounded-xl border text-xs font-bold text-center transition-all ${
-                        billingMonths === 1
-                          ? "bg-blue-50 border-blue-600 text-blue-700 ring-1 ring-blue-600"
-                          : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      Monthly Billing
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBillingMonths(12)}
-                      className={`relative p-3 rounded-xl border text-xs font-bold text-center transition-all ${
-                        billingMonths === 12
-                          ? "bg-blue-50 border-blue-600 text-blue-700 ring-1 ring-blue-600"
-                          : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      <span className="absolute -top-2 right-2 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase">
-                        Save 15%
-                      </span>
-                      Annual (12 Months)
-                    </button>
-                  </div>
-                </div>
-
-                {/* Plan Selection Cards */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-2">
-                    Select Plan Tier to Renew / Upgrade
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {[
-                      {
-                        code: "STARTER_100",
-                        name: "Starter Plan",
-                        price: billingMonths === 12 ? "₹15,290/yr" : "₹1,499/mo",
-                        desc: "Up to 100 units. Visitor Gate & Maintenance Billing.",
-                      },
-                      {
-                        code: "GROWTH_300",
-                        name: "Growth Plan",
-                        price: billingMonths === 12 ? "₹35,690/yr" : "₹3,499/mo",
-                        desc: "Up to 300 units. Auto Payment Gateway & Amenities.",
-                        recommended: true,
-                      },
-                      {
-                        code: "ENTERPRISE",
-                        name: "Enterprise Plan",
-                        price: billingMonths === 12 ? "₹81,590/yr" : "₹7,999/mo",
-                        desc: "Unlimited units. Dedicated manager, voting & polls.",
-                      },
-                    ].map((p) => (
-                      <div
-                        key={p.code}
-                        onClick={() => setSelectedPlanCode(p.code)}
-                        className={`cursor-pointer relative p-4 rounded-xl border transition-all ${
-                          selectedPlanCode === p.code
-                            ? "bg-blue-50/60 border-blue-600 ring-2 ring-blue-600/30"
-                            : "border-slate-200 hover:border-slate-400 bg-white"
-                        }`}
-                      >
-                        {p.recommended && (
-                          <span className="absolute -top-2.5 right-3 bg-blue-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">
-                            Recommended
-                          </span>
-                        )}
-                        <div className="text-xs font-bold text-slate-900">{p.name}</div>
-                        <div className="text-base font-extrabold text-blue-700 mt-1">{p.price}</div>
-                        <p className="text-[11px] text-slate-500 mt-1 leading-normal">{p.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                {/* Zero-Fee Plan Selection, Direct UPI/Bank Checkout & UTR Submission */}
+                <SubscriptionCheckoutPanel
+                  initialPlanCode={selectedPlanCode}
+                  plans={plans}
+                  onOrderUpdated={(order) => {
+                    if (order.status === "PENDING_VERIFICATION") {
+                      setSubSuccessMsg(`UTR ${order.utrReference} submitted for verification.`);
+                    } else if (order.status === "INITIATED") {
+                      setSubSuccessMsg(`Payment options generated (${order.orderReference}).`);
+                    }
+                  }}
+                />
 
                 {/* Dev Testing Controls */}
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
@@ -680,19 +586,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {activeTab === "SUBSCRIPTION" ? (
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={handleRenewSubscription}
-                  disabled={isRenewingSub}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>{isRenewingSub ? "Processing Payment..." : "Renew / Activate Subscription"}</span>
-                </button>
-              </div>
-            ) : (
+            {activeTab !== "SUBSCRIPTION" && (
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
                 <button
                   type="submit"

@@ -187,7 +187,7 @@ export default function PricingPage() {
                   <div>
                     <Link 
                       className="w-full flex items-center justify-center py-2.5 rounded-lg bg-surface-container-high text-primary hover:bg-surface-container font-label-md text-label-md font-semibold transition-colors" 
-                      href="/register"
+                      href="/register?plan=STARTER_100"
                     >
                       Start 15-Day Free Trial
                     </Link>
@@ -257,7 +257,7 @@ export default function PricingPage() {
                   <div>
                     <Link 
                       className="w-full flex items-center justify-center py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md font-semibold transition-colors shadow-sm" 
-                      href="/register"
+                      href="/register?plan=GROWTH_300"
                     >
                       Start 15-Day Free Trial
                     </Link>
@@ -321,7 +321,13 @@ export default function PricingPage() {
                       </div>
                     </div>
                   </div>
-                  <div>
+                  <div className="space-y-2">
+                    <Link 
+                      className="w-full flex items-center justify-center py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md font-semibold transition-colors shadow-sm" 
+                      href="/register?plan=ENTERPRISE"
+                    >
+                      Start 15-Day Free Trial (Enterprise)
+                    </Link>
                     <Link 
                       className="w-full flex items-center justify-center py-2.5 rounded-lg bg-surface-container-high text-primary hover:bg-surface-container font-label-md text-label-md font-semibold transition-colors" 
                       href="/demo"

@@ -41,6 +41,7 @@ describe("Super Admin Console Page", () => {
     vi.spyOn(endpoints.platformAdmin, "getBankAccounts").mockResolvedValue(DEV_SOCIETY_BANK_ACCOUNTS);
     vi.spyOn(endpoints.platformAdmin, "getSubscriptionRates").mockResolvedValue(DEV_SUBSCRIPTION_RATES);
     vi.spyOn(endpoints.platformAdmin, "getApiKeys").mockResolvedValue(DEV_API_KEY_INTEGRATIONS);
+    vi.spyOn(endpoints.platformAdmin, "getSubscriptionPaymentRequests").mockResolvedValue([]);
   });
 
   it("should deny access when user is not a Platform Super Admin", () => {

@@ -64,6 +64,7 @@ import {
   UnreconciledTransactionItem,
   BackgroundJobItem,
 } from "@/types/platformAdmin";
+import { SubscriptionOrderResponse } from "@/types/payment";
 
 type AdminTab =
   | "SETTINGS_FEATURES"
@@ -169,8 +170,9 @@ export default function SuperAdminConsolePage() {
   const [showSecret, setShowSecret] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<SocietyBankAccountItem[]>([]);
 
-  // 11. Subscriptions
+  // 11. Subscriptions & SaaS UTR Verification Queue
   const [subscriptionRates, setSubscriptionRates] = useState<SubscriptionRateItem[]>([]);
+  const [subscriptionPaymentRequests, setSubscriptionPaymentRequests] = useState<SubscriptionOrderResponse[]>([]);
 
   // 12. API Keys
   const [apiKeys, setApiKeys] = useState<ApiKeyIntegrationItem[]>([]);
@@ -205,6 +207,7 @@ export default function SuperAdminConsolePage() {
           banksRes,
           ratesRes,
           keysRes,
+          subPayRes,
         ] = await Promise.allSettled([
           endpoints.platformAdmin.getAppVersions(),
           endpoints.platformAdmin.getFeatureFlags(),
@@ -220,6 +223,7 @@ export default function SuperAdminConsolePage() {
           endpoints.platformAdmin.getBankAccounts(),
           endpoints.platformAdmin.getSubscriptionRates(),
           endpoints.platformAdmin.getApiKeys(),
+          endpoints.platformAdmin.getSubscriptionPaymentRequests(),
         ]);
 
         if (versRes.status === "fulfilled" && versRes.value) setAppVersions(versRes.value);
@@ -247,6 +251,9 @@ export default function SuperAdminConsolePage() {
         if (banksRes.status === "fulfilled" && banksRes.value) setBankAccounts(banksRes.value);
         if (ratesRes.status === "fulfilled" && ratesRes.value) setSubscriptionRates(ratesRes.value);
         if (keysRes.status === "fulfilled" && keysRes.value) setApiKeys(keysRes.value);
+        if (subPayRes.status === "fulfilled" && Array.isArray(subPayRes.value)) {
+          setSubscriptionPaymentRequests(subPayRes.value);
+        }
       } catch (err: any) {
         console.error("Failed to load platform admin settings:", err);
       } finally {
@@ -1895,6 +1902,114 @@ export default function SuperAdminConsolePage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="pt-4 border-t border-slate-200 space-y-3">
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">
+                Society SaaS Subscription Direct UPI / Bank UTR Verification Queue
+              </h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Approve society-submitted subscription UTRs after verifying credit in Girvasa&apos;s Master Bank/UPI statement to activate plans.
+              </p>
+            </div>
+            {subscriptionPaymentRequests.length === 0 ? (
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
+                No society subscription UTR verification requests in queue.
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 font-semibold text-slate-700">
+                    <tr>
+                      <th className="px-4 py-2.5">Order Ref</th>
+                      <th className="px-3 py-2.5">Plan &amp; Months</th>
+                      <th className="px-3 py-2.5">Amount</th>
+                      <th className="px-3 py-2.5">UTR Reference</th>
+                      <th className="px-3 py-2.5">Status</th>
+                      <th className="px-4 py-2.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {subscriptionPaymentRequests.map((req) => (
+                      <tr key={req.requestId} className="hover:bg-slate-50/70">
+                        <td className="px-4 py-2.5 font-mono font-semibold text-slate-900">
+                          <div>{req.orderReference}</div>
+                          <div className="text-[10px] text-slate-400">{req.societyId}</div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="font-bold text-slate-800">{req.planName || req.planCode}</span>
+                          <span className="text-slate-500 ml-1">({req.billingMonths} mo)</span>
+                        </td>
+                        <td className="px-3 py-2.5 font-bold text-slate-900">
+                          ₹{Number(req.amount).toLocaleString("en-IN")}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-slate-700">
+                          {req.utrReference || "—"} {req.paymentMethod ? `(${req.paymentMethod})` : ""}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              req.status === "VERIFIED"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : req.status === "PENDING_VERIFICATION"
+                                ? "bg-amber-100 text-amber-800"
+                                : req.status === "REJECTED"
+                                ? "bg-rose-100 text-rose-800"
+                                : "bg-slate-100 text-slate-700"
+                            }`}
+                          >
+                            {req.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right space-x-2">
+                          {req.status === "PENDING_VERIFICATION" && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    const updated = await endpoints.platformAdmin.approveSubscriptionPayment(req.requestId);
+                                    setSubscriptionPaymentRequests((prev) =>
+                                      prev.map((x) => (x.requestId === req.requestId ? updated : x))
+                                    );
+                                    showToast(`Approved UTR ${req.utrReference}; subscription activated!`);
+                                  } catch (err: any) {
+                                    showToast(err?.detail || err?.message || "Approval failed", "error");
+                                  }
+                                }}
+                                className="px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700"
+                              >
+                                Approve &amp; Activate
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const reason = prompt("Enter reason for rejecting this subscription UTR:");
+                                  if (!reason) return;
+                                  try {
+                                    const updated = await endpoints.platformAdmin.rejectSubscriptionPayment(req.requestId, reason);
+                                    setSubscriptionPaymentRequests((prev) =>
+                                      prev.map((x) => (x.requestId === req.requestId ? updated : x))
+                                    );
+                                    showToast(`Rejected subscription UTR ${req.utrReference}.`);
+                                  } catch (err: any) {
+                                    showToast(err?.detail || err?.message || "Rejection failed", "error");
+                                  }
+                                }}
+                                className="px-2.5 py-1 rounded bg-rose-600 text-white font-semibold text-[11px] hover:bg-rose-700"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
