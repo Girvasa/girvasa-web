@@ -22,6 +22,8 @@ import {
   ChevronRight,
   Layers,
   RefreshCw,
+  XCircle,
+  Copy,
 } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
@@ -88,24 +90,34 @@ export default function PaymentsPage() {
     notes: "",
   });
 
-  // Razorpay Route Gateway Configuration State
+  // Zero-Fee Direct UPI & Bank Collection Configuration State
   const [gatewayConfig, setGatewayConfig] = useState<SocietyPaymentGatewayConfigResponse | null>(null);
   const [isGatewayModalOpen, setIsGatewayModalOpen] = useState(false);
   const [isSavingGateway, setIsSavingGateway] = useState(false);
   const [gatewayForm, setGatewayForm] = useState({
+    upiId: "",
+    upiPayeeName: "",
     merchantName: "",
     accountNumber: "",
     ifscCode: "",
     bankName: "",
-    linkedAccountId: "",
     isActive: true,
   });
 
-  // Girvasa SaaS Subscription State (Flow 1)
+  // Girvasa SaaS Subscription State (Flow 1 — Zero-Fee Direct UPI/Bank + UTR)
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isCreatingSubOrder, setIsCreatingSubOrder] = useState(false);
   const [subscriptionOrderResult, setSubscriptionOrderResult] = useState<SubscriptionOrderResponse | null>(null);
   const [subBillingMonths, setSubBillingMonths] = useState(12);
+  const [subUtrNumber, setSubUtrNumber] = useState("");
+  const [subUtrMethod, setSubUtrMethod] = useState<"UPI" | "BANK_TRANSFER">("UPI");
+  const [isSubmittingSubUtr, setIsSubmittingSubUtr] = useState(false);
+
+  // Accountant Pending UTR Verification / Rejection State (Flow 2)
+  const [verifyingPaymentId, setVerifyingPaymentId] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<PaymentSummaryResponse | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [isRejectingUtr, setIsRejectingUtr] = useState(false);
 
   const fetchUnits = useCallback(async () => {
     try {
@@ -150,7 +162,14 @@ export default function PaymentsPage() {
             credit: p.amount,
             runningBalance: runningBal,
             dualAuditStatus: p.status === "SUCCESS" ? "Settled" : p.status,
-            dualAuditColor: p.status === "SUCCESS" ? "bg-[#86f2e4]/40 text-[#006f66]" : "bg-slate-100 text-slate-700",
+            dualAuditColor:
+              p.status === "SUCCESS"
+                ? "bg-[#86f2e4]/40 text-[#006f66]"
+                : p.status === "PENDING"
+                ? "bg-amber-100 text-amber-800"
+                : p.status === "FAILED"
+                ? "bg-rose-100 text-rose-700"
+                : "bg-slate-100 text-slate-700",
             signatories: "Treasurer & Secretary",
             paymentId: p.id,
             unitNumber: p.unitNumber,
@@ -176,11 +195,12 @@ export default function PaymentsPage() {
       if (cfg) {
         setGatewayConfig(cfg);
         setGatewayForm({
+          upiId: cfg.upiId || "",
+          upiPayeeName: cfg.upiPayeeName || "",
           merchantName: cfg.merchantName || "",
-          accountNumber: "",
+          accountNumber: cfg.accountNumber || "",
           ifscCode: cfg.ifscCode || "",
           bankName: cfg.bankName || "",
-          linkedAccountId: cfg.linkedAccountId || "",
           isActive: cfg.isActive,
         });
       }
@@ -201,21 +221,22 @@ export default function PaymentsPage() {
     setIsSavingGateway(true);
     try {
       const res = await endpoints.payments.updateSocietyGatewayConfig(activeSocietyId, {
-        merchantName: gatewayForm.merchantName,
-        accountNumber: gatewayForm.accountNumber || undefined,
-        ifscCode: gatewayForm.ifscCode,
-        bankName: gatewayForm.bankName,
-        linkedAccountId: gatewayForm.linkedAccountId,
+        upiId: gatewayForm.upiId.trim() || undefined,
+        upiPayeeName: gatewayForm.upiPayeeName.trim() || undefined,
+        merchantName: gatewayForm.merchantName.trim(),
+        accountNumber: gatewayForm.accountNumber.trim() || undefined,
+        ifscCode: gatewayForm.ifscCode.trim().toUpperCase(),
+        bankName: gatewayForm.bankName.trim(),
         isActive: gatewayForm.isActive,
       });
       setGatewayConfig(res);
       setIsGatewayModalOpen(false);
       setBannerMessage({
         type: "success",
-        text: `Razorpay Route linked account updated for direct settlement (Account: ${res.linkedAccountId || "Pending"}).`,
+        text: `Direct UPI & Bank collection account saved (UPI: ${res.upiId || "Not set"}, Bank: ${res.accountNumberMask || "Configured"}).`,
       });
     } catch (err: any) {
-      setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to update gateway config." });
+      setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to update collection settings." });
     } finally {
       setIsSavingGateway(false);
     }
@@ -229,14 +250,75 @@ export default function PaymentsPage() {
         billingMonths: subBillingMonths,
       });
       setSubscriptionOrderResult(res);
+      setSubUtrNumber("");
       setBannerMessage({
         type: "success",
-        text: `Razorpay SaaS subscription order created (${res.orderReference}). Direct settlement to Girvasa master account.`,
+        text: `Zero-fee subscription checkout created (${res.orderReference}). Pay via UPI or NEFT and submit your 12-digit UTR below.`,
       });
     } catch (err: any) {
       setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to create subscription order." });
     } finally {
       setIsCreatingSubOrder(false);
+    }
+  };
+
+  const handleSubmitSubscriptionUtr = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subscriptionOrderResult || !subUtrNumber.trim()) return;
+    setIsSubmittingSubUtr(true);
+    try {
+      const updated = await endpoints.subscriptions.submitUtr(subscriptionOrderResult.requestId, {
+        utrNumber: subUtrNumber.trim(),
+        paymentMethod: subUtrMethod,
+      });
+      setSubscriptionOrderResult(updated);
+      setBannerMessage({
+        type: "success",
+        text: `Subscription UTR ${updated.utrReference} submitted for Platform Super Admin verification.`,
+      });
+    } catch (err: any) {
+      setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to submit subscription UTR." });
+    } finally {
+      setIsSubmittingSubUtr(false);
+    }
+  };
+
+  const handleVerifyPendingPayment = async (payment: PaymentSummaryResponse) => {
+    setVerifyingPaymentId(payment.id);
+    try {
+      await endpoints.payments.verifyPayment(payment.id);
+      setBannerMessage({
+        type: "success",
+        text: `Verified UTR (${payment.transactionReference || payment.paymentNumber}). Payment marked SUCCESS and allocated to unpaid bills.`,
+      });
+      await fetchPayments();
+    } catch (err: any) {
+      setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to verify pending UTR." });
+    } finally {
+      setVerifyingPaymentId(null);
+    }
+  };
+
+  const handleRejectPendingPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectTarget) return;
+    setIsRejectingUtr(true);
+    try {
+      await endpoints.payments.rejectPayment(
+        rejectTarget.id,
+        rejectReason.trim() || "UTR not found in bank statement"
+      );
+      setBannerMessage({
+        type: "success",
+        text: `Rejected payment ${rejectTarget.paymentNumber} (${rejectTarget.transactionReference || "UTR"}). Resident can re-submit a valid UTR.`,
+      });
+      setRejectTarget(null);
+      setRejectReason("");
+      await fetchPayments();
+    } catch (err: any) {
+      setBannerMessage({ type: "error", text: err?.detail || err?.message || "Failed to reject payment." });
+    } finally {
+      setIsRejectingUtr(false);
     }
   };
 
@@ -384,7 +466,7 @@ export default function PaymentsPage() {
             <span>+ Record Payment Voucher</span>
           </button>
 
-          {/* Razorpay Route Linked Account Button */}
+          {/* Zero-Fee Direct UPI & Bank Collection Button */}
           <button
             onClick={() => setIsGatewayModalOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold text-xs hover:bg-emerald-100 transition-colors shadow-sm"
@@ -392,7 +474,7 @@ export default function PaymentsPage() {
           >
             <Landmark className="w-3.5 h-3.5 text-emerald-600" />
             <span>
-              Razorpay Route: {gatewayConfig?.linkedAccountId ? gatewayConfig.linkedAccountId : "Configure Bank"}
+              Direct UPI / Bank: {gatewayConfig?.upiId || gatewayConfig?.accountNumberMask || "Configure Bank"}
             </span>
             {gatewayConfig?.isActive ? (
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -777,6 +859,31 @@ export default function PaymentsPage() {
                                   <Eye className="w-4 h-4" />
                                 </button>
                               )}
+                              {matchedPayment && matchedPayment.status === "PENDING" && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleVerifyPendingPayment(matchedPayment)}
+                                    disabled={verifyingPaymentId === matchedPayment.id}
+                                    className="px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-[11px] flex items-center gap-1 transition-colors disabled:opacity-50"
+                                    title="Verify UTR & Allocate Bill"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>{verifyingPaymentId === matchedPayment.id ? "Verifying..." : "Verify UTR"}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRejectTarget(matchedPayment);
+                                      setRejectReason("");
+                                    }}
+                                    className="p-1 rounded hover:bg-rose-50 text-rose-600 transition-colors"
+                                    title="Reject Invalid UTR"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
                               {matchedPayment && matchedPayment.status === "SUCCESS" && (
                                 <button
                                   type="button"
@@ -1064,28 +1171,85 @@ export default function PaymentsPage() {
         </div>
       </Modal>
 
-      {/* Razorpay Route Linked Account Configuration Modal */}
+      {/* Accountant Reject Pending UTR Modal */}
+      <Modal
+        isOpen={Boolean(rejectTarget)}
+        onClose={() => setRejectTarget(null)}
+        title="Reject Submitted UTR Payment"
+        description="Rejecting marks the submitted transaction FAILED without crediting maintenance bills, allowing the resident to resubmit a corrected UTR."
+      >
+        <form onSubmit={handleRejectPendingPayment} className="space-y-4 text-xs">
+          <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-900 space-y-1">
+            <div>
+              Voucher: <span className="font-mono font-bold">{rejectTarget?.paymentNumber}</span> • Amount:{" "}
+              <span className="font-bold">{rejectTarget ? formatCurrency(rejectTarget.amount) : ""}</span>
+            </div>
+            <div>
+              Submitted UTR: <span className="font-mono font-bold">{rejectTarget?.transactionReference || "N/A"}</span>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Rejection Reason *</label>
+            <Input
+              placeholder="e.g. UTR not found in society bank credit statement"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              required
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button variant="secondary" size="sm" type="button" onClick={() => setRejectTarget(null)}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" type="submit" isLoading={isRejectingUtr} className="bg-rose-600 hover:bg-rose-700 text-white">
+              Reject &amp; Mark Failed
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Zero-Fee Direct UPI & Bank Collection Configuration Modal */}
       <Modal
         isOpen={isGatewayModalOpen}
         onClose={() => setIsGatewayModalOpen(false)}
-        title="Razorpay Route — Multi-Tenant Direct Settlement"
-        description="Connect your society's registered bank account. Resident maintenance payments route directly to your account with zero intermediary pooling (100% RBI & MCS compliant)."
+        title="Zero-Fee Direct UPI &amp; Bank Collection"
+        description="Configure your society's official UPI VPA and Bank Account. Residents transfer directly to the society bank with ₹0 gateway fees (100% MCS Act compliant)."
       >
         <form onSubmit={handleSaveGatewayConfig} className="space-y-4 text-xs">
           <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-900 space-y-1">
             <div className="flex items-center gap-2 font-semibold">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Direct Bank Settlement Status</span>
+              <span>Zero-Fee Direct Settlement Status</span>
             </div>
             <p className="text-[11px] text-emerald-700">
-              Provider: <span className="font-mono font-bold">RAZORPAY_ROUTE</span> • Linked Account:{" "}
-              <span className="font-mono font-bold">{gatewayConfig?.linkedAccountId || "Pending Verification"}</span> • KYC:{" "}
+              Mode: <span className="font-mono font-bold">{gatewayConfig?.gatewayProvider || "DIRECT_UPI_BANK"}</span> • UPI VPA:{" "}
+              <span className="font-mono font-bold">{gatewayConfig?.upiId || "Not Configured"}</span> • KYC:{" "}
               <span className="font-bold uppercase">{gatewayConfig?.kycStatus || "PENDING"}</span>
             </p>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Society Official UPI VPA *</label>
+              <Input
+                placeholder="e.g. greenwood@sbi or society@hdfcbank"
+                value={gatewayForm.upiId}
+                onChange={(e) => setGatewayForm({ ...gatewayForm, upiId: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">UPI Payee Display Name</label>
+              <Input
+                placeholder="e.g. Greenwood CHS Ltd"
+                value={gatewayForm.upiPayeeName}
+                onChange={(e) => setGatewayForm({ ...gatewayForm, upiPayeeName: e.target.value })}
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Society Merchant / Legal Name *</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Society Legal Account Holder Name *</label>
             <Input
               placeholder="e.g. Greenwood Co-operative Housing Society Ltd"
               value={gatewayForm.merchantName}
@@ -1096,7 +1260,7 @@ export default function PaymentsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Settlement Bank Name *</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Bank Name *</label>
               <Input
                 placeholder="e.g. HDFC Bank, SBI, ICICI"
                 value={gatewayForm.bankName}
@@ -1115,26 +1279,15 @@ export default function PaymentsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Settlement Account Number {gatewayConfig?.accountNumberMask && `(${gatewayConfig.accountNumberMask})`}
-              </label>
-              <Input
-                type="password"
-                placeholder="Enter new account number to update"
-                value={gatewayForm.accountNumber}
-                onChange={(e) => setGatewayForm({ ...gatewayForm, accountNumber: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Razorpay Linked Account ID</label>
-              <Input
-                placeholder="e.g. acc_001"
-                value={gatewayForm.linkedAccountId}
-                onChange={(e) => setGatewayForm({ ...gatewayForm, linkedAccountId: e.target.value })}
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Bank Account Number for NEFT / IMPS {gatewayConfig?.accountNumberMask && `(Saved: ${gatewayConfig.accountNumberMask})`}
+            </label>
+            <Input
+              placeholder="Enter society bank account number"
+              value={gatewayForm.accountNumber}
+              onChange={(e) => setGatewayForm({ ...gatewayForm, accountNumber: e.target.value })}
+            />
           </div>
 
           <div className="flex items-center gap-2 pt-2">
@@ -1146,7 +1299,7 @@ export default function PaymentsPage() {
               className="rounded text-emerald-600 focus:ring-emerald-500"
             />
             <label htmlFor="routeActiveCheck" className="text-xs font-medium text-slate-800">
-              Enable active direct settlement routing for resident maintenance payments
+              Enable zero-fee Direct UPI QR &amp; Bank NEFT/IMPS collections for resident maintenance bills
             </label>
           </div>
 
@@ -1155,79 +1308,160 @@ export default function PaymentsPage() {
               Cancel
             </Button>
             <Button variant="primary" size="sm" type="submit" isLoading={isSavingGateway}>
-              Save Gateway Configuration
+              Save Collection Account
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Girvasa SaaS Subscription Modal (Flow 1) */}
+      {/* Girvasa SaaS Subscription Modal (Flow 1 — Zero-Fee Direct UPI / Bank + UTR) */}
       <Modal
         isOpen={isSubscriptionModalOpen}
         onClose={() => setIsSubscriptionModalOpen(false)}
-        title="Girvasa SaaS Subscription (Software License)"
-        description="Society software license fees settle directly into the Girvasa Platform Master Razorpay account."
+        title="Girvasa SaaS Subscription (Zero-Fee Direct Transfer)"
+        description="Pay society software license fees directly to the Girvasa Master UPI or Bank Account (₹0 gateway fees) and submit your UTR reference for instant activation."
       >
         <div className="space-y-4 text-xs">
           <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-950 space-y-1">
             <div className="flex items-center justify-between font-bold text-sm">
               <span>Growth Plan (Up to 300 Units)</span>
-              <span className="text-indigo-700">₹2,999 / month</span>
+              <span className="text-indigo-700">₹3,499 / month</span>
             </div>
             <p className="text-[11px] text-indigo-700">
-              Includes full Gate OS, Accounting HUD, General Ledger, Resident Mobile App, and Razorpay Route integration.
+              Includes full Gate OS, Accounting HUD, General Ledger, Resident Mobile App, and Zero-Fee Direct UPI/NEFT Maintenance Collections.
             </p>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-2">Select Subscription Duration</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setSubBillingMonths(1)}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  subBillingMonths === 1
-                    ? "border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold ring-1 ring-indigo-600"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                <div className="font-bold">1 Month</div>
-                <div className="text-[11px] text-slate-500">₹2,999.00</div>
-              </button>
+          {!subscriptionOrderResult && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-2">Select Subscription Duration</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSubBillingMonths(1)}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    subBillingMonths === 1
+                      ? "border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold ring-1 ring-indigo-600"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="font-bold">1 Month</div>
+                  <div className="text-[11px] text-slate-500">₹3,499.00</div>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setSubBillingMonths(12)}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  subBillingMonths === 12
-                    ? "border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold ring-1 ring-indigo-600"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold">Annual (12 Months)</span>
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Recommended</span>
-                </div>
-                <div className="text-[11px] text-slate-500">₹35,988.00</div>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setSubBillingMonths(12)}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    subBillingMonths === 12
+                      ? "border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold ring-1 ring-indigo-600"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">Annual (12 Months)</span>
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Recommended</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500">₹41,988.00</div>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {subscriptionOrderResult ? (
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-              <div className="flex items-center gap-2 text-emerald-700 font-bold">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Subscription Order Ready for Checkout</span>
+            <div className="space-y-3">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-emerald-700 font-bold">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Reference: {subscriptionOrderResult.orderReference}</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold">
+                    {subscriptionOrderResult.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-700 pt-1">
+                  <div>
+                    <span className="text-slate-500 block">Payable Amount (₹0 Fee)</span>
+                    <span className="font-bold text-slate-900">₹{subscriptionOrderResult.amount}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Girvasa UPI VPA</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-slate-900">{subscriptionOrderResult.payeeUpiId || "girvasa@upi"}</span>
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard?.writeText(subscriptionOrderResult.payeeUpiId || "")}
+                        className="text-indigo-600 hover:text-indigo-800"
+                        title="Copy UPI VPA"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Bank &amp; IFSC</span>
+                    <span className="font-mono font-semibold text-slate-900">
+                      {subscriptionOrderResult.bankName} ({subscriptionOrderResult.ifscCode})
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Bank Account Number</span>
+                    <span className="font-mono font-semibold text-slate-900">{subscriptionOrderResult.bankAccountNumber}</span>
+                  </div>
+                </div>
+
+                {subscriptionOrderResult.upiUri && (
+                  <div className="pt-1">
+                    <a
+                      href={subscriptionOrderResult.upiUri}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700"
+                    >
+                      Open UPI App to Pay ₹{subscriptionOrderResult.amount}
+                      <ArrowRight className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-600">
-                <div>Order Ref: {subscriptionOrderResult.orderReference}</div>
-                <div>Razorpay Order: {subscriptionOrderResult.externalOrderId}</div>
-                <div>Amount: ₹{subscriptionOrderResult.amount}</div>
-                <div>Key ID: {subscriptionOrderResult.keyId}</div>
-              </div>
-              <p className="text-[11px] text-slate-500 italic">
-                Direct settlement to Girvasa Platform master account. On payment confirmation, society subscription is automatically extended.
-              </p>
+
+              {subscriptionOrderResult.status === "PENDING_VERIFICATION" ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px]">
+                  <div className="font-bold">UTR Submitted: {subscriptionOrderResult.utrReference}</div>
+                  <div>Awaiting Platform Super Admin bank reconciliation. Your subscription activates automatically upon approval.</div>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmitSubscriptionUtr} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2.5">
+                  <div className="font-bold text-slate-800">Step 2: Enter Transfer UTR Reference</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <Input
+                        placeholder="12-digit UPI UTR / Bank NEFT Ref"
+                        value={subUtrNumber}
+                        onChange={(e) => setSubUtrNumber(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <select
+                      value={subUtrMethod}
+                      onChange={(e) => setSubUtrMethod(e.target.value as "UPI" | "BANK_TRANSFER")}
+                      className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs bg-white"
+                    >
+                      <option value="UPI">UPI</option>
+                      <option value="BANK_TRANSFER">NEFT/IMPS</option>
+                    </select>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    type="submit"
+                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white"
+                    isLoading={isSubmittingSubUtr}
+                  >
+                    Submit UTR for Activation
+                  </Button>
+                </form>
+              )}
             </div>
           ) : (
             <Button
@@ -1237,7 +1471,7 @@ export default function PaymentsPage() {
               onClick={handleCreateSubscriptionOrder}
               isLoading={isCreatingSubOrder}
             >
-              Pay SaaS Subscription via Razorpay
+              Generate Zero-Fee UPI / Bank Checkout Details
             </Button>
           )}
 

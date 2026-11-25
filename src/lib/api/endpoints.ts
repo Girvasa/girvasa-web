@@ -204,18 +204,28 @@ export const endpoints = {
       }),
     reversePayment: (paymentId: string, reason: string) =>
       api.post<PaymentDetailResponse>(`/payments/${paymentId}/reverse`, { reason }),
+    verifyPayment: (paymentId: string) =>
+      api.post<PaymentDetailResponse>(`/payments/${paymentId}/verify`, {}),
+    rejectPayment: (paymentId: string, reason: string) =>
+      api.post<PaymentDetailResponse>(`/payments/${paymentId}/reject`, { reason }),
     getSocietyGatewayConfig: (societyId: string) =>
       api.get<SocietyPaymentGatewayConfigResponse>(`/societies/${societyId}/payment-gateway-config`),
     updateSocietyGatewayConfig: (societyId: string, data: SocietyPaymentGatewayConfigUpdateRequest) =>
       api.put<SocietyPaymentGatewayConfigResponse>(`/societies/${societyId}/payment-gateway-config`, data),
     createOrder: (data: { unitId: string; amount: number; currency?: string; gatewayName?: string; description?: string }) =>
       api.post<PaymentOrderResult>("/payments/orders", data),
+    submitOrderUtr: (orderId: string, data: { utrNumber: string; paymentMethod?: string; notes?: string }) =>
+      api.post<PaymentDetailResponse>(`/payments/orders/${orderId}/submit-utr`, data),
   },
 
-  // Platform SaaS Subscriptions
+  // Platform SaaS Subscriptions (Zero-Fee Direct UPI / Bank Transfer + UTR)
   subscriptions: {
     createCheckoutOrder: (data: { planCode: string; billingMonths?: number }) =>
       api.post<SubscriptionOrderResponse>("/subscriptions/checkout-order", data),
+    submitUtr: (requestId: string, data: { utrNumber: string; paymentMethod?: string }) =>
+      api.post<SubscriptionOrderResponse>(`/subscriptions/checkout-order/${requestId}/submit-utr`, data),
+    listMyRequests: () =>
+      api.get<SubscriptionOrderResponse[]>("/subscriptions/checkout-order"),
   },
 
   // Complaints
@@ -494,6 +504,15 @@ export const endpoints = {
       api.post<{ success: boolean; impersonationToken: string }>(`/platform/admin/impersonate/${userId}`, {}, { skipTenant: true }),
     exitImpersonation: () =>
       api.post<{ success: boolean }>("/platform/admin/impersonate/exit", {}, { skipTenant: true }),
+    getSubscriptionPaymentRequests: (status?: string) =>
+      api.get<SubscriptionOrderResponse[]>("/platform/subscription-payments", {
+        params: status ? { status } : undefined,
+        skipTenant: true,
+      }),
+    approveSubscriptionPayment: (requestId: string) =>
+      api.post<SubscriptionOrderResponse>(`/platform/subscription-payments/${requestId}/approve`, {}, { skipTenant: true }),
+    rejectSubscriptionPayment: (requestId: string, reason: string) =>
+      api.post<SubscriptionOrderResponse>(`/platform/subscription-payments/${requestId}/reject`, { reason }, { skipTenant: true }),
   },
 
   // Society Join Requests (Resident Self-Onboarding & Committee Approval)
