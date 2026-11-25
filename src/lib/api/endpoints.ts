@@ -1,6 +1,17 @@
 import { api } from "./client";
 import { tokenStorage } from "../auth/tokenStorage";
 import { AuthTokensResponse, OtpResponseDto, UserResponse } from "@/types/auth";
+import {
+  CancelEmergencyAlertRequest,
+  CreateEmergencyAlertRequest,
+  EmergencyAlert,
+  EmergencyAlertSummary,
+  EmergencySafetyAcknowledgment,
+  EmergencySafetyStatusRequest,
+  EmergencyStatus,
+  ResolveEmergencyAlertRequest,
+  SafetyStatus,
+} from "@/types/emergency";
 import { CurrentSocietyContext, UserSocietyMembership } from "@/types/tenant";
 import { BuildingResponse, UnitResponse, WingResponse } from "@/types/structure";
 import { MemberResponse, CreateMemberRequest } from "@/types/member";
@@ -529,5 +540,54 @@ export const endpoints = {
       api.post<any>(`/join-requests/${id}/approve`),
     rejectJoinRequest: (id: string, reason?: string) =>
       api.post<any>(`/join-requests/${id}/reject`, { rejectionReason: reason }),
+  },
+
+  // Emergency Alerts & Safety Muster Roll (Step 27B)
+  emergencies: {
+    getAlerts: async (params?: {
+      status?: EmergencyStatus;
+      page?: number;
+      size?: number;
+    }): Promise<EmergencyAlert[]> => {
+      const res = await api.get<any>("/emergencies/alerts", { params });
+      return Array.isArray(res) ? res : res?.content || [];
+    },
+    getActiveAlert: () =>
+      api.get<EmergencyAlert | null>("/emergencies/alerts/active"),
+    getAlert: (id: string) =>
+      api.get<EmergencyAlert>(`/emergencies/alerts/${id}`),
+    triggerAlert: (data: CreateEmergencyAlertRequest) =>
+      api.post<EmergencyAlert>("/emergencies/alerts", data),
+    resolveAlert: (id: string, data?: ResolveEmergencyAlertRequest) =>
+      api.post<EmergencyAlert>(`/emergencies/alerts/${id}/resolve`, data || {}),
+    cancelAlert: (id: string, data: CancelEmergencyAlertRequest) =>
+      api.post<EmergencyAlert>(`/emergencies/alerts/${id}/cancel`, data),
+    submitSafetyStatus: (id: string, data: EmergencySafetyStatusRequest) =>
+      api.post<EmergencySafetyAcknowledgment>(
+        `/emergencies/alerts/${id}/safety-status`,
+        data
+      ),
+    getMySafetyStatus: (id: string) =>
+      api.get<EmergencySafetyAcknowledgment | null>(
+        `/emergencies/alerts/${id}/safety-status/me`
+      ),
+    getSummary: (id: string) =>
+      api.get<EmergencyAlertSummary>(`/emergencies/alerts/${id}/summary`),
+    getAcknowledgments: async (
+      id: string,
+      params?: { safetyStatus?: SafetyStatus; page?: number; size?: number }
+    ): Promise<EmergencySafetyAcknowledgment[]> => {
+      const res = await api.get<any>(
+        `/emergencies/alerts/${id}/acknowledgments`,
+        { params }
+      );
+      return Array.isArray(res) ? res : res?.content || [];
+    },
+  },
+
+  // Society Configuration & Public Settings
+  settings: {
+    getSetting: (key: string) =>
+      api.get<{ key: string; value: string | null }>(`/settings/${encodeURIComponent(key)}`),
   },
 };

@@ -25,6 +25,7 @@ import {
   Settings,
   Activity,
   ShieldAlert,
+  Siren,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,7 @@ const navGroups: NavGroup[] = [
       { name: "Buildings", href: "/buildings", icon: Building, moduleKey: "buildings" },
       { name: "Units", href: "/units", icon: Home, moduleKey: "units" },
       { name: "Residents", href: "/residents", icon: Users, moduleKey: "residents" },
+      { name: "Emergency SOS", href: "/emergencies", icon: Siren, moduleKey: "emergencies" },
       { name: "Complaints", href: "/complaints", icon: MessageSquareWarning, moduleKey: "complaints" },
       { name: "Visitors", href: "/visitors", icon: UserCheck, moduleKey: "visitors" },
       { name: "Amenities", href: "/amenities", icon: CalendarCheck, moduleKey: "amenities" },

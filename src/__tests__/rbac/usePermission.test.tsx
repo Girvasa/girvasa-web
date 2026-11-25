@@ -44,6 +44,7 @@ describe("usePermission RBAC evaluation", () => {
     expect(result.current.canAccessModule("payments")).toBe(true);
     expect(result.current.canAccessModule("reports")).toBe(true);
     expect(result.current.canAccessModule("complaints")).toBe(true);
+    expect(result.current.canAccessModule("emergencies")).toBe(true);
     expect(result.current.canAccessModule("settings")).toBe(true);
     expect(result.current.canAccessModule("audit")).toBe(true);
 
@@ -86,6 +87,7 @@ describe("usePermission RBAC evaluation", () => {
     expect(result.current.canAccessModule("units")).toBe(true);
     expect(result.current.canAccessModule("residents")).toBe(true);
     expect(result.current.canAccessModule("documents")).toBe(true);
+    expect(result.current.canAccessModule("emergencies")).toBe(true);
 
     // Accountant CANNOT access operational governance or platform watch
     expect(result.current.canAccessModule("buildings")).toBe(false);
@@ -127,6 +129,7 @@ describe("usePermission RBAC evaluation", () => {
     expect(result.current.canAccessModule("dashboard")).toBe(false);
     expect(result.current.canAccessModule("billing")).toBe(false);
     expect(result.current.canAccessModule("settings")).toBe(false);
+    expect(result.current.canAccessModule("emergencies")).toBe(false);
     expect(result.current.canAccessModule("platform_watch")).toBe(false);
   });
 
