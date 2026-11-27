@@ -78,8 +78,8 @@ export default function RegisterPage() {
     societyName: "",
     societyCode: "",
     addressLine1: "",
-    city: "Pune",
-    state: "Maharashtra",
+    city: "",
+    state: "",
     pincode: "",
   });
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { ApiClient, ApiError } from "@/lib/api/client";
 import { tokenStorage } from "@/lib/auth/tokenStorage";
+import * as sessionSync from "@/lib/auth/sessionSync";
 
 describe("ApiClient", () => {
   let client: ApiClient;
@@ -204,5 +205,152 @@ describe("ApiClient", () => {
     fallbackClient.resetToPrimary();
     expect(fallbackClient.isFallbackActive()).toBe(false);
     expect(fallbackClient.getBaseUrl()).toBe("http://localhost:8080/api/v1");
+  });
+
+  it("should coalesce concurrent 401 responses into one refresh request and broadcast SESSION_TOKEN_REFRESH", async () => {
+    tokenStorage.setAccessToken("expired-access-token");
+    tokenStorage.setRefreshToken("valid-refresh-token");
+    tokenStorage.setActiveSocietyId("soc-100");
+
+    const broadcastSpy = vi.spyOn(sessionSync, "broadcastSessionEvent");
+
+    const lockNames: string[] = [];
+    const originalLocks = (navigator as any).locks;
+    Object.defineProperty(navigator, "locks", {
+      configurable: true,
+      value: {
+        request: async (name: string, cb: () => Promise<any>) => {
+          lockNames.push(name);
+          return await cb();
+        },
+      },
+    });
+
+    try {
+      let refreshCount = 0;
+      const fetchMock = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+        const auth = (init?.headers as Record<string, string>)?.["Authorization"];
+        if (url.endsWith("/auth/refresh")) {
+          refreshCount++;
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ "content-type": "application/json" }),
+            json: async () => ({
+              data: {
+                accessToken: "fresh-access-token",
+                refreshToken: "rotated-refresh-token",
+              },
+            }),
+          };
+        }
+        if (auth === "Bearer expired-access-token") {
+          return {
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            headers: new Headers({ "content-type": "application/problem+json" }),
+            json: async () => ({ status: 401, code: "UNAUTHORIZED", detail: "Token expired" }),
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "application/json" }),
+          json: async () => ({ data: { ok: true, endpoint: url } }),
+        };
+      });
+      global.fetch = fetchMock;
+
+      const [resA, resB] = await Promise.all([
+        client.get<any>("/bills"),
+        client.get<any>("/notices"),
+      ]);
+
+      expect(refreshCount).toBe(1);
+      expect(lockNames).toEqual(["girvasa_auth_refresh_lock"]);
+      expect(tokenStorage.getAccessToken()).toBe("fresh-access-token");
+      expect(tokenStorage.getRefreshToken()).toBe("rotated-refresh-token");
+      expect(broadcastSpy).toHaveBeenCalledWith("SESSION_TOKEN_REFRESH");
+      expect(resA).toEqual({ ok: true, endpoint: "http://localhost:8080/api/v1/bills" });
+      expect(resB).toEqual({ ok: true, endpoint: "http://localhost:8080/api/v1/notices" });
+    } finally {
+      Object.defineProperty(navigator, "locks", {
+        configurable: true,
+        value: originalLocks,
+      });
+    }
+  });
+
+  it("should reuse token refreshed by another tab once cross-tab lock is acquired", async () => {
+    tokenStorage.setAccessToken("stale-access-token");
+    tokenStorage.setRefreshToken("old-refresh-token");
+
+    const originalLocks = (navigator as any).locks;
+    Object.defineProperty(navigator, "locks", {
+      configurable: true,
+      value: {
+        request: async (_name: string, cb: () => Promise<any>) => {
+          // Simulate sibling tab completing token rotation before this tab executes callback
+          tokenStorage.setAccessToken("sibling-tab-access-token");
+          tokenStorage.setRefreshToken("sibling-tab-refresh-token");
+          return await cb();
+        },
+      },
+    });
+
+    try {
+      const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+        const auth = (init?.headers as Record<string, string>)?.["Authorization"];
+        if (auth === "Bearer stale-access-token") {
+          return {
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            headers: new Headers({ "content-type": "application/problem+json" }),
+            json: async () => ({ status: 401, code: "UNAUTHORIZED", detail: "Token expired" }),
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "application/json" }),
+          json: async () => ({ data: { verifiedWith: auth } }),
+        };
+      });
+      global.fetch = fetchMock;
+
+      const result = await client.get<any>("/me");
+      const calledUrls = fetchMock.mock.calls.map((c) => c[0]);
+      expect(calledUrls.some((u) => String(u).includes("/auth/refresh"))).toBe(false);
+      expect(result).toEqual({ verifiedWith: "Bearer sibling-tab-access-token" });
+    } finally {
+      Object.defineProperty(navigator, "locks", {
+        configurable: true,
+        value: originalLocks,
+      });
+    }
+  });
+
+  it("should clear tokens, clear active society ID, and broadcast SESSION_LOGOUT when refresh fails", async () => {
+    tokenStorage.setAccessToken("expired-access-token");
+    tokenStorage.setRefreshToken("revoked-refresh-token");
+    tokenStorage.setActiveSocietyId("soc-999");
+
+    const broadcastSpy = vi.spyOn(sessionSync, "broadcastSessionEvent");
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      headers: new Headers({ "content-type": "application/problem+json" }),
+      json: async () => ({ status: 401, code: "TOKEN_REVOKED", detail: "Session revoked" }),
+    });
+
+    await expect(client.get("/me")).rejects.toThrow(ApiError);
+    expect(tokenStorage.getAccessToken()).toBeNull();
+    expect(tokenStorage.getRefreshToken()).toBeNull();
+    expect(tokenStorage.getActiveSocietyId()).toBeNull();
+    expect(broadcastSpy).toHaveBeenCalledWith("SESSION_LOGOUT");
   });
 });

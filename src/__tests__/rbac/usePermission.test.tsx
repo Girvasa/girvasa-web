@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { usePermission } from "@/lib/rbac/usePermission";
 import * as TenantContextModule from "@/lib/tenant/TenantContext";
+import * as AuthContextModule from "@/lib/auth/AuthContext";
 
 describe("usePermission RBAC evaluation", () => {
   it("should evaluate permissions and roles accurately for regular society admin", () => {
@@ -163,5 +164,49 @@ describe("usePermission RBAC evaluation", () => {
     expect(result.current.canAccessModule("platform_watch")).toBe(true);
     expect(result.current.canAccessModule("settings")).toBe(true);
     expect(result.current.canAccessModule("billing")).toBe(true);
+  });
+
+  it("should NOT escalate privileges based on hardcoded phone numbers without backend roles", () => {
+    vi.spyOn(AuthContextModule, "useAuth").mockReturnValue({
+      user: {
+        id: "u-res",
+        mobileNumber: "+919876545001",
+        phoneVerified: true,
+        status: "ACTIVE",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      requestOtp: vi.fn(),
+      verifyOtp: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+
+    vi.spyOn(TenantContextModule, "useTenant").mockReturnValue({
+      societies: [],
+      currentSociety: {
+        societyId: "soc-1",
+        societyCode: "SOC-001",
+        societyName: "Emerald Heights",
+        status: "ACTIVE",
+        membershipId: "mem-1",
+        membershipStatus: "ACTIVE",
+        roles: ["RESIDENT"],
+        permissions: [],
+        isPlatformAdmin: false,
+      },
+      activeSocietyId: "soc-1",
+      isLoadingTenant: false,
+      switchSociety: vi.fn(),
+      refreshTenant: vi.fn(),
+    });
+
+    const { result } = renderHook(() => usePermission());
+
+    expect(result.current.isPlatformAdmin).toBe(false);
+    expect(result.current.isPlatformSuperAdmin).toBe(false);
+    expect(result.current.isWebAuthorized).toBe(false);
+    expect(result.current.canAccessModule("dashboard")).toBe(false);
   });
 });

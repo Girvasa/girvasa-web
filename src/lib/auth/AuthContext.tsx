@@ -126,15 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsTabSuperseded(false);
         if (typeof window !== "undefined") {
           const path = window.location.pathname;
-          if (
-            path.startsWith("/dashboard") ||
-            path.startsWith("/platform") ||
-            path.startsWith("/billing") ||
-            path.startsWith("/residents") ||
-            path.startsWith("/settings") ||
-            path.startsWith("/audit") ||
-            path.startsWith("/units")
-          ) {
+          const publicPaths = ["/", "/login", "/register", "/about", "/features", "/pricing", "/contact", "/demo", "/privacy", "/terms"];
+          if (!publicPaths.includes(path)) {
             try {
               window.location.href = "/login";
             } catch {

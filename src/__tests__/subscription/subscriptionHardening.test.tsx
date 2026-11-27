@@ -209,6 +209,7 @@ describe("Subscription Hardening, Lockout & OTP Registration", () => {
     fill("societyName", "Green Valley CHS");
     fill("addressLine1", "Plot 12, Baner");
     fill("city", "Pune");
+    fill("state", "Maharashtra");
     fill("pincode", "411045");
     fill("adminName", "Suresh Patil");
     fill("adminMobile", "9876549988");
