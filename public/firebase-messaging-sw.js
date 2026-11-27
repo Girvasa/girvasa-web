@@ -34,8 +34,8 @@ self.addEventListener('push', (event) => {
   const notificationTitle = payload.notification?.title || payload.data?.title || 'Girvasa Society Update';
   const notificationOptions = {
     body: payload.notification?.body || payload.data?.body || 'You have a new update in your society.',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/icons/notification-icon-192.png',
+    badge: '/icons/notification-badge-96.png',
     tag: payload.data?.id || 'girvasa-notification',
     data: {
       url: payload.data?.deepLink || (payload.data?.id ? `/notifications` : '/dashboard'),

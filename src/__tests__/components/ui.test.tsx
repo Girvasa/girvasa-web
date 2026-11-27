@@ -6,6 +6,7 @@ import { Badge } from "@/components/common/Badge";
 import { StatCard } from "@/components/common/StatCard";
 import { Table } from "@/components/common/Table";
 import { AccessDenied } from "@/components/common/AccessDenied";
+import { GirvasaLogo } from "@/components/common/GirvasaLogo";
 
 describe("Reusable UI Components", () => {
   it("Button renders text and responds to click events", () => {
@@ -79,5 +80,17 @@ describe("Reusable UI Components", () => {
     render(<AccessDenied message="Caller lacks required privileges" />);
     expect(screen.getByText(/Access Restricted \(403\)/i)).toBeInTheDocument();
     expect(screen.getByText("Caller lacks required privileges")).toBeInTheDocument();
+  });
+
+  it("GirvasaLogo renders official SVG mark across plated and white variants", () => {
+    const { rerender } = render(<GirvasaLogo size={40} variant="plated" />);
+    const img = screen.getByRole("img", { name: "Girvasa" });
+    expect(img).toHaveAttribute("src", "/brand/girvasa-logo.svg");
+
+    rerender(<GirvasaLogo size={40} variant="white" />);
+    expect(screen.getByRole("img", { name: "Girvasa" })).toHaveAttribute(
+      "src",
+      "/brand/girvasa-logo-white.svg"
+    );
   });
 });

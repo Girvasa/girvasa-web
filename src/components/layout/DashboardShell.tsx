@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
+import { GirvasaLogo } from "@/components/common/GirvasaLogo";
 import { SubscriptionAlertBanner } from "@/components/subscription/SubscriptionAlertBanner";
 import { EmergencyAlertBanner } from "@/components/emergency/EmergencyAlertBanner";
 import { WebAccessGatekeeper } from "./WebAccessGatekeeper";
@@ -86,9 +87,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center space-y-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#107A48] text-white font-bold shadow-lg shadow-[#107A48]/30">
-            G
-          </div>
+          <GirvasaLogo size={52} variant="plated" className="rounded-2xl shadow-lg" />
           <Loader2 className="w-6 h-6 animate-spin text-[#107A48]" />
           <p className="text-xs font-medium text-slate-500">Initializing Girvasa Session...</p>
         </div>

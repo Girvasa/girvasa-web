@@ -5,6 +5,7 @@ import { Smartphone, ShieldAlert, LogOut, Building2, ArrowRight, ShieldCheck } f
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useTenant } from "@/lib/tenant/TenantContext";
 import { Button } from "@/components/common/Button";
+import { GirvasaLogo } from "@/components/common/GirvasaLogo";
 
 export const WebAccessGatekeeper: React.FC = () => {
   const { user, logout } = useAuth();
@@ -26,9 +27,7 @@ export const WebAccessGatekeeper: React.FC = () => {
       {/* Brand Header */}
       <header className="mx-auto w-full max-w-4xl flex items-center justify-between border-b border-slate-200/80 pb-4">
         <div className="flex items-center space-x-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#107A48] text-white font-bold shadow-md shadow-[#107A48]/20">
-            G
-          </div>
+          <GirvasaLogo size={40} variant="plated" />
           <div>
             <div className="font-bold text-slate-900 text-lg tracking-tight leading-none">GIRVASA</div>
             <div className="text-[10px] font-semibold tracking-wider uppercase text-[#107A48] mt-0.5">Society OS</div>

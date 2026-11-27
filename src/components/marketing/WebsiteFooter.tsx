@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight, ShieldCheck, Mail, Phone, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { GirvasaLogo } from "@/components/common/GirvasaLogo";
 
 export function WebsiteFooter() {
   const { isAuthenticated } = useAuth();
@@ -35,9 +36,7 @@ export function WebsiteFooter() {
           {/* Brand & Mission Statement */}
           <div className="lg:col-span-2 flex flex-col gap-4">
             <Link href="/" className="flex items-center gap-2 select-none">
-              <div className="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-on-primary font-headline-sm text-headline-sm font-bold shadow-sm">
-                G
-              </div>
+              <GirvasaLogo size={34} variant="plated" className="rounded-lg" />
               <div className="flex flex-col">
                 <span className="font-headline-sm text-headline-sm font-bold tracking-tight text-primary leading-none">
                   GIRVASA

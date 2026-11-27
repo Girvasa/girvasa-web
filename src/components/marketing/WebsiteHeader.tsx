@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Phone, Calendar, ArrowRight, ShieldCheck, Check, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { GirvasaLogo } from "@/components/common/GirvasaLogo";
 
 export function WebsiteHeader() {
   const pathname = usePathname();
@@ -56,9 +57,11 @@ export function WebsiteHeader() {
         <div className="h-16 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-space-md">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-space-sm select-none group shrink-0">
-            <div className="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center text-on-primary font-headline-sm text-headline-sm font-bold shadow-sm transition-transform group-hover:scale-105">
-              G
-            </div>
+            <GirvasaLogo
+              size={36}
+              variant="plated"
+              className="rounded-lg transition-transform group-hover:scale-105"
+            />
             <div className="flex flex-col">
               <span className="font-headline-sm text-headline-sm font-bold tracking-tight text-primary leading-none">
                 GIRVASA
