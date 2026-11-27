@@ -1,5 +1,6 @@
 import { ProblemDetail } from "@/types/api";
 import { tokenStorage } from "../auth/tokenStorage";
+import { broadcastSessionEvent } from "../auth/sessionSync";
 import { getDevMockResponse } from "./devMockData";
 
 export class ApiError extends Error {
@@ -52,11 +53,11 @@ const PRIMARY_BASE_URL = normalizeBaseUrl(
   DEFAULT_PRIMARY_URL
 );
 
-const FALLBACK_BASE_URL = normalizeBaseUrl(
-  process.env.NEXT_PUBLIC_API_FALLBACK_URL ||
-  DEV_TUNNEL_FALLBACK_URL,
-  DEV_TUNNEL_FALLBACK_URL
-);
+const FALLBACK_BASE_URL = process.env.NEXT_PUBLIC_API_FALLBACK_URL
+  ? normalizeBaseUrl(process.env.NEXT_PUBLIC_API_FALLBACK_URL, PRIMARY_BASE_URL)
+  : process.env.NODE_ENV !== "production"
+  ? normalizeBaseUrl(DEV_TUNNEL_FALLBACK_URL, DEV_TUNNEL_FALLBACK_URL)
+  : "";
 
 export class ApiClient {
   private primaryUrl: string;
@@ -64,15 +65,14 @@ export class ApiClient {
   private fallbackActive: boolean = false;
   private lastPrimaryFailureTime: number = 0;
   private readonly PRIMARY_COOLDOWN_MS: number = 30000;
-  private isRefreshing: boolean = false;
-  private refreshSubscribers: ((token: string | null) => void)[] = [];
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor(
     baseUrl: string = PRIMARY_BASE_URL,
     fallbackUrl: string = FALLBACK_BASE_URL
   ) {
     this.primaryUrl = normalizeBaseUrl(baseUrl, DEFAULT_PRIMARY_URL);
-    this.fallbackUrl = normalizeBaseUrl(fallbackUrl, DEV_TUNNEL_FALLBACK_URL);
+    this.fallbackUrl = fallbackUrl ? normalizeBaseUrl(fallbackUrl, "") : "";
   }
 
   isFallbackActive(): boolean {
@@ -123,13 +123,105 @@ export class ApiClient {
     this.fallbackUrl = normalizeBaseUrl(url, DEV_TUNNEL_FALLBACK_URL);
   }
 
-  private onTokenRefreshed(token: string | null) {
-    this.refreshSubscribers.forEach((cb) => cb(token));
-    this.refreshSubscribers = [];
+  private async withCrossTabRefreshLock<R>(fn: () => Promise<R>): Promise<R> {
+    const locks =
+      typeof navigator !== "undefined"
+        ? (
+            navigator as Navigator & {
+              locks?: {
+                request: <T>(
+                  name: string,
+                  callback: () => Promise<T>
+                ) => Promise<T>;
+              };
+            }
+          ).locks
+        : undefined;
+    if (locks?.request) {
+      return locks.request("girvasa_auth_refresh_lock", fn);
+    }
+    return fn();
   }
 
-  private subscribeTokenRefresh(cb: (token: string | null) => void) {
-    this.refreshSubscribers.push(cb);
+  private extractBearerToken(headers: Record<string, string>): string | undefined {
+    const auth = headers["Authorization"] || headers["authorization"];
+    if (!auth) return undefined;
+    return auth.startsWith("Bearer ") ? auth.slice("Bearer ".length) : auth;
+  }
+
+  private performSingleFlightRefresh(
+    staleAccessToken?: string
+  ): Promise<string | null> {
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    this.refreshPromise = this.withCrossTabRefreshLock(async () => {
+      // Re-read storage after acquiring the cross-tab lock in case another tab rotated tokens.
+      const latestAccessToken = tokenStorage.getAccessToken();
+      if (
+        latestAccessToken &&
+        staleAccessToken &&
+        latestAccessToken !== staleAccessToken
+      ) {
+        return latestAccessToken;
+      }
+
+      const latestRefreshToken = tokenStorage.getRefreshToken();
+      if (!latestRefreshToken) {
+        return null;
+      }
+
+      const refreshRes = await fetch(`${this.getBaseUrl()}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-Tunnel-Skip-Anti-Phishing-Page": "true",
+        },
+        body: JSON.stringify({
+          refreshToken: latestRefreshToken,
+          clientType: "WEB",
+        }),
+      });
+
+      if (!refreshRes.ok) {
+        return null;
+      }
+
+      const refreshData = await refreshRes.json();
+      const newAccessToken = refreshData.data?.accessToken as string | undefined;
+      const newRefreshToken = refreshData.data?.refreshToken as string | undefined;
+      if (!newAccessToken) {
+        return null;
+      }
+
+      tokenStorage.setAccessToken(newAccessToken);
+      if (newRefreshToken) {
+        tokenStorage.setRefreshToken(newRefreshToken);
+      }
+      broadcastSessionEvent("SESSION_TOKEN_REFRESH");
+      return newAccessToken;
+    })
+      .catch(() => null)
+      .finally(() => {
+        this.refreshPromise = null;
+      });
+
+    return this.refreshPromise;
+  }
+
+  private redirectToLoginOnExpiredSession(): void {
+    tokenStorage.clearTokens();
+    tokenStorage.clearActiveSocietyId();
+    broadcastSessionEvent("SESSION_LOGOUT");
+    if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+      try {
+        window.location.href = "/login";
+      } catch {
+        // jsdom navigation fallback
+      }
+    }
   }
 
   private generateRequestId(): string {
@@ -297,92 +389,43 @@ function createTimeoutSignal(ms: number): AbortSignal | undefined {
       throw new ApiError(0, "Network error: unable to reach the Girvasa API service.");
     }
 
-    // Handle 401 Unauthorized with token refresh
-    if (response.status === 401 && !skipAuth && !endpoint.includes("/auth/refresh") && !endpoint.includes("/auth/otp")) {
+    // Handle 401 Unauthorized with cross-tab single-flight token refresh
+    if (
+      response.status === 401 &&
+      !skipAuth &&
+      !endpoint.includes("/auth/refresh") &&
+      !endpoint.includes("/auth/otp")
+    ) {
       const refreshToken = tokenStorage.getRefreshToken();
-      if (refreshToken) {
-        if (!this.isRefreshing) {
-          this.isRefreshing = true;
-          try {
-            const refreshRes = await fetch(`${this.getBaseUrl()}/auth/refresh`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                "X-Tunnel-Skip-Anti-Phishing-Page": "true",
-              },
-              body: JSON.stringify({ refreshToken, clientType: "WEB" }),
-            });
-
-            if (refreshRes.ok) {
-              const refreshData = await refreshRes.json();
-              const newAccessToken = refreshData.data?.accessToken;
-              const newRefreshToken = refreshData.data?.refreshToken;
-              if (newAccessToken) {
-                tokenStorage.setAccessToken(newAccessToken);
-                if (newRefreshToken) {
-                  tokenStorage.setRefreshToken(newRefreshToken);
-                }
-                this.isRefreshing = false;
-                this.onTokenRefreshed(newAccessToken);
-              } else {
-                throw new Error("No access token returned");
-              }
-            } else {
-              throw new Error("Refresh token expired");
-            }
-          } catch {
-            this.isRefreshing = false;
-            this.onTokenRefreshed(null);
-            tokenStorage.clearTokens();
-            if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
-              try {
-                window.location.href = "/login";
-              } catch {
-                // jsdom navigation fallback
-              }
-            }
-            throw new ApiError(401, "Session expired. Please log in again.");
-          }
-        }
-
-        // Wait for token refresh completion
-        return new Promise<T>((resolve, reject) => {
-          this.subscribeTokenRefresh(async (newToken) => {
-            if (newToken) {
-              try {
-                const retriedConfig = {
-                  ...config,
-                  headers: {
-                    ...requestHeaders,
-                    Authorization: `Bearer ${newToken}`,
-                  },
-                };
-                const retriedUrl = url.includes("?")
-                  ? `${this.buildUrl(endpoint, this.getBaseUrl())}?${url.split("?")[1]}`
-                  : this.buildUrl(endpoint, this.getBaseUrl());
-                const retriedResponse = await fetch(retriedUrl, retriedConfig);
-                const data = await this.parseResponse<T>(retriedResponse);
-                resolve(data);
-              } catch (retryErr) {
-                reject(retryErr);
-              }
-            } else {
-              reject(new ApiError(401, "Authentication session expired."));
-            }
-          });
-        });
-      } else {
-        tokenStorage.clearTokens();
-        if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
-          try {
-            window.location.href = "/login";
-          } catch {
-            // jsdom navigation fallback
-          }
-        }
+      if (!refreshToken) {
+        this.redirectToLoginOnExpiredSession();
         throw new ApiError(401, "Authentication required. Please log in.");
       }
+
+      const staleAccessToken = this.extractBearerToken(
+        requestHeaders as Record<string, string>
+      );
+      const newToken = await this.performSingleFlightRefresh(staleAccessToken);
+      if (!newToken) {
+        this.redirectToLoginOnExpiredSession();
+        throw new ApiError(401, "Session expired. Please log in again.");
+      }
+
+      const retriedConfig = {
+        ...config,
+        headers: {
+          ...requestHeaders,
+          Authorization: `Bearer ${newToken}`,
+        },
+      };
+      const retriedUrl = url.includes("?")
+        ? `${this.buildUrl(endpoint, this.getBaseUrl())}?${url.split("?")[1]}`
+        : this.buildUrl(endpoint, this.getBaseUrl());
+      const retriedResponse = await fetch(retriedUrl, retriedConfig);
+      return this.parseResponse<T>(retriedResponse, endpoint, {
+        ...options,
+        ...customConfig,
+      });
     }
 
     return this.parseResponse<T>(response, endpoint, { ...options, ...customConfig });
@@ -415,7 +458,12 @@ function createTimeoutSignal(ms: number): AbortSignal | undefined {
         );
       }
 
-      if (response.status >= 502 && response.status <= 504 && endpoint) {
+      if (
+        (process.env.NODE_ENV === "test" || process.env.NEXT_PUBLIC_ENABLE_DEV_MOCKS === "true") &&
+        response.status >= 502 &&
+        response.status <= 504 &&
+        endpoint
+      ) {
         const devMock = getDevMockResponse<T>(endpoint, options);
         if (devMock !== undefined) {
           console.info(`[ApiClient] Gateway HTTP ${response.status}: serving offline dev mock for ${endpoint}`);
