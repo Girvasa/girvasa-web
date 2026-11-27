@@ -26,7 +26,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
 # Provide build-time fallback for client environment variables during static compilation
-ARG NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
+ARG NEXT_PUBLIC_API_URL=https://girvasa-backend-dev.onrender.com/api/v1
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 RUN npm run build

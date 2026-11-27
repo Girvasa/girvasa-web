@@ -32,7 +32,7 @@ export interface RequestOptions extends RequestInit {
 }
 
 export const DEV_TUNNEL_FALLBACK_URL = "https://girvasa-backend-dev.onrender.com/api/v1";
-export const DEFAULT_PRIMARY_URL = "http://localhost:8080/api/v1";
+export const DEFAULT_PRIMARY_URL = "https://girvasa-backend-dev.onrender.com/api/v1";
 
 function normalizeBaseUrl(raw?: string, defaultFallback: string = DEFAULT_PRIMARY_URL): string {
   let url = (raw || "").trim();
@@ -56,8 +56,8 @@ const PRIMARY_BASE_URL = normalizeBaseUrl(
 const FALLBACK_BASE_URL = process.env.NEXT_PUBLIC_API_FALLBACK_URL
   ? normalizeBaseUrl(process.env.NEXT_PUBLIC_API_FALLBACK_URL, PRIMARY_BASE_URL)
   : process.env.NODE_ENV !== "production"
-  ? normalizeBaseUrl(DEV_TUNNEL_FALLBACK_URL, DEV_TUNNEL_FALLBACK_URL)
-  : "";
+    ? normalizeBaseUrl(DEV_TUNNEL_FALLBACK_URL, DEV_TUNNEL_FALLBACK_URL)
+    : "";
 
 export class ApiClient {
   private primaryUrl: string;
@@ -127,15 +127,15 @@ export class ApiClient {
     const locks =
       typeof navigator !== "undefined"
         ? (
-            navigator as Navigator & {
-              locks?: {
-                request: <T>(
-                  name: string,
-                  callback: () => Promise<T>
-                ) => Promise<T>;
-              };
-            }
-          ).locks
+          navigator as Navigator & {
+            locks?: {
+              request: <T>(
+                name: string,
+                callback: () => Promise<T>
+              ) => Promise<T>;
+            };
+          }
+        ).locks
         : undefined;
     if (locks?.request) {
       return locks.request("girvasa_auth_refresh_lock", fn);
@@ -299,19 +299,19 @@ export class ApiClient {
       this.fallbackUrl !== this.primaryUrl &&
       !this.isFallbackActive();
 
-function createTimeoutSignal(ms: number): AbortSignal | undefined {
-  if (typeof AbortController === "undefined") return undefined;
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), ms);
-    if (typeof (timer as any)?.unref === "function") {
-      (timer as any).unref();
+    function createTimeoutSignal(ms: number): AbortSignal | undefined {
+      if (typeof AbortController === "undefined") return undefined;
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), ms);
+        if (typeof (timer as any)?.unref === "function") {
+          (timer as any).unref();
+        }
+        return controller.signal;
+      } catch {
+        return undefined;
+      }
     }
-    return controller.signal;
-  } catch {
-    return undefined;
-  }
-}
 
     try {
       const fetchConfig =
