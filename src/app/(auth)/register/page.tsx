@@ -22,6 +22,7 @@ import { tokenStorage } from "@/lib/auth/tokenStorage";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useTenant } from "@/lib/tenant/TenantContext";
 import { SubscriptionPlanDto } from "@/types/subscription";
+import { GirvasaLogo } from "@/components/common/GirvasaLogo";
 
 const FALLBACK_PLANS: SubscriptionPlanDto[] = [
   {
@@ -230,9 +231,7 @@ export default function RegisterPage() {
       {/* Top Navigation */}
       <header className="w-full bg-white border-b border-slate-200 py-3.5 px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#070235] text-white flex items-center justify-center font-bold text-lg shadow-sm">
-            G
-          </div>
+          <GirvasaLogo size={38} variant="plated" />
           <div>
             <h1 className="text-sm font-bold text-[#070235] tracking-tight">Girvasa Society OS</h1>
             <p className="text-[11px] text-slate-500 font-medium">B2B SaaS Property Management Platform</p>

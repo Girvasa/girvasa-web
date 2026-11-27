@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePermission } from "@/lib/rbac/usePermission";
+import { GirvasaLogo } from "@/components/common/GirvasaLogo";
 
 interface NavItem {
   name: string;
@@ -123,9 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isSubscriptio
         {/* Brand header */}
         <div className="flex h-16 items-center justify-between border-b border-slate-200/80 px-6">
           <Link href="/dashboard" className="flex items-center space-x-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#107A48] text-white font-bold shadow-md shadow-[#107A48]/20">
-              G
-            </div>
+            <GirvasaLogo size={36} variant="plated" />
             <div>
               <div className="font-bold text-slate-900 text-base tracking-tight leading-none">GIRVASA</div>
               <div className="text-[10px] font-semibold tracking-wider uppercase text-[#107A48] mt-0.5">Society OS</div>

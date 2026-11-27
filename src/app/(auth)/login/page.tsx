@@ -17,6 +17,7 @@ import {
   Lock,
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
+import { GirvasaLogo } from "@/components/common/GirvasaLogo";
 import { Input } from "@/components/common/Input";
 import { useAuth } from "@/lib/auth/AuthContext";
 
@@ -117,9 +118,7 @@ export default function LoginPage() {
         <div className="h-16 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#107A48] text-white flex items-center justify-center font-bold text-base shadow-sm">
-                G
-              </div>
+              <GirvasaLogo size={34} variant="plated" className="rounded-lg" />
               <div className="flex flex-col">
                 <span className="text-base font-bold tracking-tight text-[#1E293B] leading-none">GIRVASA</span>
                 <span className="text-[10px] text-[#64748B] uppercase tracking-wider font-semibold">Society OS</span>
