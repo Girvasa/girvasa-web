@@ -58,7 +58,7 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
           NODE_ENV: production
-          NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+          NEXT_PUBLIC_API_URL: https://girvasa-backend-dev.onrender.com/api/v1
         run: npm run build
 
       - name: Verify standalone build output

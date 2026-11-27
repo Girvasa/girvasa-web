@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
+const allowLocalhostConnect =
+  process.env.NODE_ENV !== 'production' ||
+  (process.env.NEXT_PUBLIC_API_URL || '').includes('localhost') ||
+  (process.env.NEXT_PUBLIC_API_BASE_URL || '').includes('localhost');
+
 const securityHeaders = [
   {
     key: 'X-DNS-Prefetch-Control',
@@ -32,7 +37,9 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' http://localhost:8080 http://127.0.0.1:8080 https:",
+      allowLocalhostConnect
+        ? "connect-src 'self' http://localhost:8080 http://127.0.0.1:8080 https:"
+        : "connect-src 'self' https:",
       "frame-ancestors 'none'",
       "object-src 'none'",
       "base-uri 'self'",

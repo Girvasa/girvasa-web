@@ -16,6 +16,12 @@ describe("ApiClient", () => {
     vi.restoreAllMocks();
   });
 
+  it("should default primary URL to the Render dev API instead of localhost when unset", () => {
+    const defaultClient = new ApiClient();
+    expect(defaultClient.getPrimaryUrl()).toBe("https://girvasa-backend-dev.onrender.com/api/v1");
+    expect(defaultClient.getBaseUrl()).not.toContain("localhost:8080");
+  });
+
   it("should attach Authorization and X-Society-Id headers when tokens exist", async () => {
     tokenStorage.setAccessToken("jwt-bearer-token");
     tokenStorage.setActiveSocietyId("soc-uuid-111");
