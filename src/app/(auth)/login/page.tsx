@@ -58,6 +58,7 @@ export default function LoginPage() {
   const [confirmPin, setConfirmPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [forgotOtpSent, setForgotOtpSent] = useState(false);
+  const [isUnregisteredUser, setIsUnregisteredUser] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
@@ -114,10 +115,11 @@ export default function LoginPage() {
   ) => {
     if (e) e.preventDefault();
     setError(null);
+    setIsUnregisteredUser(false);
 
     const formatted = formatPhoneNumber(mobileNumber);
     if (!formatted || formatted.length < 10) {
-      setError("Please enter a valid 10-digit mobile number");
+      setError("Please enter a valid 10-digit Indian mobile number to continue.");
       return;
     }
 
@@ -127,7 +129,8 @@ export default function LoginPage() {
       if (intent === "SIGN_IN" && step === "PHONE" && checkUser) {
         const precheck = await checkUser(formatted);
         if (!precheck.registered) {
-          setError("This mobile number is not registered in Girvasa. Contact your society admin or register your society.");
+          setIsUnregisteredUser(true);
+          setError("Welcome to Girvasa! This mobile number is not registered yet. Please register your society or ask your society admin to invite you before signing in.");
           setIsLoading(false);
           return;
         }
@@ -162,9 +165,10 @@ export default function LoginPage() {
   const handleContinueWithPhone = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsUnregisteredUser(false);
     const formatted = formatPhoneNumber(mobileNumber);
     if (!formatted || formatted.length < 10) {
-      setError("Please enter a valid 10-digit mobile number");
+      setError("Please enter a valid 10-digit Indian mobile number to continue.");
       return;
     }
 
@@ -174,7 +178,8 @@ export default function LoginPage() {
         ? await checkUser(formatted)
         : { registered: true, status: "ACTIVE", hasPinConfigured: false, deviceTrusted: false };
       if (!check.registered) {
-        setError("This mobile number is not registered in Girvasa. Contact your society admin or register your society.");
+        setIsUnregisteredUser(true);
+        setError("Welcome to Girvasa! This mobile number is not registered yet. Please register your society or ask your society admin to invite you before signing in.");
         return;
       }
       if (check.hasPinConfigured && check.deviceTrusted) {
@@ -414,6 +419,7 @@ export default function LoginPage() {
                       onChange={(e) => {
                         setMobileNumber(e.target.value);
                         if (error) setError(null);
+                        if (isUnregisteredUser) setIsUnregisteredUser(false);
                       }}
                     />
                     {mobileNumber.length === 10 && (
@@ -452,8 +458,16 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
-                  {error}
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700 space-y-2">
+                  <p>{error}</p>
+                  {isUnregisteredUser && (
+                    <Link
+                      href={`/register?phone=${encodeURIComponent(mobileNumber.replace(/\D/g, "").slice(-10))}`}
+                      className="inline-flex items-center gap-1.5 font-bold text-[#107A48] hover:underline"
+                    >
+                      <span>Register Your Society Now →</span>
+                    </Link>
+                  )}
                 </div>
               )}
 
@@ -557,8 +571,16 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
-                  {error}
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700 space-y-2">
+                  <p>{error}</p>
+                  {isUnregisteredUser && (
+                    <Link
+                      href={`/register?phone=${encodeURIComponent(mobileNumber.replace(/\D/g, "").slice(-10))}`}
+                      className="inline-flex items-center gap-1.5 font-bold text-[#107A48] hover:underline"
+                    >
+                      <span>Register Your Society Now →</span>
+                    </Link>
+                  )}
                 </div>
               )}
             </form>
@@ -669,8 +691,16 @@ export default function LoginPage() {
               </button>
 
               {error && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
-                  {error}
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700 space-y-2">
+                  <p>{error}</p>
+                  {isUnregisteredUser && (
+                    <Link
+                      href={`/register?phone=${encodeURIComponent(mobileNumber.replace(/\D/g, "").slice(-10))}`}
+                      className="inline-flex items-center gap-1.5 font-bold text-[#107A48] hover:underline"
+                    >
+                      <span>Register Your Society Now →</span>
+                    </Link>
+                  )}
                 </div>
               )}
             </form>
@@ -730,8 +760,16 @@ export default function LoginPage() {
               </button>
 
               {error && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
-                  {error}
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700 space-y-2">
+                  <p>{error}</p>
+                  {isUnregisteredUser && (
+                    <Link
+                      href={`/register?phone=${encodeURIComponent(mobileNumber.replace(/\D/g, "").slice(-10))}`}
+                      className="inline-flex items-center gap-1.5 font-bold text-[#107A48] hover:underline"
+                    >
+                      <span>Register Your Society Now →</span>
+                    </Link>
+                  )}
                 </div>
               )}
             </form>
@@ -864,8 +902,16 @@ export default function LoginPage() {
               )}
 
               {error && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
-                  {error}
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700 space-y-2">
+                  <p>{error}</p>
+                  {isUnregisteredUser && (
+                    <Link
+                      href={`/register?phone=${encodeURIComponent(mobileNumber.replace(/\D/g, "").slice(-10))}`}
+                      className="inline-flex items-center gap-1.5 font-bold text-[#107A48] hover:underline"
+                    >
+                      <span>Register Your Society Now →</span>
+                    </Link>
+                  )}
                 </div>
               )}
             </form>

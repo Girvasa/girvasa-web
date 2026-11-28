@@ -108,9 +108,14 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const requestedPlan = new URLSearchParams(window.location.search).get("plan");
+      const params = new URLSearchParams(window.location.search);
+      const requestedPlan = params.get("plan");
       if (requestedPlan && requestedPlan.trim()) {
         setSelectedPlanCode(requestedPlan.trim().toUpperCase());
+      }
+      const prefilledPhone = params.get("phone")?.replace(/\D/g, "").slice(-10);
+      if (prefilledPhone && prefilledPhone.length === 10) {
+        setFormData((prev) => ({ ...prev, adminMobile: prefilledPhone }));
       }
     }
     endpoints.subscription
@@ -538,6 +543,12 @@ export default function RegisterPage() {
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
+
+          {error && (
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+              {error}
+            </div>
+          )}
         </form>
       </main>
 
