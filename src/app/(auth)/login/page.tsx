@@ -10,7 +10,6 @@ import {
   Building,
   CheckCircle2,
   Clock,
-  MessageSquare,
   Lock,
   Eye,
   EyeOff,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import { GirvasaLogo } from "@/components/common/GirvasaLogo";
 import { Input } from "@/components/common/Input";
+import { WhatsAppIcon } from "@/components/common/WhatsAppIcon";
 import { useAuth } from "@/lib/auth/AuthContext";
 import type { OtpIntent } from "@/types/auth";
 
@@ -384,13 +384,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Feedback Banners */}
-          {error && (
-            <div className="relative z-10 mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
-              {error}
-            </div>
-          )}
-
+          {/* Info Banner (OTP Dispatch) */}
           {infoMessage && (step === "OTP" || (step === "FORGOT_PIN" && forgotOtpSent)) && !error && (
             <div className="relative z-10 mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700">
               {infoMessage}
@@ -429,16 +423,10 @@ export default function LoginPage() {
                     )}
                   </div>
                 </div>
-                {error ? (
-                  <p className="mt-1.5 text-xs text-rose-600 font-medium flex items-center gap-1">
-                    <span>{error}</span>
-                  </p>
-                ) : (
-                  <p className="mt-1.5 text-[11px] text-[#64748B] flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#107A48] shrink-0" />
-                    Registered admins sign in with their 4-digit PIN on trusted browsers (1-time OTP on new devices).
-                  </p>
-                )}
+                <p className="mt-1.5 text-[11px] text-[#64748B] flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#107A48] shrink-0" />
+                  Registered admins sign in with their 4-digit PIN on trusted browsers (1-time OTP on new devices).
+                </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2.5">
@@ -456,10 +444,18 @@ export default function LoginPage() {
                   onClick={(e) => handleRequestOtp("WHATSAPP", "SIGN_IN", e)}
                   className="flex-1 h-11 bg-[#25D366] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#1EBE5D] transition-all disabled:opacity-60"
                 >
-                  <MessageSquare className="w-4 h-4" />
+                  <span className="inline-flex items-center justify-center rounded-full bg-white/95 p-0.5">
+                    <WhatsAppIcon className="w-3.5 h-3.5" />
+                  </span>
                   <span>{isLoading && activeChannel === "WHATSAPP" ? "Dispatching..." : "WhatsApp OTP"}</span>
                 </button>
               </div>
+
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                  {error}
+                </div>
+              )}
 
               <div className="mt-2 pt-3 border-t border-slate-100 text-center">
                 <p className="text-[11px] text-slate-500 mb-1.5">Setting up a new society or residential project?</p>
@@ -517,7 +513,10 @@ export default function LoginPage() {
                   maxLength={4}
                   placeholder="• • • •"
                   value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => {
+                    setPin(e.target.value.replace(/\D/g, ""));
+                    if (error) setError(null);
+                  }}
                   className="font-mono text-center tracking-[0.6em] text-xl font-bold"
                   autoFocus
                   required
@@ -556,6 +555,12 @@ export default function LoginPage() {
                   Sign in with SMS OTP instead
                 </button>
               </div>
+
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                  {error}
+                </div>
+              )}
             </form>
           )}
 
@@ -565,9 +570,13 @@ export default function LoginPage() {
               {/* Dispatch Alert */}
               <div className="p-3.5 rounded-xl bg-[#F1F5F9] border border-slate-200 flex items-start justify-between gap-3 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-full ${activeChannel === "WHATSAPP" ? "bg-[#25D366]" : "bg-[#107A48]"} text-white flex items-center justify-center shrink-0 mt-0.5`}>
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
+                  {activeChannel === "WHATSAPP" ? (
+                    <WhatsAppIcon className="w-8 h-8 shrink-0 mt-0.5" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-[#107A48] text-white flex items-center justify-center shrink-0 mt-0.5">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                  )}
                   <div>
                     <div className="text-xs font-bold text-[#1E293B]">
                       {activeChannel === "WHATSAPP" ? "WhatsApp OTP Dispatched" : "SMS OTP Dispatched"}
@@ -607,7 +616,10 @@ export default function LoginPage() {
                   maxLength={6}
                   placeholder="Enter 6-digit code"
                   value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => {
+                    setOtpCode(e.target.value.replace(/\D/g, ""));
+                    if (error) setError(null);
+                  }}
                   className="font-mono text-center tracking-widest text-lg font-bold"
                   autoFocus
                   required
@@ -639,9 +651,9 @@ export default function LoginPage() {
                     type="button"
                     disabled={resendTimer > 0}
                     onClick={() => handleRequestOtp("WHATSAPP", "SIGN_IN")}
-                    className="font-semibold text-[#25D366] hover:underline disabled:opacity-40 flex items-center gap-1"
+                    className="font-semibold text-[#128C7E] hover:underline disabled:opacity-40 flex items-center gap-1"
                   >
-                    <MessageSquare className="w-3.5 h-3.5 inline" />
+                    <WhatsAppIcon className="w-3.5 h-3.5 inline shrink-0" />
                     <span>Send via WhatsApp</span>
                   </button>
                 </div>
@@ -655,6 +667,12 @@ export default function LoginPage() {
                 <span>{isLoading ? "Verifying Token..." : "Authenticate & Continue"}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
+
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                  {error}
+                </div>
+              )}
             </form>
           )}
 
@@ -675,7 +693,10 @@ export default function LoginPage() {
                   maxLength={4}
                   placeholder="• • • •"
                   value={newPin}
-                  onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => {
+                    setNewPin(e.target.value.replace(/\D/g, ""));
+                    if (error) setError(null);
+                  }}
                   className="font-mono text-center tracking-[0.6em] text-lg font-bold"
                   autoFocus
                   required
@@ -691,7 +712,10 @@ export default function LoginPage() {
                   maxLength={4}
                   placeholder="• • • •"
                   value={confirmPin}
-                  onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => {
+                    setConfirmPin(e.target.value.replace(/\D/g, ""));
+                    if (error) setError(null);
+                  }}
                   className="font-mono text-center tracking-[0.6em] text-lg font-bold"
                   required
                 />
@@ -704,6 +728,12 @@ export default function LoginPage() {
                 <KeyRound className="w-4 h-4" />
                 <span>{isLoading ? "Saving PIN..." : "Save PIN & Open Society Console"}</span>
               </button>
+
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                  {error}
+                </div>
+              )}
             </form>
           )}
 
@@ -729,7 +759,10 @@ export default function LoginPage() {
                   type="tel"
                   maxLength={10}
                   value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
+                  onChange={(e) => {
+                    setMobileNumber(e.target.value);
+                    if (error) setError(null);
+                  }}
                   disabled={forgotOtpSent}
                   required
                 />
@@ -750,7 +783,9 @@ export default function LoginPage() {
                     onClick={() => handleRequestOtp("WHATSAPP", "PIN_RESET")}
                     className="flex-1 h-11 bg-[#25D366] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#1EBE5D] transition-all disabled:opacity-60"
                   >
-                    <MessageSquare className="w-4 h-4" />
+                    <span className="inline-flex items-center justify-center rounded-full bg-white/95 p-0.5">
+                      <WhatsAppIcon className="w-3.5 h-3.5" />
+                    </span>
                     <span>WhatsApp</span>
                   </button>
                 </div>
@@ -765,7 +800,10 @@ export default function LoginPage() {
                       maxLength={6}
                       placeholder="Enter 6-digit OTP"
                       value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                      onChange={(e) => {
+                        setOtpCode(e.target.value.replace(/\D/g, ""));
+                        if (error) setError(null);
+                      }}
                       className="font-mono text-center tracking-widest text-base font-bold"
                       required
                     />
@@ -773,7 +811,10 @@ export default function LoginPage() {
                       <span>{resendTimer > 0 ? `Resend in 00:${resendTimer < 10 ? `0${resendTimer}` : resendTimer}s` : "Resend OTP:"}</span>
                       <div className="flex gap-3">
                         <button type="button" disabled={resendTimer > 0} onClick={() => handleRequestOtp("SMS", "PIN_RESET")} className="font-semibold text-[#107A48] disabled:opacity-40">Resend SMS</button>
-                        <button type="button" disabled={resendTimer > 0} onClick={() => handleRequestOtp("WHATSAPP", "PIN_RESET")} className="font-semibold text-[#25D366] disabled:opacity-40">WhatsApp</button>
+                        <button type="button" disabled={resendTimer > 0} onClick={() => handleRequestOtp("WHATSAPP", "PIN_RESET")} className="font-semibold text-[#128C7E] inline-flex items-center gap-1 disabled:opacity-40">
+                          <WhatsAppIcon className="w-3 h-3" />
+                          <span>WhatsApp</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -786,7 +827,10 @@ export default function LoginPage() {
                         maxLength={4}
                         placeholder="• • • •"
                         value={newPin}
-                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) => {
+                          setNewPin(e.target.value.replace(/\D/g, ""));
+                          if (error) setError(null);
+                        }}
                         className="font-mono text-center tracking-widest text-base font-bold"
                         required
                       />
@@ -799,7 +843,10 @@ export default function LoginPage() {
                         maxLength={4}
                         placeholder="• • • •"
                         value={confirmPin}
-                        onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) => {
+                          setConfirmPin(e.target.value.replace(/\D/g, ""));
+                          if (error) setError(null);
+                        }}
                         className="font-mono text-center tracking-widest text-base font-bold"
                         required
                       />
@@ -814,6 +861,12 @@ export default function LoginPage() {
                     <span>{isLoading ? "Updating PIN..." : "Verify OTP & Reset PIN"}</span>
                   </button>
                 </>
+              )}
+
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                  {error}
+                </div>
               )}
             </form>
           )}

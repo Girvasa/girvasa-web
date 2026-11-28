@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useTenant } from "@/lib/tenant/TenantContext";
 import { formatDate } from "@/lib/utils";
+import { WhatsAppIcon } from "@/components/common/WhatsAppIcon";
 
 export default function ProfilePage() {
   const { user, requestOtp, changePinWithOtp } = useAuth();
@@ -253,11 +254,6 @@ export default function ProfilePage() {
 
               {showPinForm && (
                 <form onSubmit={handleSubmitPinChange} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
-                  {pinError && (
-                    <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700">
-                      {pinError}
-                    </div>
-                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1">Current PIN</label>
@@ -266,7 +262,10 @@ export default function ProfilePage() {
                         inputMode="numeric"
                         maxLength={4}
                         value={currentPin}
-                        onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) => {
+                          setCurrentPin(e.target.value.replace(/\D/g, ""));
+                          if (pinError) setPinError(null);
+                        }}
                         className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-center tracking-widest"
                         placeholder="••••"
                       />
@@ -278,7 +277,10 @@ export default function ProfilePage() {
                         inputMode="numeric"
                         maxLength={4}
                         value={newPin}
-                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) => {
+                          setNewPin(e.target.value.replace(/\D/g, ""));
+                          if (pinError) setPinError(null);
+                        }}
                         className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-center tracking-widest"
                         placeholder="••••"
                       />
@@ -290,7 +292,10 @@ export default function ProfilePage() {
                         inputMode="numeric"
                         maxLength={4}
                         value={confirmPin}
-                        onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) => {
+                          setConfirmPin(e.target.value.replace(/\D/g, ""));
+                          if (pinError) setPinError(null);
+                        }}
                         className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-center tracking-widest"
                         placeholder="••••"
                       />
@@ -311,9 +316,12 @@ export default function ProfilePage() {
                         type="button"
                         disabled={isUpdatingPin}
                         onClick={() => handleSendChangeOtp("WHATSAPP")}
-                        className="px-3 py-2 rounded-lg bg-[#25D366] text-white font-semibold disabled:opacity-50"
+                        className="px-3 py-2 rounded-lg bg-[#25D366] text-white font-semibold inline-flex items-center gap-1.5 disabled:opacity-50"
                       >
-                        Send via WhatsApp
+                        <span className="inline-flex items-center justify-center rounded-full bg-white/95 p-0.5">
+                          <WhatsAppIcon className="w-3.5 h-3.5" />
+                        </span>
+                        <span>Send via WhatsApp</span>
                       </button>
                     </div>
                   ) : (
@@ -325,7 +333,10 @@ export default function ProfilePage() {
                           autoComplete="one-time-code"
                           maxLength={6}
                           value={otp}
-                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                          onChange={(e) => {
+                            setOtp(e.target.value.replace(/\D/g, ""));
+                            if (pinError) setPinError(null);
+                          }}
                           className="w-full sm:w-44 h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-center tracking-widest"
                           placeholder="6-digit OTP"
                         />
@@ -340,8 +351,17 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-3 text-[11px] text-slate-500">
                         <span>{resendTimer > 0 ? `Resend in 00:${resendTimer < 10 ? `0${resendTimer}` : resendTimer}s` : "Resend OTP:"}</span>
                         <button type="button" disabled={resendTimer > 0} onClick={() => handleSendChangeOtp("SMS")} className="font-semibold text-[#107A48] disabled:opacity-40">SMS</button>
-                        <button type="button" disabled={resendTimer > 0} onClick={() => handleSendChangeOtp("WHATSAPP")} className="font-semibold text-[#25D366] disabled:opacity-40">WhatsApp</button>
+                        <button type="button" disabled={resendTimer > 0} onClick={() => handleSendChangeOtp("WHATSAPP")} className="font-semibold text-[#128C7E] inline-flex items-center gap-1 disabled:opacity-40">
+                          <WhatsAppIcon className="w-3 h-3" />
+                          <span>WhatsApp</span>
+                        </button>
                       </div>
+                    </div>
+                  )}
+
+                  {pinError && (
+                    <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-medium">
+                      {pinError}
                     </div>
                   )}
                 </form>

@@ -394,7 +394,8 @@ export class ApiClient {
       response.status === 401 &&
       !skipAuth &&
       !endpoint.includes("/auth/refresh") &&
-      !endpoint.includes("/auth/otp")
+      !endpoint.includes("/auth/otp") &&
+      !endpoint.includes("/auth/pin")
     ) {
       const refreshToken = tokenStorage.getRefreshToken();
       if (!refreshToken) {
