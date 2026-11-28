@@ -1,6 +1,7 @@
 const ACCESS_TOKEN_KEY = "girvasa_access_token";
 const REFRESH_TOKEN_KEY = "girvasa_refresh_token";
 const ACTIVE_SOCIETY_KEY = "girvasa_active_society_id";
+const DEVICE_ID_KEY = "girvasa_device_id";
 
 class TokenStorage {
   private memoryAccessToken: string | null = null;
@@ -61,6 +62,22 @@ class TokenStorage {
     if (typeof window !== "undefined") {
       localStorage.removeItem(ACTIVE_SOCIETY_KEY);
     }
+  }
+
+  getOrCreateDeviceId(): string {
+    if (typeof window === "undefined") {
+      return "web-ssr-device";
+    }
+    let existing = localStorage.getItem(DEVICE_ID_KEY);
+    if (!existing) {
+      if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        existing = crypto.randomUUID();
+      } else {
+        existing = "web-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      }
+      localStorage.setItem(DEVICE_ID_KEY, existing);
+    }
+    return existing;
   }
 }
 

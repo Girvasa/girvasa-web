@@ -921,6 +921,25 @@ export function getDevMockResponse<T>(endpoint: string, options: any = {}): T | 
   const cleanEndpoint = endpoint.split("?")[0];
   const method = (options.method || "GET").toUpperCase();
 
+  // Auth: Check user & trusted device state
+  if (cleanEndpoint === "/auth/check" && method === "POST") {
+    let body: any = {};
+    try {
+      body = options.body ? JSON.parse(options.body) : {};
+    } catch {
+      // ignore
+    }
+    const mobile = body.mobileNumber || "+919876543210";
+    return {
+      registered: true,
+      status: "ACTIVE",
+      maskedPhone: mobile.replace(/(\+?\d{2,3})\d+(\d{4})/, "$1******$2"),
+      recommendedAction: "PROCEED_TO_PIN",
+      hasPinConfigured: true,
+      deviceTrusted: true,
+    } as unknown as T;
+  }
+
   // Auth: Request OTP
   if (cleanEndpoint === "/auth/otp/request" && method === "POST") {
     let body: any = {};
@@ -952,6 +971,44 @@ export function getDevMockResponse<T>(endpoint: string, options: any = {}): T | 
       accessToken: "girvasa_dev_super_admin_access_token_jwt",
       refreshToken: "girvasa_dev_super_admin_refresh_token_jwt",
       expiresInSeconds: 86400,
+      hasPinConfigured: true,
+      deviceTrusted: true,
+      user: {
+        id: "usr-superadmin-001",
+        mobileNumber: mobile,
+        status: "ACTIVE",
+      },
+    } as unknown as T;
+  }
+
+  // Auth: PIN setup / login / reset / change
+  if (cleanEndpoint === "/auth/pin/setup" && method === "POST") {
+    return {
+      hasPinConfigured: true,
+      deviceTrusted: true,
+      message: "Login PIN configured successfully",
+    } as unknown as T;
+  }
+
+  if (
+    (cleanEndpoint === "/auth/pin/login" ||
+      cleanEndpoint === "/auth/pin/reset" ||
+      cleanEndpoint === "/auth/pin/change") &&
+    method === "POST"
+  ) {
+    let body: any = {};
+    try {
+      body = options.body ? JSON.parse(options.body) : {};
+    } catch {
+      // ignore
+    }
+    const mobile = body.mobileNumber || "+919876543210";
+    return {
+      accessToken: "girvasa_dev_super_admin_access_token_jwt",
+      refreshToken: "girvasa_dev_super_admin_refresh_token_jwt",
+      expiresInSeconds: 604800,
+      hasPinConfigured: true,
+      deviceTrusted: true,
       user: {
         id: "usr-superadmin-001",
         mobileNumber: mobile,

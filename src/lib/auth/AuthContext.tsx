@@ -1,7 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
-import { UserResponse, OtpResponseDto } from "@/types/auth";
+import {
+  AuthTokensResponse,
+  OtpIntent,
+  OtpResponseDto,
+  UserCheckResponseDto,
+  UserResponse,
+} from "@/types/auth";
 import { endpoints } from "../api/endpoints";
 import { tokenStorage } from "./tokenStorage";
 import { broadcastSessionEvent, registerSessionSync, claimPrimaryTab, isPrimaryTab, getTabId } from "./sessionSync";
@@ -10,10 +16,16 @@ interface AuthContextType {
   user: UserResponse | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  needsPinSetup?: boolean;
   isTabSuperseded?: boolean;
   claimCurrentTab?: () => void;
-  requestOtp: (mobileNumber: string, channel?: "SMS" | "WHATSAPP") => Promise<OtpResponseDto>;
-  verifyOtp: (mobileNumber: string, otpCode: string, requestId?: string) => Promise<void>;
+  checkUser?: (mobileNumber: string) => Promise<UserCheckResponseDto>;
+  requestOtp: (mobileNumber: string, channel?: "SMS" | "WHATSAPP", intent?: OtpIntent) => Promise<OtpResponseDto>;
+  verifyOtp: (mobileNumber: string, otpCode: string, requestId?: string) => Promise<{ needsPinSetup: boolean } | void>;
+  loginWithPin?: (mobileNumber: string, pin: string) => Promise<void>;
+  setupPin?: (pin: string) => Promise<void>;
+  resetPinWithOtp?: (mobileNumber: string, otp: string, newPin: string) => Promise<void>;
+  changePinWithOtp?: (currentPin: string, otp: string, newPin: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -23,6 +35,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [needsPinSetup, setNeedsPinSetup] = useState<boolean>(false);
   const [isTabSuperseded, setIsTabSuperseded] = useState<boolean>(false);
   const [lastRequestId, setLastRequestId] = useState<string | null>(null);
 
@@ -158,8 +171,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unbind;
   }, [refreshUser]);
 
-  const requestOtp = async (mobileNumber: string, channel: "SMS" | "WHATSAPP" = "SMS"): Promise<OtpResponseDto> => {
-    const res = await endpoints.auth.requestOtp(mobileNumber, channel);
+  const checkUser = async (mobileNumber: string): Promise<UserCheckResponseDto> => {
+    return endpoints.auth.checkUser(mobileNumber);
+  };
+
+  const requestOtp = async (
+    mobileNumber: string,
+    channel: "SMS" | "WHATSAPP" = "SMS",
+    intent?: OtpIntent
+  ): Promise<OtpResponseDto> => {
+    const res = intent
+      ? await endpoints.auth.requestOtp(mobileNumber, channel, intent)
+      : await endpoints.auth.requestOtp(mobileNumber, channel);
     const challengeId = res.requestId || res.challengeId;
     if (challengeId) {
       setLastRequestId(challengeId);
@@ -167,19 +190,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return res;
   };
 
-  /**
-   * Explicit isolated login handler.
-   * Authenticates OTP challenge, verifies account status, seeds credentials, and sets primary tab.
-   */
-  const verifyOtp = async (mobileNumber: string, otpCode: string, requestId?: string): Promise<void> => {
-    const effectiveRequestId = requestId || lastRequestId || undefined;
-    const tokens = await endpoints.auth.verifyOtp(mobileNumber, otpCode, effectiveRequestId);
-
-    // Reject banned / suspended accounts before persisting tokens
+  const applyAuthenticatedSession = async (tokens: AuthTokensResponse): Promise<{ needsPinSetup: boolean }> => {
     if (tokens.user && (tokens.user.status === "SUSPENDED" || tokens.user.status === "DEACTIVATED")) {
       tokenStorage.clearTokens();
       tokenStorage.clearActiveSocietyId();
       setUser(null);
+      setNeedsPinSetup(false);
       throw new Error(`Your account is ${tokens.user.status.toLowerCase()}. Please contact society management.`);
     }
 
@@ -189,12 +205,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (tokens.refreshToken) {
       tokenStorage.setRefreshToken(tokens.refreshToken);
     }
+    const missingPin = tokens.hasPinConfigured === false;
+    setNeedsPinSetup(missingPin);
     claimPrimaryTab();
     setIsTabSuperseded(false);
 
-    // Populate user profile for the newly established session
     await refreshUser();
     broadcastSessionEvent("SESSION_LOGIN");
+    return { needsPinSetup: missingPin };
+  };
+
+  /**
+   * Explicit isolated login handler.
+   * Authenticates OTP challenge, verifies account status, seeds credentials, and sets primary tab.
+   */
+  const verifyOtp = async (
+    mobileNumber: string,
+    otpCode: string,
+    requestId?: string
+  ): Promise<{ needsPinSetup: boolean }> => {
+    const effectiveRequestId = requestId || lastRequestId || undefined;
+    const tokens = await endpoints.auth.verifyOtp(mobileNumber, otpCode, effectiveRequestId);
+    return applyAuthenticatedSession(tokens);
+  };
+
+  const loginWithPin = async (mobileNumber: string, pin: string): Promise<void> => {
+    const tokens = await endpoints.auth.loginWithPin(mobileNumber, pin);
+    await applyAuthenticatedSession(tokens);
+  };
+
+  const setupPin = async (pin: string): Promise<void> => {
+    await endpoints.auth.setupPin(pin);
+    setNeedsPinSetup(false);
+  };
+
+  const resetPinWithOtp = async (mobileNumber: string, otp: string, newPin: string): Promise<void> => {
+    const tokens = await endpoints.auth.resetPin(mobileNumber, otp, newPin);
+    await applyAuthenticatedSession(tokens);
+  };
+
+  const changePinWithOtp = async (currentPin: string, otp: string, newPin: string): Promise<void> => {
+    const tokens = await endpoints.auth.changePin(currentPin, otp, newPin);
+    await applyAuthenticatedSession(tokens);
   };
 
   const logout = async () => {
@@ -206,6 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       tokenStorage.clearTokens();
       tokenStorage.clearActiveSocietyId();
       setUser(null);
+      setNeedsPinSetup(false);
       setIsTabSuperseded(false);
       broadcastSessionEvent("SESSION_LOGOUT");
       if (typeof window !== "undefined") {
@@ -224,10 +277,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         isLoading,
+        needsPinSetup,
         isTabSuperseded,
         claimCurrentTab,
+        checkUser,
         requestOtp,
         verifyOtp,
+        loginWithPin,
+        setupPin,
+        resetPinWithOtp,
+        changePinWithOtp,
         logout,
         refreshUser,
       }}
@@ -265,10 +324,16 @@ const defaultAuthContext: AuthContextType = {
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  needsPinSetup: false,
   isTabSuperseded: false,
   claimCurrentTab: () => {},
+  checkUser: async () => ({ registered: false, status: "UNKNOWN" }),
   requestOtp: async () => ({}),
   verifyOtp: async () => {},
+  loginWithPin: async () => {},
+  setupPin: async () => {},
+  resetPinWithOtp: async () => {},
+  changePinWithOtp: async () => {},
   logout: async () => {},
   refreshUser: async () => {},
 };
