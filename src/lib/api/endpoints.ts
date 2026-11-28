@@ -1,6 +1,12 @@
 import { api } from "./client";
 import { tokenStorage } from "../auth/tokenStorage";
-import { AuthTokensResponse, OtpResponseDto, UserResponse } from "@/types/auth";
+import {
+  AuthTokensResponse,
+  OtpIntent,
+  OtpResponseDto,
+  UserCheckResponseDto,
+  UserResponse,
+} from "@/types/auth";
 import {
   CancelEmergencyAlertRequest,
   CreateEmergencyAlertRequest,
@@ -74,8 +80,22 @@ import {
 export const endpoints = {
   // Auth
   auth: {
-    requestOtp: (mobileNumber: string, channel: 'SMS' | 'WHATSAPP' = 'SMS') =>
-      api.post<OtpResponseDto>("/auth/otp/request", { mobileNumber, channel }, { skipAuth: true, skipTenant: true }),
+    checkUser: (mobileNumber: string) =>
+      api.post<UserCheckResponseDto>(
+        "/auth/check",
+        {
+          mobileNumber,
+          deviceId: tokenStorage.getOrCreateDeviceId(),
+          clientType: "WEB",
+        },
+        { skipAuth: true, skipTenant: true }
+      ),
+    requestOtp: (mobileNumber: string, channel: "SMS" | "WHATSAPP" = "SMS", intent?: OtpIntent) =>
+      api.post<OtpResponseDto>(
+        "/auth/otp/request",
+        intent ? { mobileNumber, channel, intent } : { mobileNumber, channel },
+        { skipAuth: true, skipTenant: true }
+      ),
     verifyOtp: (mobileNumber: string, otpCode: string, requestId?: string) =>
       api.post<AuthTokensResponse>(
         "/auth/otp/verify",
@@ -83,9 +103,52 @@ export const endpoints = {
           mobileNumber,
           otp: otpCode,
           clientType: "WEB",
+          deviceId: tokenStorage.getOrCreateDeviceId(),
+          deviceName: "Web Browser",
           ...(requestId ? { requestId } : {}),
         },
         { skipAuth: true, skipTenant: true }
+      ),
+    setupPin: (pin: string) =>
+      api.post<{ hasPinConfigured: boolean; deviceTrusted: boolean; message: string }>(
+        "/auth/pin/setup",
+        {
+          pin,
+          deviceId: tokenStorage.getOrCreateDeviceId(),
+          deviceName: "Web Browser",
+          clientType: "WEB",
+        },
+        { skipTenant: true }
+      ),
+    loginWithPin: (mobileNumber: string, pin: string) =>
+      api.post<AuthTokensResponse>(
+        "/auth/pin/login",
+        {
+          mobileNumber,
+          pin,
+          deviceId: tokenStorage.getOrCreateDeviceId(),
+          clientType: "WEB",
+        },
+        { skipAuth: true, skipTenant: true }
+      ),
+    resetPin: (mobileNumber: string, otp: string, newPin: string) =>
+      api.post<AuthTokensResponse>(
+        "/auth/pin/reset",
+        {
+          mobileNumber,
+          otp,
+          newPin,
+          deviceId: tokenStorage.getOrCreateDeviceId(),
+          deviceName: "Web Browser",
+          clientType: "WEB",
+        },
+        { skipAuth: true, skipTenant: true }
+      ),
+    changePin: (currentPin: string, otp: string, newPin: string) =>
+      api.post<AuthTokensResponse>(
+        "/auth/pin/change",
+        { currentPin, otp, newPin },
+        { skipTenant: true }
       ),
     logout: (refreshToken?: string) => {
       const token = refreshToken || tokenStorage.getRefreshToken();

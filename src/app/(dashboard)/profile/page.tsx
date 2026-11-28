@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   User,
   Phone,
@@ -12,14 +12,91 @@ import {
   Smartphone,
   ChevronRight,
   ShieldAlert,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useTenant } from "@/lib/tenant/TenantContext";
 import { formatDate } from "@/lib/utils";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, requestOtp, changePinWithOtp } = useAuth();
   const { currentSociety } = useTenant();
+
+  const [showPinForm, setShowPinForm] = useState(false);
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [isUpdatingPin, setIsUpdatingPin] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinSuccess, setPinSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    let t: NodeJS.Timeout;
+    if (otpSent && resendTimer > 0) {
+      t = setTimeout(() => setResendTimer((prev) => prev - 1), 1000);
+    }
+    return () => clearTimeout(t);
+  }, [otpSent, resendTimer]);
+
+  const handleSendChangeOtp = async (channel: "SMS" | "WHATSAPP") => {
+    setPinError(null);
+    setPinSuccess(null);
+    if (!user?.mobileNumber) {
+      setPinError("Registered mobile number unavailable.");
+      return;
+    }
+    setIsUpdatingPin(true);
+    try {
+      const res = await requestOtp(user.mobileNumber, channel, "PIN_CHANGE");
+      setOtpSent(true);
+      setResendTimer(typeof res.resendAfterSeconds === "number" && res.resendAfterSeconds >= 0 ? res.resendAfterSeconds : 60);
+    } catch (err: any) {
+      setPinError(err?.detail || err?.message || "Failed to send verification OTP.");
+    } finally {
+      setIsUpdatingPin(false);
+    }
+  };
+
+  const handleSubmitPinChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError(null);
+    setPinSuccess(null);
+    if (!/^\d{4}$/.test(currentPin.trim())) {
+      setPinError("Enter your current 4-digit PIN");
+      return;
+    }
+    if (!/^\d{4}$/.test(newPin.trim())) {
+      setPinError("New PIN must be 4 digits");
+      return;
+    }
+    if (newPin.trim() !== confirmPin.trim()) {
+      setPinError("New PIN and confirmation do not match");
+      return;
+    }
+    if (!/^\d{6}$/.test(otp.trim())) {
+      setPinError("Enter the 6-digit verification OTP");
+      return;
+    }
+
+    setIsUpdatingPin(true);
+    try {
+      await changePinWithOtp?.(currentPin.trim(), otp.trim(), newPin.trim());
+      setPinSuccess("Login PIN changed successfully.");
+      setShowPinForm(false);
+      setOtpSent(false);
+      setCurrentPin("");
+      setNewPin("");
+      setConfirmPin("");
+      setOtp("");
+    } catch (err: any) {
+      setPinError(err?.detail || err?.message || "Unable to update Login PIN.");
+    } finally {
+      setIsUpdatingPin(false);
+    }
+  };
 
   const assignedRoles = currentSociety?.roles && currentSociety.roles.length > 0
     ? currentSociety.roles
@@ -145,6 +222,130 @@ export default function ProfilePage() {
               <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-[11px] border border-emerald-200">
                 Active Session
               </span>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-[#070235]" />
+                  <div>
+                    <span className="text-xs font-bold text-[#070235] block">4-Digit Login PIN</span>
+                    <span className="text-[11px] text-slate-500">OTP-verified PIN update for portal access</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPinForm((v) => !v);
+                    setPinError(null);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-[#070235] text-white text-xs font-semibold hover:bg-[#131b2e]"
+                >
+                  {showPinForm ? "Cancel" : "Change 4-Digit PIN"}
+                </button>
+              </div>
+
+              {pinSuccess && (
+                <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-700">
+                  {pinSuccess}
+                </div>
+              )}
+
+              {showPinForm && (
+                <form onSubmit={handleSubmitPinChange} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+                  {pinError && (
+                    <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700">
+                      {pinError}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">Current PIN</label>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        value={currentPin}
+                        onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ""))}
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-center tracking-widest"
+                        placeholder="••••"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">New PIN</label>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        value={newPin}
+                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-center tracking-widest"
+                        placeholder="••••"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">Confirm PIN</label>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        value={confirmPin}
+                        onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-center tracking-widest"
+                        placeholder="••••"
+                      />
+                    </div>
+                  </div>
+
+                  {!otpSent ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={isUpdatingPin}
+                        onClick={() => handleSendChangeOtp("SMS")}
+                        className="px-3 py-2 rounded-lg bg-[#107A48] text-white font-semibold disabled:opacity-50"
+                      >
+                        Send SMS Verification OTP
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isUpdatingPin}
+                        onClick={() => handleSendChangeOtp("WHATSAPP")}
+                        className="px-3 py-2 rounded-lg bg-[#25D366] text-white font-semibold disabled:opacity-50"
+                      >
+                        Send via WhatsApp
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex flex-col sm:flex-row gap-2 items-center">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={6}
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                          className="w-full sm:w-44 h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-center tracking-widest"
+                          placeholder="6-digit OTP"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isUpdatingPin}
+                          className="px-4 py-2 rounded-lg bg-[#070235] text-white font-semibold disabled:opacity-50"
+                        >
+                          {isUpdatingPin ? "Updating..." : "Update Login PIN"}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                        <span>{resendTimer > 0 ? `Resend in 00:${resendTimer < 10 ? `0${resendTimer}` : resendTimer}s` : "Resend OTP:"}</span>
+                        <button type="button" disabled={resendTimer > 0} onClick={() => handleSendChangeOtp("SMS")} className="font-semibold text-[#107A48] disabled:opacity-40">SMS</button>
+                        <button type="button" disabled={resendTimer > 0} onClick={() => handleSendChangeOtp("WHATSAPP")} className="font-semibold text-[#25D366] disabled:opacity-40">WhatsApp</button>
+                      </div>
+                    </div>
+                  )}
+                </form>
+              )}
             </div>
           </div>
         </div>
